@@ -1,0 +1,3 @@
+[submodule "HyperPrismReimagined/JUCE"]
+	path = HyperPrismReimagined/JUCE
+	url = https://github.com/juce-framework/JUCE.git

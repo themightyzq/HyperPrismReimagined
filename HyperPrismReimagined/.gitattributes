@@ -1,0 +1,38 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Shell scripts should always use LF
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Batch files should use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Source files
+*.cpp text
+*.h text
+*.hpp text
+*.c text
+*.cc text
+*.cxx text
+
+# Project files
+*.jucer text
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.xcodeproj/* text
+*.pbxproj text
+
+# Binary files
+*.vst3 binary
+*.dll binary
+*.dylib binary
+*.so binary
+*.exe binary
+*.pkg binary
+*.dmg binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.ico binary
