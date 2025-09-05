@@ -16,9 +16,20 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
     
     - name: Setup CMake
       uses: lukka/get-cmake@latest
+    
+    - name: Verify JUCE submodule
+      run: |
+        if (Test-Path "HyperPrismReimagined/JUCE/CMakeLists.txt") {
+          Write-Host "✓ JUCE submodule initialized successfully"
+        } else {
+          Write-Host "✗ JUCE submodule missing - attempting manual initialization"
+          git submodule update --init --recursive
+        }
     
     - name: Configure
       run: |
