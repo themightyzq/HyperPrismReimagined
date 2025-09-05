@@ -1,0 +1,60 @@
+{
+  "Name": "HyperPrism Reimagined Bass Maximiser",
+  "Version": "1.0.0",
+  "Factory Info": {
+    "Vendor": "ZQ SFX",
+    "URL": "",
+    "E-Mail": "",
+    "Flags": {
+      "Unicode": true,
+      "Classes Discardable": false,
+      "Component Non Discardable": false,
+    },
+  },
+  "Classes": [
+    {
+      "CID": "ABCDEF019182FAEB5A51465848626D78",
+      "Category": "Audio Module Class",
+      "Name": "HyperPrism Reimagined Bass Maximiser",
+      "Vendor": "ZQ SFX",
+      "Version": "1.0.0",
+      "SDKVersion": "VST 3.7.12",
+      "Sub Categories": [
+        "Fx",
+        "Distortion",
+      ],
+      "Class Flags": 0,
+      "Cardinality": 2147483647,
+      "Snapshots": [
+      ],
+    },
+    {
+      "CID": "ABCDEF011234ABCD5A51465848626D78",
+      "Category": "Component Controller Class",
+      "Name": "HyperPrism Reimagined Bass Maximiser",
+      "Vendor": "ZQ SFX",
+      "Version": "1.0.0",
+      "SDKVersion": "VST 3.7.12",
+      "Sub Categories": [
+        "Fx",
+        "Distortion",
+      ],
+      "Class Flags": 0,
+      "Cardinality": 2147483647,
+      "Snapshots": [
+      ],
+    },
+    {
+      "CID": "ABCDEF01C0DEF00D5A51465848626D78",
+      "Category": "Plugin Compatibility Class",
+      "Name": "HyperPrism Reimagined Bass Maximiser",
+      "Vendor": "ZQ SFX",
+      "Version": "1.0.0",
+      "SDKVersion": "VST 3.7.12",
+      "Class Flags": 0,
+      "Cardinality": 2147483647,
+      "Snapshots": [
+      ],
+    },
+  ],
+}

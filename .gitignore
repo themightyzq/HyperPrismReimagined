@@ -1,0 +1,92 @@
+# Claude AI specific files
+.claude/
+CLAUDE.md
+.dvignore
+.diversion/
+
+# Archive folders
+Archive/
+zARCHIVE/
+
+# Windows build scripts (keep locally but not in repo)
+build_windows_option*.sh
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Build artifacts
+HyperPrismReimagined/build/
+HyperPrismReimagined/build-*/
+*.o
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE files
+.vscode/
+.idea/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.pbxuser
+*.xcuserstate
+
+# JUCE specific
+HyperPrismReimagined/JuceLibraryCode/
+HyperPrismReimagined/Builds/
+
+# Distribution builds (keep source, ignore built)
+HyperPrismReimagined/Distribution/Mac/VST3/*.vst3
+HyperPrismReimagined/Distribution/Mac/AU/*.component
+HyperPrismReimagined/Distribution/Windows/
+
+# Temporary files
+*.tmp
+*.temp
+notarization_temp*/
+*~
+*.swp
+*.swo
+
+# Archive folder (optional - uncomment to exclude from repo)
+# Archive/
+
+# Credentials and sensitive data
+*.keychain
+credentials.json
+.env
+*.p12
+*.cer
+*.key
+google-services.json
+**/google-services.json
+
+# Large binary files
+*.zip
+*.dmg
+*.pkg
+*.exe
+*.msi
