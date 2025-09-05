@@ -30,9 +30,14 @@ function(configure_hyperprism_plugin target_name)
             JUCE_VST3_CAN_REPLACE_VST2=0
             JUCE_DISPLAY_SPLASH_SCREEN=0
             JUCE_REPORT_APP_USAGE=0
-            JUCE_JACK=1
-            JUCE_ALSA=1
     )
+    
+    # Platform-specific audio system definitions
+    if(APPLE OR UNIX AND NOT WIN32)
+        target_compile_definitions(${target_name} PUBLIC JUCE_JACK=1 JUCE_ALSA=1)
+    else()
+        target_compile_definitions(${target_name} PUBLIC JUCE_JACK=0 JUCE_ALSA=0)
+    endif()
 
     target_link_libraries(${target_name}
         PRIVATE
