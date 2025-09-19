@@ -28,7 +28,7 @@ jobs:
       run: |
         cd HyperPrismReimagined
         mkdir -p dist/macOS
-        find build -name "*.vst3" -type d -exec cp -R {} dist/macOS/ \;
+        find build/*_artefacts/Release/VST3 -name "*.vst3" -type d -exec cp -R {} dist/macOS/ \;
         cd dist/macOS
         zip -r ../../HyperPrism-macOS-${{ github.ref_name }}.zip .
     
@@ -61,7 +61,7 @@ jobs:
       run: |
         cd HyperPrismReimagined
         mkdir -p dist/Windows
-        find build -name "*.vst3" -type d -exec cp -R {} dist/Windows/ \;
+        find build/*_artefacts/Release/VST3 -name "*.vst3" -type d -exec cp -R {} dist/Windows/ \;
         cd dist/Windows
         7z a -tzip ../../HyperPrism-Windows-${{ github.ref_name }}.zip .
     

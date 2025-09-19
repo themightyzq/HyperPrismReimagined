@@ -47,4 +47,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: windows-vst3-plugins
-        path: HyperPrismReimagined/build-windows/**/Release/VST3/*.vst3
+        path: HyperPrismReimagined/build-windows/*_artefacts/Release/VST3/*.vst3
