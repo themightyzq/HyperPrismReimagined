@@ -47,7 +47,7 @@ jobs:
     - name: Verify Universal Binary
       run: |
         echo "Verifying Universal Binary builds:"
-        for vst in HyperPrismReimagined/build-macos/**/VST3/*.vst3; do
+        for vst in HyperPrismReimagined/build-macos/*_artefacts/Release/VST3/*.vst3; do
           if [ -d "$vst" ]; then
             vst_name=$(basename "$vst" .vst3)
             binary_path="$vst/Contents/MacOS/$vst_name"
@@ -61,11 +61,11 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: macos-vst3-plugins
-        path: HyperPrismReimagined/build-macos/**/VST3/*.vst3
+        path: HyperPrismReimagined/build-macos/*_artefacts/Release/VST3/*.vst3
     
     - name: Upload AU Artifacts (if built)
       uses: actions/upload-artifact@v4
       with:
         name: macos-au-plugins
-        path: HyperPrismReimagined/build-macos/**/AU/*.component
+        path: HyperPrismReimagined/build-macos/*_artefacts/Release/AU/*.component
       continue-on-error: true # AU might not be built on all configs
