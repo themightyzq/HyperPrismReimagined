@@ -44,10 +44,25 @@ jobs:
         cd HyperPrismReimagined/build-macos
         cmake --build . --config Release -j$(sysctl -n hw.ncpu)
     
+    - name: List build artifacts
+      run: |
+        echo "=== Build directory structure ==="
+        find HyperPrismReimagined/build-macos -name "*.vst3" -type d | head -20
+        echo ""
+        echo "=== Checking for VST3 plugins ==="
+        ls -la HyperPrismReimagined/build-macos/*_artefacts/Release/VST3/ 2>/dev/null || echo "No VST3 directory found with *_artefacts pattern"
+        ls -la HyperPrismReimagined/build-macos/*/Release/VST3/ 2>/dev/null || echo "No VST3 directory found with */Release pattern"
+        echo ""
+        echo "=== First level directories ==="
+        ls -la HyperPrismReimagined/build-macos/ | head -20
+    
     - name: Verify Universal Binary
       run: |
         echo "Verifying Universal Binary builds:"
-        for vst in HyperPrismReimagined/build-macos/*_artefacts/Release/VST3/*.vst3; do
+        # Try multiple possible paths
+        for vst in HyperPrismReimagined/build-macos/*_artefacts/Release/VST3/*.vst3 \
+                   HyperPrismReimagined/build-macos/*/Release/VST3/*.vst3 \
+                   HyperPrismReimagined/build-macos/*_artefacts/Debug/VST3/*.vst3; do
           if [ -d "$vst" ]; then
             vst_name=$(basename "$vst" .vst3)
             binary_path="$vst/Contents/MacOS/$vst_name"
@@ -61,11 +76,17 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: macos-vst3-plugins
-        path: HyperPrismReimagined/build-macos/*_artefacts/Release/VST3/*.vst3
+        path: |
+          HyperPrismReimagined/build-macos/*_artefacts/Release/VST3/*.vst3
+          HyperPrismReimagined/build-macos/*_artefacts/Debug/VST3/*.vst3
+        if-no-files-found: warn
     
     - name: Upload AU Artifacts (if built)
       uses: actions/upload-artifact@v4
       with:
         name: macos-au-plugins
-        path: HyperPrismReimagined/build-macos/*_artefacts/Release/AU/*.component
+        path: |
+          HyperPrismReimagined/build-macos/*_artefacts/Release/AU/*.component
+          HyperPrismReimagined/build-macos/*_artefacts/Debug/AU/*.component
+        if-no-files-found: ignore
       continue-on-error: true # AU might not be built on all configs
