@@ -66,7 +66,20 @@ HyperPrism Reimagined brings the legendary 1990s HyperPrism effects into the mod
 - macOS 10.13+ or Windows 10+
 - CMake 3.25+
 - Xcode 12+ (macOS) or Visual Studio 2019+ (Windows)
-- JUCE framework (included as submodule)
+- Git (for cloning with submodules)
+
+### Clone the Repository
+
+```bash
+# Clone with submodules (recommended)
+git clone --recursive https://github.com/themightyzq/HyperPrismReimagined.git
+cd HyperPrismReimagined
+
+# OR if you already cloned without --recursive:
+git clone https://github.com/themightyzq/HyperPrismReimagined.git
+cd HyperPrismReimagined
+git submodule update --init --recursive
+```
 
 ### Build Instructions
 
