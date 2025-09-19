@@ -105,9 +105,9 @@ See `HyperPrismReimagined/PLUGIN_UX_UI_AUDIT.md` for detailed technical document
 
 ## License
 
-Copyright © 2025 Zachary Quarles / Revival Project
+Copyright © 2025 ZQ SFX
 
 ## Credits
 
 Original HyperPrism concept by Arboretum Systems (1990s)
-Modern recreation by Zachary Quarles using JUCE framework
+Modern recreation by ZQ SFX using JUCE framework
