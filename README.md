@@ -103,6 +103,24 @@ cmake --build . --config Release
 - **VST3**: Copy to `/Library/Audio/Plug-Ins/VST3/`
 - **AU**: Copy to `/Library/Audio/Plug-Ins/Components/`
 
+#### macOS Security (Gatekeeper)
+Since these plugins are not notarized, macOS may show an "unidentified developer" warning. To bypass:
+
+1. **First time opening** (for each plugin):
+   - Right-click on the plugin file in `/Library/Audio/Plug-Ins/VST3/`
+   - Select "Open" from the context menu
+   - Click "Open" in the security dialog
+   
+2. **Alternative method**:
+   - Go to System Preferences → Security & Privacy
+   - Click "Open Anyway" after the warning appears
+   
+3. **For multiple plugins** (Terminal):
+   ```bash
+   # Remove quarantine attribute from all plugins
+   sudo xattr -cr /Library/Audio/Plug-Ins/VST3/*.vst3
+   ```
+
 ### Windows
 - **VST3**: Copy to `C:\Program Files\Common Files\VST3\`
 

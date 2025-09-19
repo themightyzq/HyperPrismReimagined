@@ -102,7 +102,9 @@ jobs:
           ### macOS
           1. Download and extract the macOS zip file
           2. Copy the .vst3 files to `/Library/Audio/Plug-Ins/VST3/`
-          3. Rescan plugins in your DAW
+          3. **Important**: Since plugins are not notarized, right-click each plugin and select "Open" to bypass Gatekeeper
+             - Alternative: Run `sudo xattr -cr /Library/Audio/Plug-Ins/VST3/*.vst3` in Terminal
+          4. Rescan plugins in your DAW
           
           ### Windows
           1. Download and extract the Windows zip file
