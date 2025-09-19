@@ -1,0 +1,129 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+    
+    - name: Build macOS Universal Binary
+      run: |
+        cd HyperPrismReimagined
+        mkdir build
+        cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+        cmake --build . --config Release -j$(sysctl -n hw.ncpu)
+    
+    - name: Package macOS Plugins
+      run: |
+        cd HyperPrismReimagined
+        mkdir -p dist/macOS
+        find build -name "*.vst3" -type d -exec cp -R {} dist/macOS/ \;
+        cd dist/macOS
+        zip -r ../../HyperPrism-macOS-${{ github.ref_name }}.zip .
+    
+    - name: Upload macOS Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-plugins
+        path: HyperPrismReimagined/HyperPrism-macOS-*.zip
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+    
+    - name: Build Windows
+      run: |
+        cd HyperPrismReimagined
+        mkdir build
+        cd build
+        cmake .. -G "Visual Studio 17 2022" -A x64
+        cmake --build . --config Release --parallel
+    
+    - name: Package Windows Plugins
+      shell: bash
+      run: |
+        cd HyperPrismReimagined
+        mkdir -p dist/Windows
+        find build -name "*.vst3" -type d -exec cp -R {} dist/Windows/ \;
+        cd dist/Windows
+        7z a -tzip ../../HyperPrism-Windows-${{ github.ref_name }}.zip .
+    
+    - name: Upload Windows Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-plugins
+        path: HyperPrismReimagined/HyperPrism-Windows-*.zip
+
+  create-release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: HyperPrism Reimagined ${{ github.ref_name }}
+        body: |
+          # HyperPrism Reimagined ${{ github.ref_name }}
+          
+          ## Downloads
+          - **macOS (Universal Binary)**: Supports Apple Silicon and Intel Macs
+          - **Windows (x64)**: For Windows 10/11
+          
+          ## Installation
+          
+          ### macOS
+          1. Download and extract the macOS zip file
+          2. Copy the .vst3 files to `/Library/Audio/Plug-Ins/VST3/`
+          3. Rescan plugins in your DAW
+          
+          ### Windows
+          1. Download and extract the Windows zip file
+          2. Copy the .vst3 files to `C:\Program Files\Common Files\VST3\`
+          3. Rescan plugins in your DAW
+          
+          ## What's New
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/${{ github.ref_name }}/CHANGELOG.md) for details.
+          
+          ## Plugin List
+          This release includes all 32 HyperPrism plugins:
+          - Dynamics: Compressor, Limiter, Noise Gate, Stereo Dynamics
+          - Filters: High-Pass, Low-Pass, Band-Pass, Band-Reject
+          - Delays: Delay, Single Delay, Echo, Multi Delay
+          - Modulation: Chorus, Flanger, Phaser, HyperPhaser, Tremolo, Vibrato, Auto Pan
+          - Pitch/Frequency: Pitch Changer, Frequency Shifter, Ring Modulator, Vocoder
+          - Spatial: Pan, Quasi Stereo, More Stereo, M+S Matrix, Reverb
+          - Distortion: Tube/Tape Saturation, Harmonic Exciter, Sonic Decimator, Bass Maximizer
+        
+        draft: false
+        prerelease: false
+        files: |
+          artifacts/macos-plugins/*.zip
+          artifacts/windows-plugins/*.zip
