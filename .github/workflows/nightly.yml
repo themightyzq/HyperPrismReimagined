@@ -1,0 +1,65 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Runs at 2 AM UTC every day
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should-build: ${{ steps.check.outputs.should-build }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Check for recent changes
+      id: check
+      run: |
+        # Only build if there were commits in the last 24 hours
+        if [[ $(git log --since="24 hours ago" --oneline) ]]; then
+          echo "should-build=true" >> $GITHUB_OUTPUT
+        else
+          echo "should-build=false" >> $GITHUB_OUTPUT
+        fi
+
+  nightly-release:
+    needs: check-changes
+    if: needs.check-changes.outputs.should-build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Delete old nightly release
+      uses: dev-drprasad/delete-tag-and-release@v1.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        tag_name: nightly
+        delete_release: true
+      continue-on-error: true
+    
+    - name: Trigger builds and create nightly
+      run: |
+        # This would trigger the main release workflow
+        # Or you could copy the build steps here
+        
+    - name: Create Nightly Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: nightly
+        name: Nightly Build
+        body: |
+          ## ⚠️ Development Build
+          
+          This is an automated nightly build from the latest main branch.
+          - Built from commit: ${{ github.sha }}
+          - Date: ${{ github.event.repository.updated_at }}
+          
+          **Note**: This build may be unstable. For production use, download the latest stable release.
+        prerelease: true
+        generate_release_notes: true

@@ -33,6 +33,9 @@ Temporary Items
 # Build artifacts
 HyperPrismReimagined/build/
 HyperPrismReimagined/build-*/
+HyperPrismReimagined/build.log
+HyperPrismReimagined/plugin_backups/
+temp_parser_*.cpp
 *.o
 *.obj
 *.pdb
