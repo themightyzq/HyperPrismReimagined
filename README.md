@@ -105,7 +105,7 @@ See `HyperPrismReimagined/PLUGIN_UX_UI_AUDIT.md` for detailed technical document
 
 ## License
 
-Copyright © 2025 ZQ SFX / Revival Project
+Copyright © 2025 ZQ SFX
 
 ## Credits
 
