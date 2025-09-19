@@ -87,6 +87,11 @@ credentials.json
 google-services.json
 **/google-services.json
 
+# JUCE demo and example files
+HyperPrismReimagined/JUCE/examples/
+HyperPrismReimagined/JUCE/extras/
+HyperPrismReimagined/JUCE/DemoRunner.app/
+
 # Large binary files
 *.zip
 *.dmg
