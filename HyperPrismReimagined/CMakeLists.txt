@@ -33,7 +33,14 @@ function(configure_hyperprism_plugin target_name)
     )
     
     # Platform-specific audio system definitions
-    if(APPLE OR UNIX AND NOT WIN32)
+    # Disable JACK/ALSA on CI environments or Windows
+    if(DEFINED ENV{CI} OR WIN32)
+        target_compile_definitions(${target_name} PUBLIC JUCE_JACK=0 JUCE_ALSA=0)
+    elseif(APPLE)
+        # On local macOS builds, JACK is optional but ALSA is not used
+        target_compile_definitions(${target_name} PUBLIC JUCE_JACK=0 JUCE_ALSA=0)
+    elseif(UNIX)
+        # On Linux, enable both JACK and ALSA
         target_compile_definitions(${target_name} PUBLIC JUCE_JACK=1 JUCE_ALSA=1)
     else()
         target_compile_definitions(${target_name} PUBLIC JUCE_JACK=0 JUCE_ALSA=0)
