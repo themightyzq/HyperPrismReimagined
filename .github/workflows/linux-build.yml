@@ -1,0 +1,108 @@
+# GitHub Actions workflow for automated Linux builds
+# Builds VST3 plugins for x86_64 Linux
+# Lessons learned from macOS/Windows CI issues:
+# 1. Install JACK/ALSA dev headers (they're enabled on Linux in CMakeLists.txt:44)
+# 2. Use correct artifact path: *_artefacts/Release/VST3/*.vst3 (not **/VST3/)
+# 3. Initialize submodules recursively
+
+name: Linux Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive  # Critical: Initialize JUCE submodule
+
+    - name: Install Linux Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          libasound2-dev \
+          libjack-jackd2-dev \
+          libfreetype6-dev \
+          libx11-dev \
+          libxext-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          ninja-build
+
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+
+    - name: Verify JUCE submodule
+      run: |
+        if [ -f "HyperPrismReimagined/JUCE/CMakeLists.txt" ]; then
+          echo "✓ JUCE submodule initialized successfully"
+        else
+          echo "✗ JUCE submodule missing - attempting manual initialization"
+          git submodule update --init --recursive
+        fi
+
+    - name: Configure
+      run: |
+        cd HyperPrismReimagined
+        mkdir build-linux
+        cd build-linux
+        cmake .. -DCMAKE_BUILD_TYPE=Release \
+                 -DJUCE_BUILD_EXTRAS=OFF \
+                 -DJUCE_BUILD_EXAMPLES=OFF
+
+    - name: Build
+      run: |
+        cd HyperPrismReimagined/build-linux
+        cmake --build . --config Release -j$(nproc)
+
+    - name: List build artifacts (Debug)
+      run: |
+        echo "=== Searching for VST3 plugins in build directory ==="
+        find HyperPrismReimagined/build-linux -name "*.vst3" -type d | head -20
+        echo ""
+        echo "=== Checking JUCE standard output path ==="
+        ls -la HyperPrismReimagined/build-linux/*_artefacts/Release/VST3/ 2>/dev/null || echo "Standard path not found, checking alternatives..."
+        echo ""
+        echo "=== Top-level build directory contents ==="
+        ls -la HyperPrismReimagined/build-linux/ | head -20
+
+    - name: Verify VST3 Structure
+      run: |
+        echo "Verifying VST3 plugin structure:"
+        for vst in HyperPrismReimagined/build-linux/*_artefacts/Release/VST3/*.vst3; do
+          if [ -d "$vst" ]; then
+            echo "✓ Found: $(basename "$vst")"
+            # Check for the binary inside
+            find "$vst" -name "*.so" | head -1
+          fi
+        done
+
+    - name: Upload VST3 Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-vst3-plugins
+        path: |
+          HyperPrismReimagined/build-linux/*_artefacts/Release/VST3/*.vst3
+          HyperPrismReimagined/build-linux/*_artefacts/Debug/VST3/*.vst3
+        if-no-files-found: warn
+
+    - name: Upload Standalone Artifacts (if built)
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-standalone-apps
+        path: |
+          HyperPrismReimagined/build-linux/*_artefacts/Release/Standalone/*
+          HyperPrismReimagined/build-linux/*_artefacts/Debug/Standalone/*
+        if-no-files-found: ignore
+      continue-on-error: true # Standalone might not be built
