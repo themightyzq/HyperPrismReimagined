@@ -31,6 +31,8 @@ jobs:
           libasound2-dev \
           libjack-jackd2-dev \
           libfreetype6-dev \
+          libfontconfig1-dev \
+          libcurl4-openssl-dev \
           libx11-dev \
           libxext-dev \
           libxrandr-dev \
@@ -38,7 +40,8 @@ jobs:
           libxcursor-dev \
           libgl1-mesa-dev \
           libglu1-mesa-dev \
-          ninja-build
+          ninja-build \
+          pkg-config
 
     - name: Setup CMake
       uses: lukka/get-cmake@latest
