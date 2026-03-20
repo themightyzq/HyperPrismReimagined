@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Band-Pass Filter Processor Implementation
+// HyperPrism Reimagined - Band-Pass Filter Processor Implementation
 //==============================================================================
 
 #include "BandPassProcessor.h"
@@ -120,6 +120,8 @@ void BandPassProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     mixSmoothed.setCurrentAndTargetValue(*valueTreeState.getRawParameterValue(MIX_ID));
     
     updateFilters();
+
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void BandPassProcessor::releaseResources()
@@ -169,7 +171,6 @@ void BandPassProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     mixSmoothed.setTargetValue(*valueTreeState.getRawParameterValue(MIX_ID));
 
     // Store dry signal for mixing
-    juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
 
     // Always update filters to ensure real-time parameter changes

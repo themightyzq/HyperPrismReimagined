@@ -183,11 +183,6 @@ void DelayMeter::paint(juce::Graphics& g)
     }
     
     g.strokePath(delayPath, juce::PathStrokeType(1.5f));
-    
-    // Delay visualization label
-    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
-    g.setFont(8.0f);
-    g.drawText("Delay Buffer", delayVisualArea.removeFromBottom(10), juce::Justification::centred);
 }
 
 void DelayMeter::timerCallback()
@@ -223,20 +218,34 @@ SingleDelayEditor::SingleDelayEditor(SingleDelayProcessor& p)
     xParameterIDs.add(SingleDelayProcessor::DELAY_TIME_ID);
     yParameterIDs.add(SingleDelayProcessor::FEEDBACK_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Single Delay", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("SINGLE DELAY", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
-    
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
+
     // Setup sliders with consistent style
-    setupSlider(delayTimeSlider, delayTimeLabel, "Delay Time", " ms");
-    setupSlider(feedbackSlider, feedbackLabel, "Feedback", "");
-    setupSlider(wetDryMixSlider, wetDryMixLabel, "Wet/Dry Mix", "");
-    setupSlider(highCutSlider, highCutLabel, "High Cut", " Hz");
-    setupSlider(lowCutSlider, lowCutLabel, "Low Cut", " Hz");
-    setupSlider(stereoSpreadSlider, stereoSpreadLabel, "Stereo Spread", "");
+    setupSlider(delayTimeSlider, delayTimeLabel, "Delay Time");
+    setupSlider(feedbackSlider, feedbackLabel, "Feedback");
+    setupSlider(wetDryMixSlider, wetDryMixLabel, "Mix");
+    setupSlider(highCutSlider, highCutLabel, "High Cut");
+    setupSlider(lowCutSlider, lowCutLabel, "Low Cut");
+    setupSlider(stereoSpreadSlider, stereoSpreadLabel, "Stereo Spread");
+
+    // Color-code knobs by parameter category
+    delayTimeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    feedbackSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    wetDryMixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
+    highCutSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
+    lowCutSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
+    stereoSpreadSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
     
     // Set parameter ranges (example ranges - adjust based on processor)
     delayTimeSlider.setRange(1.0, 4000.0, 0.1);
@@ -253,12 +262,29 @@ SingleDelayEditor::SingleDelayEditor(SingleDelayProcessor& p)
     highCutLabel.onClick = [this]() { showParameterMenu(&highCutLabel, SingleDelayProcessor::HIGH_CUT_ID); };
     lowCutLabel.onClick = [this]() { showParameterMenu(&lowCutLabel, SingleDelayProcessor::LOW_CUT_ID); };
     stereoSpreadLabel.onClick = [this]() { showParameterMenu(&stereoSpreadLabel, SingleDelayProcessor::STEREO_SPREAD_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    delayTimeSlider.addMouseListener(this, true);
+    delayTimeSlider.getProperties().set("xyParamID", SingleDelayProcessor::DELAY_TIME_ID);
+    feedbackSlider.addMouseListener(this, true);
+    feedbackSlider.getProperties().set("xyParamID", SingleDelayProcessor::FEEDBACK_ID);
+    wetDryMixSlider.addMouseListener(this, true);
+    wetDryMixSlider.getProperties().set("xyParamID", SingleDelayProcessor::WETDRY_MIX_ID);
+    highCutSlider.addMouseListener(this, true);
+    highCutSlider.getProperties().set("xyParamID", SingleDelayProcessor::HIGH_CUT_ID);
+    lowCutSlider.addMouseListener(this, true);
+    lowCutSlider.getProperties().set("xyParamID", SingleDelayProcessor::LOW_CUT_ID);
+    stereoSpreadSlider.addMouseListener(this, true);
+    stereoSpreadSlider.getProperties().set("xyParamID", SingleDelayProcessor::STEREO_SPREAD_ID);
+
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -283,19 +309,16 @@ SingleDelayEditor::SingleDelayEditor(SingleDelayProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Delay Time / Feedback", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
         updateParametersFromXYPad(x, y);
     };
-    
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+
     // Add delay meter
     addAndMakeVisible(delayMeter);
-    delayMeterLabel.setText("I/O Levels & Delay", juce::dontSendNotification);
-    delayMeterLabel.setJustificationType(juce::Justification::centred);
-    delayMeterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(delayMeterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -309,7 +332,18 @@ SingleDelayEditor::SingleDelayEditor(SingleDelayProcessor& p)
     lowCutSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     stereoSpreadSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    delayTimeSlider.setTooltip("Delay time in milliseconds");
+    feedbackSlider.setTooltip("Amount of delayed signal fed back for repeating echoes");
+    lowCutSlider.setTooltip("Remove low frequencies from the delayed signal");
+    highCutSlider.setTooltip("Remove high frequencies from the delayed signal");
+    wetDryMixSlider.setTooltip("Balance between dry and delayed signal");
+    stereoSpreadSlider.setTooltip("Overall output volume");
+    bypassButton.setTooltip("Bypass the effect");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 SingleDelayEditor::~SingleDelayEditor()
@@ -319,129 +353,162 @@ SingleDelayEditor::~SingleDelayEditor()
 
 void SingleDelayEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70), juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(delayTimeSlider.getX() - 2, delayTimeSlider.getY() - 20, 120,
+                      "TIMING", HyperPrismLookAndFeel::Colors::timing);
+    paintColumnHeader(lowCutSlider.getX() - 2, lowCutSlider.getY() - 20, 120,
+                      "TONE", HyperPrismLookAndFeel::Colors::frequency);
+
+    paintColumnHeader(outputSectionX, outputSectionY,
+                      getWidth() - outputSectionX - 12,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void SingleDelayEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Optimized layout for 650x600 - single row with all 6 controls
-    auto sliderWidth = 75;
-    auto spacing = 12;
-    
-    // Single row with all 6 controls
-    auto controlsRow = bounds.removeFromTop(130);
-    auto totalControlsWidth = sliderWidth * 6 + spacing * 5;
-    auto controlsStartX = (bounds.getWidth() - totalControlsWidth) / 2;
-    controlsRow.removeFromLeft(controlsStartX);
-    
-    // All controls in one row: Delay Time, Feedback, Wet/Dry Mix, High Cut, Low Cut, Stereo Spread
-    delayTimeSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    delayTimeLabel.setBounds(delayTimeSlider.getX(), delayTimeSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    feedbackSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    feedbackLabel.setBounds(feedbackSlider.getX(), feedbackSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    wetDryMixSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    wetDryMixLabel.setBounds(wetDryMixSlider.getX(), wetDryMixSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    highCutSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    highCutLabel.setBounds(highCutSlider.getX(), highCutSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    lowCutSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    lowCutLabel.setBounds(lowCutSlider.getX(), lowCutSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    stereoSpreadSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    stereoSpreadLabel.setBounds(stereoSpreadSlider.getX(), stereoSpreadSlider.getBottom(), sliderWidth, 20);
-    
-    // Bottom section - XY Pad and Meter side by side (brought up)
-    bounds.removeFromTop(15);
-    
-    // Split remaining space horizontally for XY pad and meter
-    auto bottomArea = bounds;
-    auto panelHeight = 180; // Standard XY pad height
-    
-    // Calculate positioning to center both panels
-    auto xyPadWidth = 200;
-    auto meterSize = 180;
-    auto totalBottomWidth = xyPadWidth + 20 + meterSize; // XY pad + spacing + meter
-    auto bottomStartX = (bottomArea.getWidth() - totalBottomWidth) / 2;
-    
-    // XY Pad on left
-    auto xyPadBounds = bottomArea.withX(bottomArea.getX() + bottomStartX).withWidth(xyPadWidth).withHeight(panelHeight);
-    xyPad.setBounds(xyPadBounds);
-    
-    // Delay meter on right (matching height)
-    auto meterBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(meterSize).withHeight(panelHeight);
-    delayMeter.setBounds(meterBounds);
-    
-    // Align labels at the same Y position
-    auto labelY = xyPadBounds.getBottom() + 5;
-    xyPadLabel.setBounds(xyPad.getX(), labelY, xyPadWidth, 20);
-    delayMeterLabel.setBounds(delayMeter.getX(), labelY, meterSize, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: Two parameter columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 80;
+    int vSpace = 107;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: TIMING -- Delay Time, Feedback, Stereo Spread
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(delayTimeSlider, delayTimeLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(feedbackSlider, feedbackLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(stereoSpreadSlider, stereoSpreadLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // Column 2: TONE -- Low Cut, High Cut
+    centerKnob(lowCutSlider, lowCutLabel, col2.getX(), colWidth, y1, knobDiam);
+    centerKnob(highCutSlider, highCutLabel, col2.getX(), colWidth, y1 + vSpace, knobDiam);
+
+    // --- Right side: XY pad + output + meter ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Bottom right: Output knob + Delay Meter
+    auto bottomRight = rightSide;
+    auto outputArea = bottomRight.removeFromLeft(140);
+    auto meterArea = bottomRight.reduced(4);
+
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+    centerKnob(wetDryMixSlider, wetDryMixLabel, outputArea.getX() + 20, 100, outY + outKnob / 2, outKnob);
+
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
+
+    // Meter
+    delayMeter.setBounds(meterArea.reduced(4));
 }
 
 void SingleDelayEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void SingleDelayEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    delayTimeLabel.setColour(juce::Label::textColourId, neutralColor);
+    feedbackLabel.setColour(juce::Label::textColourId, neutralColor);
+    wetDryMixLabel.setColour(juce::Label::textColourId, neutralColor);
+    highCutLabel.setColour(juce::Label::textColourId, neutralColor);
+    lowCutLabel.setColour(juce::Label::textColourId, neutralColor);
+    stereoSpreadLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(delayTimeLabel, SingleDelayProcessor::DELAY_TIME_ID);
-    updateLabelColor(feedbackLabel, SingleDelayProcessor::FEEDBACK_ID);
-    updateLabelColor(wetDryMixLabel, SingleDelayProcessor::WETDRY_MIX_ID);
-    updateLabelColor(highCutLabel, SingleDelayProcessor::HIGH_CUT_ID);
-    updateLabelColor(lowCutLabel, SingleDelayProcessor::LOW_CUT_ID);
-    updateLabelColor(stereoSpreadLabel, SingleDelayProcessor::STEREO_SPREAD_ID);
+
+    updateSliderXY(delayTimeSlider, SingleDelayProcessor::DELAY_TIME_ID);
+    updateSliderXY(feedbackSlider, SingleDelayProcessor::FEEDBACK_ID);
+    updateSliderXY(wetDryMixSlider, SingleDelayProcessor::WETDRY_MIX_ID);
+    updateSliderXY(highCutSlider, SingleDelayProcessor::HIGH_CUT_ID);
+    updateSliderXY(lowCutSlider, SingleDelayProcessor::LOW_CUT_ID);
+    updateSliderXY(stereoSpreadSlider, SingleDelayProcessor::STEREO_SPREAD_ID);
+    repaint();
 }
 
 void SingleDelayEditor::updateXYPadFromParameters()
@@ -500,7 +567,18 @@ void SingleDelayEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void SingleDelayEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void SingleDelayEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void SingleDelayEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -520,7 +598,7 @@ void SingleDelayEditor::showParameterMenu(juce::Label* label, const juce::String
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {
@@ -575,7 +653,7 @@ void SingleDelayEditor::updateXYPadLabel()
     auto getParameterName = [](const juce::String& paramID) -> juce::String {
         if (paramID == SingleDelayProcessor::DELAY_TIME_ID) return "Delay Time";
         if (paramID == SingleDelayProcessor::FEEDBACK_ID) return "Feedback";
-        if (paramID == SingleDelayProcessor::WETDRY_MIX_ID) return "Wet/Dry Mix";
+        if (paramID == SingleDelayProcessor::WETDRY_MIX_ID) return "Mix";
         if (paramID == SingleDelayProcessor::HIGH_CUT_ID) return "High Cut";
         if (paramID == SingleDelayProcessor::LOW_CUT_ID) return "Low Cut";
         if (paramID == SingleDelayProcessor::STEREO_SPREAD_ID) return "Stereo Spread";

@@ -9,9 +9,9 @@ option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Enable Module Source Groups" ON)
 # Adding the JUCE subfolder
 add_subdirectory(JUCE)
 
-# Define plugin formats to build
+# Define plugin formats to build (VST3 only - no AU)
 if(APPLE)
-    set(PLUGIN_FORMATS AU VST3 Standalone)
+    set(PLUGIN_FORMATS VST3 Standalone)
 elseif(WIN32)
     set(PLUGIN_FORMATS VST3 Standalone)
 else()

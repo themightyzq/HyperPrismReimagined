@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Pan Processor
+// HyperPrism Reimagined - Pan Processor
 //==============================================================================
 
 #include "PanProcessor.h"
@@ -82,8 +82,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout PanProcessor::createParamete
 //==============================================================================
 void PanProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    juce::ignoreUnused(samplesPerBlock);
-    
     // Initialize smoothed values
     smoothedLeftGain.reset(sampleRate, 0.05); // 50ms smoothing
     smoothedRightGain.reset(sampleRate, 0.05);
@@ -93,6 +91,8 @@ void PanProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     // Reset metering
     leftLevel.store(0.0f);
     rightLevel.store(0.0f);
+
+    originalBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void PanProcessor::releaseResources()
@@ -166,7 +166,6 @@ void PanProcessor::processPanning(juce::AudioBuffer<float>& buffer)
     auto* rightData = buffer.getWritePointer(1);
     
     // Store original signals for stereo width processing
-    juce::AudioBuffer<float> originalBuffer;
     originalBuffer.makeCopyOf(buffer);
     const auto* originalLeft = originalBuffer.getReadPointer(0);
     const auto* originalRight = originalBuffer.getReadPointer(1);

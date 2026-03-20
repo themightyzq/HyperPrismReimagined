@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Quasi Stereo Processor
+// HyperPrism Reimagined - Quasi Stereo Processor
 //==============================================================================
 
 #include "QuasiStereoProcessor.h"
@@ -65,7 +65,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout QuasiStereoProcessor::create
         PHASE_SHIFT_ID, "Phase Shift", 
         juce::NormalisableRange<float>(0.0f, 180.0f, 1.0f), 90.0f,
         juce::String(), juce::AudioProcessorParameter::genericParameter,
-        [](float value, int) { return juce::String(static_cast<int>(value)) + "°"; }));
+        [](float value, int) { return juce::String(static_cast<int>(value)) + " deg"; }));
 
     // High Frequency Enhancement (0-100%)
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(

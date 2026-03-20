@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Pitch Changer Processor
+// HyperPrism Reimagined - Pitch Changer Processor
 //==============================================================================
 
 #include "PitchChangerProcessor.h"
@@ -256,7 +256,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout PitchChangerProcessor::creat
         MIX_ID, "Mix", 
         juce::NormalisableRange<float>(0.0f, 100.0f, 1.0f), 100.0f,
         juce::String(), juce::AudioProcessorParameter::genericParameter,
-        [](float value, int) { return juce::String(static_cast<int>(value)) + "%"; }));
+        [](float value, int) { return juce::String(static_cast<int>(value)) + " %"; }));
 
     // Output Level (-20 to +20 dB)
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(

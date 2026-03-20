@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Band-Reject (Notch) Filter Plugin Entry Point
+// HyperPrism Reimagined - Band-Reject (Notch) Filter Plugin Entry Point
 //==============================================================================
 
 #include "BandRejectProcessor.h"

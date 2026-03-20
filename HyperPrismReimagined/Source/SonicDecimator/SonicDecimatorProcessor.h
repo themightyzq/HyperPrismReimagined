@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Sonic Decimator Processor
+// HyperPrism Reimagined - Sonic Decimator Processor
 //==============================================================================
 
 #pragma once
@@ -90,7 +90,7 @@ private:
     public:
         SampleRateReducer() = default;
         
-        void prepare(double sampleRate);
+        void prepare(double sampleRate, int samplesPerBlock);
         void setSampleRate(float targetSampleRate);
         void setAntiAliasing(bool enableAntiAlias);
         void reset();

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Compressor Editor Header
+// HyperPrism Reimagined - Compressor Editor Header
 // Updated to match modern template
 //==============================================================================
 
@@ -28,7 +28,7 @@ public:
     std::function<void()> onClick;
 };
 
-class XYPad : public juce::Component
+class XYPad : public juce::Component, public juce::SettableTooltipClient
 {
 public:
     XYPad();
@@ -78,6 +78,7 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    void mouseDown(const juce::MouseEvent& event) override;
 
 private:
     CompressorProcessor& audioProcessor;
@@ -103,14 +104,18 @@ private:
     ParameterLabel makeupGainLabel;
     ParameterLabel mixLabel;
     juce::Label titleLabel;
-    
+    juce::Label brandLabel;
+
+    // Bypass
+    juce::TextButton bypassButton;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
+
     // XY Pad
     XYPad xyPad;
     juce::Label xyPadLabel;
     
     // Gain Reduction Meter
     GainReductionMeter gainReductionMeter;
-    juce::Label meterLabel;
     
     // Attachments
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> thresholdAttachment;
@@ -126,17 +131,21 @@ private:
     juce::StringArray yParameterIDs;
     
     // Assignment colors
-    const juce::Colour xAssignmentColor = juce::Colours::cyan;
-    const juce::Colour yAssignmentColor = juce::Colours::yellow;
+    const juce::Colour xAssignmentColor = juce::Colour(0, 150, 255);
+    const juce::Colour yAssignmentColor = juce::Colour(255, 220, 0);
     
-    void setupSlider(juce::Slider& slider, juce::Label& label, const juce::String& text,
-                     const juce::String& suffix = "");
+    void setupSlider(juce::Slider& slider, juce::Label& label, const juce::String& text);
     void updateParameterColors();
     void updateXYPadFromParameters();
     void updateParametersFromXYPad(float x, float y);
-    void showParameterMenu(juce::Label* label, const juce::String& parameterID);
+    void showParameterMenu(juce::Component* target, const juce::String& parameterID);
     void updateXYPadLabel();
     
+    int outputSectionX = 0;
+    int outputSectionY = 0;
+
+    juce::TooltipWindow tooltipWindow { this, 500 };
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CompressorEditor)
 };
 

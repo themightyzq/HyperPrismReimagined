@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Band-Reject (Notch) Filter Processor
+// HyperPrism Reimagined - Band-Reject (Notch) Filter Processor
 //==============================================================================
 
 #pragma once
@@ -73,7 +73,9 @@ private:
     juce::SmoothedValue<float> mixSmoothed;
     
     double currentSampleRate = 44100.0;
-    
+
+    juce::AudioBuffer<float> dryBuffer;
+
     void updateFilter();
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

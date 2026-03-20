@@ -53,14 +53,19 @@ private:
     // Compression state
     float envelope = 0.0f;
     std::atomic<float> currentGainReduction { 0.0f };
-    
+
+    // Bypass
+    std::atomic<float>* bypassParam = nullptr;
+
+    // Pre-allocated dry buffer (real-time safe)
+    juce::AudioBuffer<float> dryBuffer;
+
     // Sample rate
     double currentSampleRate = 44100.0;
-    
+
     // Helper functions
     float calculateAttackCoeff(float attackTimeMs);
     float calculateReleaseCoeff(float releaseTimeMs);
-    float applyCompression(float inputSample, float& envelopeValue);
-    
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CompressorProcessor)
 };

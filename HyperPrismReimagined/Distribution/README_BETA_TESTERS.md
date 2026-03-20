@@ -45,8 +45,8 @@ Thank you for testing HyperPrism Reimagined! This document contains installation
 ## DAW-Specific Notes
 
 ### Logic Pro
-- Use Audio Units (AU) version if available, or enable VST support
-- Rescan: Logic Pro → Preferences → Plug-in Manager → Reset & Rescan
+- Requires Logic Pro 10.7 or later for VST3 support
+- Rescan: Logic Pro → Settings → Plug-in Manager → Reset & Rescan
 
 ### Ableton Live
 - Rescan: Preferences → Plug-ins → Rescan

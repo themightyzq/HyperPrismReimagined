@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Sonic Decimator Processor
+// HyperPrism Reimagined - Sonic Decimator Processor
 //==============================================================================
 
 #include "SonicDecimatorProcessor.h"
@@ -62,17 +62,17 @@ void SonicDecimatorProcessor::BitCrusher::updateQuantizationStep()
 //==============================================================================
 // SampleRateReducer Implementation
 //==============================================================================
-void SonicDecimatorProcessor::SampleRateReducer::prepare(double sampleRate)
+void SonicDecimatorProcessor::SampleRateReducer::prepare(double sampleRate, int samplesPerBlock)
 {
     originalSampleRate = sampleRate;
-    
+
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = 512;
+    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
     spec.numChannels = 1;
-    
+
     antiAliasFilter.prepare(spec);
-    
+
     reset();
 }
 
@@ -222,8 +222,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout SonicDecimatorProcessor::cre
 //==============================================================================
 void SonicDecimatorProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    // Prepare DSP components
-    sampleRateReducer.prepare(sampleRate);
+    // Prepare DSP components with actual buffer size (fixes 512-sample artifact bug)
+    sampleRateReducer.prepare(sampleRate, samplesPerBlock);
     bitCrusher.reset();
     noiseShaper.reset();
     

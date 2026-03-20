@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - HyperPhaser Plugin Entry Point
+// HyperPrism Reimagined - HyperPhaser Plugin Entry Point
 //==============================================================================
 
 #include "HyperPhaserProcessor.h"

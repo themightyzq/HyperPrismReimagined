@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - HyperPhaser Processor Implementation
+// HyperPrism Reimagined - HyperPhaser Processor Implementation
 //==============================================================================
 
 #include "HyperPhaserProcessor.h"
@@ -191,7 +191,7 @@ void HyperPhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
                 state.lfoPhase -= 2.0f * juce::MathConstants<float>::pi;
             
             // Calculate modulated frequency
-            const float modulatedFreq = baseFreq * std::pow(2.0f, lfoValue);
+            const float modulatedFreq = baseFreq * std::exp2f(lfoValue);
             
             // Get input sample
             float inputSample = channelData[sample];

@@ -133,42 +133,7 @@ void TremoloMeter::paint(juce::Graphics& g)
     
     // Create waveform display area
     auto displayArea = bounds.reduced(10.0f);
-    float waveformHeight = displayArea.getHeight() * 0.8f;
-    
-    // Draw LFO waveform
-    g.setColour(HyperPrismLookAndFeel::Colors::primary);
-    juce::Path waveformPath;
-    
-    for (size_t i = 0; i < lfoWaveform.size(); ++i)
-    {
-        float x = displayArea.getX() + (i / float(lfoWaveform.size() - 1)) * displayArea.getWidth();
-        float y = displayArea.getCentreY() - lfoWaveform[i] * waveformHeight * 0.4f * depth;
-        
-        if (i == 0)
-            waveformPath.startNewSubPath(x, y);
-        else
-            waveformPath.lineTo(x, y);
-    }
-    
-    g.strokePath(waveformPath, juce::PathStrokeType(2.0f));
-    
-    // Draw center line
-    g.setColour(HyperPrismLookAndFeel::Colors::outlineVariant.withAlpha(0.5f));
-    g.drawHorizontalLine(static_cast<int>(displayArea.getCentreY()), displayArea.getX(), displayArea.getRight());
-    
-    // Draw current phase indicator
-    float phaseX = displayArea.getX() + currentPhase * displayArea.getWidth();
-    g.setColour(HyperPrismLookAndFeel::Colors::warning);
-    g.drawVerticalLine(static_cast<int>(phaseX), displayArea.getY(), displayArea.getBottom());
-    
-    // Draw phase circle
-    float phaseY = displayArea.getCentreY() - lfoWaveform[static_cast<int>(currentPhase * (lfoWaveform.size() - 1))] * waveformHeight * 0.4f * depth;
-    g.fillEllipse(phaseX - 4, phaseY - 4, 8, 8);
-    
-    // Labels
-    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
-    g.setFont(10.0f);
-    
+
     // Waveform type label
     juce::String waveformName;
     switch (waveformType)
@@ -178,17 +143,44 @@ void TremoloMeter::paint(juce::Graphics& g)
         case 2: waveformName = "SQUARE"; break;
         default: waveformName = "UNKNOWN"; break;
     }
-    
+
+    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    g.setFont(10.0f);
     auto labelArea = displayArea.removeFromTop(15);
     g.drawText("LFO: " + waveformName, labelArea, juce::Justification::centredLeft);
-    
-    // Rate and depth display
-    auto infoArea = displayArea.removeFromBottom(30);
-    auto rateArea = infoArea.removeFromLeft(infoArea.getWidth() / 2);
-    
-    g.setFont(9.0f);
-    g.drawText("Rate: " + juce::String(rate, 1) + " Hz", rateArea, juce::Justification::centredLeft);
-    g.drawText("Depth: " + juce::String(static_cast<int>(depth * 100)) + "%", infoArea, juce::Justification::centredLeft);
+
+    // Use remaining area for waveform visualization
+    float waveformHeight = displayArea.getHeight();
+
+    // Draw center line
+    g.setColour(HyperPrismLookAndFeel::Colors::outlineVariant.withAlpha(0.5f));
+    g.drawHorizontalLine(static_cast<int>(displayArea.getCentreY()), displayArea.getX(), displayArea.getRight());
+
+    // Draw LFO waveform
+    g.setColour(HyperPrismLookAndFeel::Colors::primary);
+    juce::Path waveformPath;
+
+    for (size_t i = 0; i < lfoWaveform.size(); ++i)
+    {
+        float x = displayArea.getX() + (i / float(lfoWaveform.size() - 1)) * displayArea.getWidth();
+        float y = displayArea.getCentreY() - lfoWaveform[i] * waveformHeight * 0.4f * depth;
+
+        if (i == 0)
+            waveformPath.startNewSubPath(x, y);
+        else
+            waveformPath.lineTo(x, y);
+    }
+
+    g.strokePath(waveformPath, juce::PathStrokeType(2.0f));
+
+    // Draw current phase indicator
+    float phaseX = displayArea.getX() + currentPhase * displayArea.getWidth();
+    g.setColour(HyperPrismLookAndFeel::Colors::warning);
+    g.drawVerticalLine(static_cast<int>(phaseX), displayArea.getY(), displayArea.getBottom());
+
+    // Draw phase circle
+    float phaseY = displayArea.getCentreY() - lfoWaveform[static_cast<int>(currentPhase * (lfoWaveform.size() - 1))] * waveformHeight * 0.4f * depth;
+    g.fillEllipse(phaseX - 4, phaseY - 4, 8, 8);
 }
 
 void TremoloMeter::timerCallback()
@@ -252,18 +244,30 @@ TremoloEditor::TremoloEditor(TremoloProcessor& p)
     xParameterIDs.add(TremoloProcessor::RATE_ID);
     yParameterIDs.add(TremoloProcessor::DEPTH_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Tremolo", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("TREMOLO", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
-    
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
+
     // Setup sliders with consistent style
-    setupSlider(rateSlider, rateLabel, "Rate", " Hz");
-    setupSlider(depthSlider, depthLabel, "Depth", "");
-    setupSlider(stereoPhaseSlider, stereoPhaseLabel, "Stereo Phase", " deg");
-    setupSlider(mixSlider, mixLabel, "Mix", "");
+    setupSlider(rateSlider, rateLabel, "Rate");
+    setupSlider(depthSlider, depthLabel, "Depth");
+    setupSlider(stereoPhaseSlider, stereoPhaseLabel, "Stereo Phase");
+    setupSlider(mixSlider, mixLabel, "Mix");
+
+    // Color-code knobs by parameter category
+    rateSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    depthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    stereoPhaseSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set parameter ranges (example ranges - adjust based on processor)
     rateSlider.setRange(0.1, 20.0, 0.1);
@@ -285,12 +289,25 @@ TremoloEditor::TremoloEditor(TremoloProcessor& p)
     stereoPhaseLabel.onClick = [this]() { showParameterMenu(&stereoPhaseLabel, TremoloProcessor::STEREO_PHASE_ID); };
     mixLabel.onClick = [this]() { showParameterMenu(&mixLabel, TremoloProcessor::MIX_ID); };
     waveformLabel.onClick = [this]() { showParameterMenu(&waveformLabel, TremoloProcessor::WAVEFORM_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    rateSlider.addMouseListener(this, true);
+    rateSlider.getProperties().set("xyParamID", TremoloProcessor::RATE_ID);
+    depthSlider.addMouseListener(this, true);
+    depthSlider.getProperties().set("xyParamID", TremoloProcessor::DEPTH_ID);
+    stereoPhaseSlider.addMouseListener(this, true);
+    stereoPhaseSlider.getProperties().set("xyParamID", TremoloProcessor::STEREO_PHASE_ID);
+    mixSlider.addMouseListener(this, true);
+    mixSlider.getProperties().set("xyParamID", TremoloProcessor::MIX_ID);
+
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -313,19 +330,16 @@ TremoloEditor::TremoloEditor(TremoloProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Rate / Depth", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
         updateParametersFromXYPad(x, y);
     };
-    
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+
     // Add tremolo meter
     addAndMakeVisible(tremoloMeter);
-    tremoloMeterLabel.setText("LFO Waveform", juce::dontSendNotification);
-    tremoloMeterLabel.setJustificationType(juce::Justification::centred);
-    tremoloMeterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(tremoloMeterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -337,7 +351,17 @@ TremoloEditor::TremoloEditor(TremoloProcessor& p)
     stereoPhaseSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     mixSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    rateSlider.setTooltip("Speed of the volume modulation");
+    depthSlider.setTooltip("Intensity of the volume change");
+    stereoPhaseSlider.setTooltip("Phase offset between left and right for stereo tremolo");
+    waveformBox.setTooltip("Shape of the modulation waveform");
+    mixSlider.setTooltip("Balance between dry and tremolo signal");
+    bypassButton.setTooltip("Bypass the effect");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 TremoloEditor::~TremoloEditor()
@@ -347,141 +371,164 @@ TremoloEditor::~TremoloEditor()
 
 void TremoloEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color) {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(rateSlider.getX() - 2, rateSlider.getY() - 20, 200,
+                      "MODULATION", HyperPrismLookAndFeel::Colors::modulation);
+    paintColumnHeader(outputSectionX, outputSectionY, 140,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void TremoloEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Optimized layout for 650x600 - single row with all 5 controls (4 sliders + 1 combobox)
-    auto sliderWidth = 75;
-    auto comboWidth = 75;
-    auto spacing = 12;
-    
-    // Single row with all 5 controls
-    auto controlsRow = bounds.removeFromTop(130);
-    auto totalControlsWidth = sliderWidth * 4 + comboWidth + spacing * 4;
-    auto controlsStartX = (bounds.getWidth() - totalControlsWidth) / 2;
-    controlsRow.removeFromLeft(controlsStartX);
-    
-    // All controls in one row: Rate, Depth, Stereo Phase, Mix, Waveform
-    rateSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    rateLabel.setBounds(rateSlider.getX(), rateSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    depthSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    depthLabel.setBounds(depthSlider.getX(), depthSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    stereoPhaseSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    stereoPhaseLabel.setBounds(stereoPhaseSlider.getX(), stereoPhaseSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    mixSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    mixLabel.setBounds(mixSlider.getX(), mixSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    // Waveform ComboBox at the end of the row
-    waveformBox.setBounds(controlsRow.removeFromLeft(comboWidth).withHeight(25).withY(controlsRow.getY() + 40));
-    waveformLabel.setBounds(waveformBox.getX(), waveformBox.getBottom(), comboWidth, 20);
-    
-    // Bottom section - XY Pad and Meter side by side (brought up)
-    bounds.removeFromTop(15);
-    
-    // Split remaining space horizontally for XY pad and meter
-    auto bottomArea = bounds;
-    auto panelHeight = 180; // Standard XY pad height
-    
-    // Calculate positioning to center both panels
-    auto xyPadWidth = 200;
-    auto meterSize = 180;
-    auto totalBottomWidth = xyPadWidth + 20 + meterSize; // XY pad + spacing + meter
-    auto bottomStartX = (bottomArea.getWidth() - totalBottomWidth) / 2;
-    
-    // XY Pad on left
-    auto xyPadBounds = bottomArea.withX(bottomArea.getX() + bottomStartX).withWidth(xyPadWidth).withHeight(panelHeight);
-    xyPad.setBounds(xyPadBounds);
-    
-    // Tremolo meter on right (matching height)
-    auto meterBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(meterSize).withHeight(panelHeight);
-    tremoloMeter.setBounds(meterBounds);
-    
-    // Align labels at the same Y position
-    auto labelY = xyPadBounds.getBottom() + 5;
-    xyPadLabel.setBounds(xyPad.getX(), labelY, xyPadWidth, 20);
-    tremoloMeterLabel.setBounds(tremoloMeter.getX(), labelY, meterSize, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: 1 column with larger knobs ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = 200;
+    int colOffset = (columnsArea.getWidth() - colWidth) / 2;
+    columnsArea.removeFromLeft(colOffset);
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+
+    int knobDiam = 84;
+    int vSpace = 111;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column: MODULATION -- Rate, Depth, Stereo Phase
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(rateSlider, rateLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(depthSlider, depthLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(stereoPhaseSlider, stereoPhaseLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // Waveform ComboBox below knobs in column
+    int comboY = y1 + vSpace * 2 + knobDiam / 2 + 36;
+    waveformLabel.setBounds(col1.getX(), comboY, colWidth, 14);
+    waveformBox.setBounds(col1.getX() + 5, comboY + 15, colWidth - 10, 24);
+
+    // --- Right side: XY pad + output ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Output section: Mix knob + meter side by side
+    auto bottomRight = rightSide;
+    outputSectionX = bottomRight.getX();
+    outputSectionY = bottomRight.getY();
+    auto outputArea = bottomRight.removeFromLeft(140);
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+    centerKnob(mixSlider, mixLabel, outputArea.getCentreX() - 50, 100, outY + outKnob / 2, outKnob);
+
+    // Tremolo meter in remaining output area
+    auto meterArea = bottomRight.reduced(4);
+    tremoloMeter.setBounds(meterArea.reduced(4));
 }
 
 void TremoloEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void TremoloEditor::setupComboBox(juce::ComboBox& comboBox, ParameterLabel& label, 
                                  const juce::String& text)
 {
-    comboBox.setColour(juce::ComboBox::backgroundColourId, juce::Colours::darkgrey);
-    comboBox.setColour(juce::ComboBox::textColourId, juce::Colours::white);
-    comboBox.setColour(juce::ComboBox::arrowColourId, juce::Colours::lightgrey);
-    comboBox.setColour(juce::ComboBox::outlineColourId, juce::Colours::grey);
+    comboBox.setColour(juce::ComboBox::backgroundColourId, HyperPrismLookAndFeel::Colors::surfaceVariant);
+    comboBox.setColour(juce::ComboBox::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
+    comboBox.setColour(juce::ComboBox::arrowColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    comboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
     addAndMakeVisible(comboBox);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void TremoloEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    rateLabel.setColour(juce::Label::textColourId, neutralColor);
+    depthLabel.setColour(juce::Label::textColourId, neutralColor);
+    stereoPhaseLabel.setColour(juce::Label::textColourId, neutralColor);
+    mixLabel.setColour(juce::Label::textColourId, neutralColor);
+    waveformLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(rateLabel, TremoloProcessor::RATE_ID);
-    updateLabelColor(depthLabel, TremoloProcessor::DEPTH_ID);
-    updateLabelColor(stereoPhaseLabel, TremoloProcessor::STEREO_PHASE_ID);
-    updateLabelColor(mixLabel, TremoloProcessor::MIX_ID);
-    updateLabelColor(waveformLabel, TremoloProcessor::WAVEFORM_ID);
+
+    updateSliderXY(rateSlider, TremoloProcessor::RATE_ID);
+    updateSliderXY(depthSlider, TremoloProcessor::DEPTH_ID);
+    updateSliderXY(stereoPhaseSlider, TremoloProcessor::STEREO_PHASE_ID);
+    updateSliderXY(mixSlider, TremoloProcessor::MIX_ID);
+    repaint();
 }
 
 void TremoloEditor::updateXYPadFromParameters()
@@ -540,7 +587,18 @@ void TremoloEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void TremoloEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void TremoloEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void TremoloEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -560,7 +618,7 @@ void TremoloEditor::showParameterMenu(juce::Label* label, const juce::String& pa
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Modern X/Y Pad Component Implementation
+// HyperPrism Reimagined - Modern X/Y Pad Component Implementation
 //==============================================================================
 
 #include "XYPadComponent.h"
@@ -148,54 +148,42 @@ void XYPadComponent::paint(juce::Graphics& g)
     g.setColour(HyperPrismLookAndFeel::Colors::surface);
     g.fillRoundedRectangle(padBounds, 4.0f);
     
-    // Draw grid lines
+    // Draw center crosshairs only (no grid)
     g.setColour(gridColour.withAlpha(0.3f));
-    
-    // Vertical grid lines
-    for (int i = 1; i < 4; ++i)
-    {
-        float x = padBounds.getX() + (padBounds.getWidth() * i / 4.0f);
-        g.drawLine(x, padBounds.getY(), x, padBounds.getBottom(), 1.0f);
-    }
-    
-    // Horizontal grid lines
-    for (int i = 1; i < 4; ++i)
-    {
-        float y = padBounds.getY() + (padBounds.getHeight() * i / 4.0f);
-        g.drawLine(padBounds.getX(), y, padBounds.getRight(), y, 1.0f);
-    }
-    
-    // Draw center crosshairs
-    g.setColour(gridColour.withAlpha(0.5f));
     float centerX = padBounds.getCentreX();
     float centerY = padBounds.getCentreY();
-    g.drawLine(centerX, padBounds.getY(), centerX, padBounds.getBottom(), 1.5f);
-    g.drawLine(padBounds.getX(), centerY, padBounds.getRight(), centerY, 1.5f);
-    
-    // Draw value trails (subtle path showing recent movement)
-    g.setColour(thumbColour.withAlpha(0.2f));
+    g.drawLine(centerX, padBounds.getY(), centerX, padBounds.getBottom(), 1.0f);
+    g.drawLine(padBounds.getX(), centerY, padBounds.getRight(), centerY, 1.0f);
+
     auto thumbPos = getThumbPosition();
-    
-    // Draw crosshairs at thumb position
-    g.setColour(thumbColour.withAlpha(0.4f));
+
+    // Draw subtle crosshairs at thumb position
+    g.setColour(thumbColour.withAlpha(0.2f));
     g.drawLine(thumbPos.x, padBounds.getY(), thumbPos.x, padBounds.getBottom(), 1.0f);
     g.drawLine(padBounds.getX(), thumbPos.y, padBounds.getRight(), thumbPos.y, 1.0f);
-    
-    // Draw thumb
+
+    // Draw glow when dragging
     auto thumbColor = isDragging ? thumbHoverColour : thumbColour;
+    if (isDragging)
+    {
+        g.setColour(thumbColor.withAlpha(0.15f));
+        g.fillEllipse(thumbPos.x - thumbRadius * 2.5f, thumbPos.y - thumbRadius * 2.5f,
+                      thumbRadius * 5.0f, thumbRadius * 5.0f);
+    }
+
+    // Draw thumb
     g.setColour(thumbColor);
-    g.fillEllipse(thumbPos.x - thumbRadius, thumbPos.y - thumbRadius, 
+    g.fillEllipse(thumbPos.x - thumbRadius, thumbPos.y - thumbRadius,
                   thumbRadius * 2, thumbRadius * 2);
-    
+
     // Draw thumb border
     g.setColour(HyperPrismLookAndFeel::Colors::background);
-    g.drawEllipse(thumbPos.x - thumbRadius, thumbPos.y - thumbRadius, 
+    g.drawEllipse(thumbPos.x - thumbRadius, thumbPos.y - thumbRadius,
                   thumbRadius * 2, thumbRadius * 2, 2.0f);
-    
+
     // Draw labels
     g.setColour(labelColour);
-    g.setFont(HyperPrismLookAndFeel::Colors::onSurface.toString().contains("f0f6fc") ? 
-              juce::Font(juce::FontOptions(12.0f).withStyle("Bold")) : juce::Font(juce::FontOptions(12.0f)));
+    g.setFont(juce::Font(juce::FontOptions(11.0f).withStyle("Bold")));
     
     // X label (bottom)
     auto xLabelBounds = juce::Rectangle<float>(bounds.getX(), padBounds.getBottom() + 8, 

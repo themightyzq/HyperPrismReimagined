@@ -61,7 +61,13 @@ private:
     
     // Lookahead buffer
     juce::dsp::DelayLine<float> lookaheadBuffer;
-    
+
+    // Pre-allocated lookahead data (real-time safe)
+    std::vector<float> lookaheadData;
+
+    // Bypass
+    juce::AudioParameterBool* bypassParamBool = nullptr;
+
     // Gate status
     std::atomic<bool> gateOpen;
     

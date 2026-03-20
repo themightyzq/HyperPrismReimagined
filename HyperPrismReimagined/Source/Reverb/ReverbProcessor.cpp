@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Reverb Processor Implementation
+// HyperPrism Reimagined - Reverb Processor Implementation
 //==============================================================================
 
 #include "ReverbProcessor.h"
@@ -66,7 +66,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout ReverbProcessor::createParam
     return { parameters.begin(), parameters.end() };
 }
 
-void ReverbProcessor::prepareToPlay(double sampleRate, int /*samplesPerBlock*/)
+void ReverbProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
     
@@ -94,6 +94,8 @@ void ReverbProcessor::prepareToPlay(double sampleRate, int /*samplesPerBlock*/)
     
     // Reset filter state
     previousFilterFreq = -1.0f;
+
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void ReverbProcessor::releaseResources()
@@ -161,7 +163,6 @@ void ReverbProcessor::processReverb(juce::AudioBuffer<float>& buffer)
     preDelayInSamples = juce::jlimit(0, maxPreDelayInSamples - 1, preDelayInSamples);
     
     // Create a copy for dry signal
-    juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
     
     // Apply pre-delay

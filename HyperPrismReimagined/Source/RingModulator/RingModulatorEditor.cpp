@@ -233,17 +233,28 @@ RingModulatorEditor::RingModulatorEditor(RingModulatorProcessor& p)
     xParameterIDs.add("carrier_freq");
     yParameterIDs.add("modulator_freq");
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Ring Modulator", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("RING MODULATOR", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
     
     // Setup sliders with consistent style
-    setupSlider(carrierFreqSlider, carrierFreqLabel, "Carrier Freq", " Hz");
-    setupSlider(modulatorFreqSlider, modulatorFreqLabel, "Modulator Freq", " Hz");
-    setupSlider(mixSlider, mixLabel, "Mix", " %");
+    setupSlider(carrierFreqSlider, carrierFreqLabel, "Carrier Freq");
+    setupSlider(modulatorFreqSlider, modulatorFreqLabel, "Modulator Freq");
+    setupSlider(mixSlider, mixLabel, "Mix");
+
+    // Color-code knobs by category
+    carrierFreqSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
+    modulatorFreqSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
+    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set parameter ranges
     carrierFreqSlider.setRange(1.0, 8000.0, 0.1);
@@ -271,12 +282,24 @@ RingModulatorEditor::RingModulatorEditor(RingModulatorProcessor& p)
     carrierWaveformLabel.onClick = [this]() { showParameterMenu(&carrierWaveformLabel, "carrier_waveform"); };
     modulatorWaveformLabel.onClick = [this]() { showParameterMenu(&modulatorWaveformLabel, "modulator_waveform"); };
     mixLabel.onClick = [this]() { showParameterMenu(&mixLabel, "mix"); };
+
+    // Register right-click on sliders for XY pad assignment
+    carrierFreqSlider.addMouseListener(this, true);
+    carrierFreqSlider.getProperties().set("xyParamID", "carrier_freq");
+    modulatorFreqSlider.addMouseListener(this, true);
+    modulatorFreqSlider.getProperties().set("xyParamID", "modulator_freq");
+    mixSlider.addMouseListener(this, true);
+    mixSlider.getProperties().set("xyParamID", "mix");
+
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    // Bypass button
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments (using placeholder parameter IDs)
@@ -297,19 +320,16 @@ RingModulatorEditor::RingModulatorEditor(RingModulatorProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Carrier Freq / Modulator Freq", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
         updateParametersFromXYPad(x, y);
     };
-    
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+
     // Add ring modulator meter
     addAndMakeVisible(ringModulatorMeter);
-    ringModulatorMeterLabel.setText("Waveform Display", juce::dontSendNotification);
-    ringModulatorMeterLabel.setJustificationType(juce::Justification::centred);
-    ringModulatorMeterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(ringModulatorMeterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -320,7 +340,17 @@ RingModulatorEditor::RingModulatorEditor(RingModulatorProcessor& p)
     modulatorFreqSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     mixSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    carrierFreqSlider.setTooltip("Frequency of the carrier oscillator");
+    modulatorFreqSlider.setTooltip("Frequency of the secondary modulator");
+    carrierWaveformBox.setTooltip("Waveform shape of the carrier");
+    modulatorWaveformBox.setTooltip("Waveform shape of the modulator");
+    mixSlider.setTooltip("Balance between dry and ring-modulated signal");
+    bypassButton.setTooltip("Bypass the effect");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 RingModulatorEditor::~RingModulatorEditor()
@@ -330,147 +360,164 @@ RingModulatorEditor::~RingModulatorEditor()
 
 void RingModulatorEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color) {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(carrierFreqSlider.getX() - 2, carrierFreqSlider.getY() - 20, 200,
+                      "CARRIER", HyperPrismLookAndFeel::Colors::frequency);
+    paintColumnHeader(outputSectionX, outputSectionY, 140,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void RingModulatorEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Optimized layout for 650x600 - single row with all 3 sliders
-    auto sliderWidth = 80;
-    auto spacing = 15;
-    
-    // Single row with all 3 sliders
-    auto controlsRow = bounds.removeFromTop(130);
-    auto totalControlsWidth = sliderWidth * 3 + spacing * 2;
-    auto controlsStartX = (bounds.getWidth() - totalControlsWidth) / 2;
-    controlsRow.removeFromLeft(controlsStartX);
-    
-    // All sliders in one row: Carrier Freq, Modulator Freq, Mix
-    carrierFreqSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    carrierFreqLabel.setBounds(carrierFreqSlider.getX(), carrierFreqSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    modulatorFreqSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    modulatorFreqLabel.setBounds(modulatorFreqSlider.getX(), modulatorFreqSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    mixSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    mixLabel.setBounds(mixSlider.getX(), mixSlider.getBottom(), sliderWidth, 20);
-    
-    bounds.removeFromTop(15);
-    
-    // ComboBoxes row (tighter spacing)
-    auto comboRow = bounds.removeFromTop(60);
-    auto comboWidth = 120;
-    auto totalComboWidth = comboWidth * 2 + spacing;
-    auto comboStartX = (bounds.getWidth() - totalComboWidth) / 2;
-    comboRow.removeFromLeft(comboStartX);
-    
-    carrierWaveformLabel.setBounds(comboRow.getX() + comboStartX, comboRow.getY() + 5, comboWidth, 20);
-    carrierWaveformBox.setBounds(comboRow.removeFromLeft(comboWidth).withHeight(25).withY(comboRow.getY() + 25));
-    comboRow.removeFromLeft(spacing);
-    
-    modulatorWaveformLabel.setBounds(comboRow.getX(), comboRow.getY() + 5, comboWidth, 20);
-    modulatorWaveformBox.setBounds(comboRow.removeFromLeft(comboWidth).withHeight(25).withY(comboRow.getY() + 25));
-    
-    // Bottom section - XY Pad and Meter side by side (brought up)
-    bounds.removeFromTop(15);
-    
-    // Split remaining space horizontally for XY pad and meter
-    auto bottomArea = bounds;
-    auto panelHeight = 180; // Standard XY pad height
-    
-    // Calculate positioning to center both panels
-    auto xyPadWidth = 200;
-    auto meterSize = 180;
-    auto totalBottomWidth = xyPadWidth + 20 + meterSize; // XY pad + spacing + meter
-    auto bottomStartX = (bottomArea.getWidth() - totalBottomWidth) / 2;
-    
-    // XY Pad on left
-    auto xyPadBounds = bottomArea.withX(bottomArea.getX() + bottomStartX).withWidth(xyPadWidth).withHeight(panelHeight);
-    xyPad.setBounds(xyPadBounds);
-    
-    // Ring modulator meter on right (matching height)
-    auto meterBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(meterSize).withHeight(panelHeight);
-    ringModulatorMeter.setBounds(meterBounds);
-    
-    // Align labels at the same Y position
-    auto labelY = xyPadBounds.getBottom() + 5;
-    xyPadLabel.setBounds(xyPad.getX(), labelY, xyPadWidth, 20);
-    ringModulatorMeterLabel.setBounds(ringModulatorMeter.getX(), labelY, meterSize, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: 1 column with larger knobs ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = 200;
+    int colOffset = (columnsArea.getWidth() - colWidth) / 2;
+    columnsArea.removeFromLeft(colOffset);
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+
+    int knobDiam = 84;
+    int vSpace = 111;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column: CARRIER -- carrierFreq, modulatorFreq
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(carrierFreqSlider, carrierFreqLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(modulatorFreqSlider, modulatorFreqLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+
+    // ComboBoxes below knobs in column
+    int comboY = y1 + vSpace + knobDiam / 2 + 36;
+    carrierWaveformLabel.setBounds(col1.getX(), comboY, colWidth, 14);
+    carrierWaveformBox.setBounds(col1.getX() + 5, comboY + 15, colWidth - 10, 24);
+    modulatorWaveformLabel.setBounds(col1.getX(), comboY + 45, colWidth, 14);
+    modulatorWaveformBox.setBounds(col1.getX() + 5, comboY + 60, colWidth - 10, 24);
+
+    // --- Right side: XY pad + output ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Output section: Mix knob + meter side by side
+    auto bottomRight = rightSide;
+    outputSectionX = bottomRight.getX();
+    outputSectionY = bottomRight.getY();
+    auto outputArea = bottomRight.removeFromLeft(140);
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+    centerKnob(mixSlider, mixLabel, outputArea.getCentreX() - 50, 100, outY + outKnob / 2, outKnob);
+
+    // Ring modulator meter in remaining output area
+    auto meterArea = bottomRight.reduced(4);
+    ringModulatorMeter.setBounds(meterArea.reduced(4));
 }
 
 void RingModulatorEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void RingModulatorEditor::setupComboBox(juce::ComboBox& comboBox, ParameterLabel& label, 
                                        const juce::String& text)
 {
-    comboBox.setColour(juce::ComboBox::backgroundColourId, juce::Colours::darkgrey);
-    comboBox.setColour(juce::ComboBox::textColourId, juce::Colours::white);
-    comboBox.setColour(juce::ComboBox::arrowColourId, juce::Colours::lightgrey);
-    comboBox.setColour(juce::ComboBox::outlineColourId, juce::Colours::grey);
+    comboBox.setColour(juce::ComboBox::backgroundColourId, HyperPrismLookAndFeel::Colors::surfaceVariant);
+    comboBox.setColour(juce::ComboBox::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
+    comboBox.setColour(juce::ComboBox::arrowColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    comboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
     addAndMakeVisible(comboBox);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void RingModulatorEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    carrierFreqLabel.setColour(juce::Label::textColourId, neutralColor);
+    modulatorFreqLabel.setColour(juce::Label::textColourId, neutralColor);
+    carrierWaveformLabel.setColour(juce::Label::textColourId, neutralColor);
+    modulatorWaveformLabel.setColour(juce::Label::textColourId, neutralColor);
+    mixLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(carrierFreqLabel, "carrier_freq");
-    updateLabelColor(modulatorFreqLabel, "modulator_freq");
-    updateLabelColor(carrierWaveformLabel, "carrier_waveform");
-    updateLabelColor(modulatorWaveformLabel, "modulator_waveform");
-    updateLabelColor(mixLabel, "mix");
+
+    updateSliderXY(carrierFreqSlider, "carrier_freq");
+    updateSliderXY(modulatorFreqSlider, "modulator_freq");
+    updateSliderXY(mixSlider, "mix");
+    repaint();
 }
 
 void RingModulatorEditor::updateXYPadFromParameters()
@@ -529,7 +576,18 @@ void RingModulatorEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void RingModulatorEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void RingModulatorEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void RingModulatorEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -549,7 +607,7 @@ void RingModulatorEditor::showParameterMenu(juce::Label* label, const juce::Stri
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {

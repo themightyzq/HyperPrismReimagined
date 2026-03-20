@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Stereo Dynamics Plugin Entry Point
+// HyperPrism Reimagined - Stereo Dynamics Plugin Entry Point
 //==============================================================================
 
 #include "StereoDynamicsProcessor.h"

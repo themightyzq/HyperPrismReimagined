@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Phaser Plugin Entry Point
+// HyperPrism Reimagined - Phaser Plugin Entry Point
 //==============================================================================
 
 #include "PhaserProcessor.h"

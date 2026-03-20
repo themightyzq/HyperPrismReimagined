@@ -169,20 +169,33 @@ NoiseGateEditor::NoiseGateEditor(NoiseGateProcessor& p)
     xParameterNames.add("threshold");
     yParameterNames.add("release");
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Noise Gate", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("NOISE GATE", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
+
+    // Brand label
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
     
     // Setup sliders with consistent style (6 parameters)
-    setupSlider(thresholdSlider, thresholdLabel, "Threshold", " dB");
-    setupSlider(attackSlider, attackLabel, "Attack", " ms");
-    setupSlider(holdSlider, holdLabel, "Hold", " ms");
-    setupSlider(releaseSlider, releaseLabel, "Release", " ms");
-    setupSlider(rangeSlider, rangeLabel, "Range", " dB");
-    setupSlider(lookaheadSlider, lookaheadLabel, "Lookahead", " ms");
+    setupSlider(thresholdSlider, thresholdLabel, "Threshold");
+    thresholdSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    setupSlider(attackSlider, attackLabel, "Attack");
+    attackSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    setupSlider(holdSlider, holdLabel, "Hold");
+    holdSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    setupSlider(releaseSlider, releaseLabel, "Release");
+    releaseSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    setupSlider(rangeSlider, rangeLabel, "Range");
+    rangeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    setupSlider(lookaheadSlider, lookaheadLabel, "Lookahead");
+    lookaheadSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
     
     // Set parameter ranges (no AudioProcessorValueTreeState, so manual setup)
     thresholdSlider.setRange(-60.0, 0.0, 0.1);
@@ -231,12 +244,25 @@ NoiseGateEditor::NoiseGateEditor(NoiseGateProcessor& p)
     releaseLabel.onClick = [this]() { showParameterMenu(&releaseLabel, "release"); };
     rangeLabel.onClick = [this]() { showParameterMenu(&rangeLabel, "range"); };
     lookaheadLabel.onClick = [this]() { showParameterMenu(&lookaheadLabel, "lookahead"); };
+
+    // Register right-click on sliders for XY pad assignment
+    thresholdSlider.addMouseListener(this, true);
+    thresholdSlider.getProperties().set("xyParamID", "threshold");
+    attackSlider.addMouseListener(this, true);
+    attackSlider.getProperties().set("xyParamID", "attack");
+    holdSlider.addMouseListener(this, true);
+    holdSlider.getProperties().set("xyParamID", "hold");
+    releaseSlider.addMouseListener(this, true);
+    releaseSlider.getProperties().set("xyParamID", "release");
+    rangeSlider.addMouseListener(this, true);
+    rangeSlider.getProperties().set("xyParamID", "range");
+    lookaheadSlider.addMouseListener(this, true);
+    lookaheadSlider.getProperties().set("xyParamID", "lookahead");
+
     
-    // Bypass button (top right like AutoPan)
+    // Bypass button (top right)
     bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    bypassButton.setClickingTogglesState(true);
     addAndMakeVisible(bypassButton);
     
     // No bypass parameter in this processor, so we'll leave it unconnected
@@ -246,18 +272,19 @@ NoiseGateEditor::NoiseGateEditor(NoiseGateProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Threshold / Release", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
         updateParametersFromXYPad(x, y);
     };
-    
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+
     // Add gate LED
     addAndMakeVisible(gateLED);
     gateLEDLabel.setText("Gate Status", juce::dontSendNotification);
     gateLEDLabel.setJustificationType(juce::Justification::centred);
-    gateLEDLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    gateLEDLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(gateLEDLabel);
     
     // Update XY pad position based on current parameters
@@ -272,7 +299,18 @@ NoiseGateEditor::NoiseGateEditor(NoiseGateProcessor& p)
     rangeSlider.setValue(audioProcessor.range->get(), juce::dontSendNotification);
     lookaheadSlider.setValue(audioProcessor.lookahead->get(), juce::dontSendNotification);
     
-    setSize(650, 600);
+    // Tooltips
+    thresholdSlider.setTooltip("Signal level below which the gate closes and mutes audio");
+    attackSlider.setTooltip("How quickly the gate opens when signal exceeds threshold");
+    holdSlider.setTooltip("Minimum time the gate stays open after signal drops");
+    releaseSlider.setTooltip("How quickly the gate closes after hold time expires");
+    rangeSlider.setTooltip("How much the signal is attenuated when the gate is closed");
+    lookaheadSlider.setTooltip("Look ahead time for smoother gate operation");
+    bypassButton.setTooltip("Bypass the effect");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 NoiseGateEditor::~NoiseGateEditor()
@@ -282,136 +320,156 @@ NoiseGateEditor::~NoiseGateEditor()
 
 void NoiseGateEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(thresholdSlider.getX() - 2, thresholdSlider.getY() - 20, 120,
+                      "DETECTION", HyperPrismLookAndFeel::Colors::dynamics);
+    paintColumnHeader(attackSlider.getX() - 2, attackSlider.getY() - 20, 120,
+                      "TIMING", HyperPrismLookAndFeel::Colors::timing);
 }
 
 void NoiseGateEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // 6 parameter layout: 3+3 sliders in two rows (similar to MoreStereo/MSMatrix)
-    // Available height after title and margins: ~500px
-    
-    auto topRow = bounds.removeFromTop(140);
-    auto sliderWidth = 80;
-    auto spacing = 20;
-    
-    // Calculate total width needed for 3 sliders
-    auto totalSliderWidth = sliderWidth * 3 + spacing * 2;
-    auto startX = (bounds.getWidth() - totalSliderWidth) / 2;
-    topRow.removeFromLeft(startX);
-    
-    // Top row: Threshold, Attack, Hold
-    thresholdSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    thresholdLabel.setBounds(thresholdSlider.getX(), thresholdSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    attackSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    attackLabel.setBounds(attackSlider.getX(), attackSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    holdSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    holdLabel.setBounds(holdSlider.getX(), holdSlider.getBottom(), sliderWidth, 20);
-    
-    bounds.removeFromTop(10);
-    
-    // Second row: Release, Range, Lookahead
-    auto secondRow = bounds.removeFromTop(140);
-    secondRow.removeFromLeft(startX);
-    
-    releaseSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    releaseLabel.setBounds(releaseSlider.getX(), releaseSlider.getBottom(), sliderWidth, 20);
-    secondRow.removeFromLeft(spacing);
-    
-    rangeSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    rangeLabel.setBounds(rangeSlider.getX(), rangeSlider.getBottom(), sliderWidth, 20);
-    secondRow.removeFromLeft(spacing);
-    
-    lookaheadSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    lookaheadLabel.setBounds(lookaheadSlider.getX(), lookaheadSlider.getBottom(), sliderWidth, 20);
-    
-    // Bottom section - XY Pad and LED side by side
-    bounds.removeFromTop(10);
-    
-    // Split remaining space horizontally for XY pad and LED
-    auto bottomArea = bounds;
-    auto componentHeight = 180;
-    
-    // XY Pad on left (200x180 standard)
-    auto xyPadWidth = 200;
-    auto xyPadHeight = 180;
-    auto xyPadBounds = bottomArea.withWidth(xyPadWidth).withHeight(xyPadHeight);
-    auto ledSize = 100;
-    auto totalBottomWidth = xyPadWidth + 20 + ledSize; // XY pad + spacing + LED
-    auto bottomStartX = (bottomArea.getWidth() - totalBottomWidth) / 2;
-    xyPadBounds.translate(bottomStartX, 0);
-    
-    xyPad.setBounds(xyPadBounds);
-    xyPadLabel.setBounds(xyPadBounds.getX(), xyPadBounds.getBottom() + 5, xyPadWidth, 20);
-    
-    // Gate LED on right
-    auto ledBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(ledSize).withHeight(ledSize);
-    ledBounds.translate(0, (componentHeight - ledSize) / 2);
-    
-    gateLED.setBounds(ledBounds);
-    gateLEDLabel.setBounds(ledBounds.getX(), xyPadBounds.getBottom() + 5, ledSize, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: Two parameter columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 80;
+    int vSpace = 107;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: DETECTION -- Threshold, Range, Lookahead
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(thresholdSlider, thresholdLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(rangeSlider, rangeLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(lookaheadSlider, lookaheadLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // Column 2: TIMING -- Attack, Hold, Release
+    centerKnob(attackSlider, attackLabel, col2.getX(), colWidth, y1, knobDiam);
+    centerKnob(holdSlider, holdLabel, col2.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(releaseSlider, releaseLabel, col2.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // --- Right side: XY pad + gate LED ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Bottom right: Gate LED centered (no output knobs)
+    auto bottomRight = rightSide;
+
+    outputSectionX = bottomRight.getX();
+    outputSectionY = bottomRight.getY();
+
+    int ledSize = juce::jmin(80, bottomRight.getHeight());
+    int ledX = bottomRight.getX() + (bottomRight.getWidth() - ledSize) / 2;
+    gateLED.setBounds(ledX, bottomRight.getY(), ledSize, ledSize);
+    gateLEDLabel.setBounds(ledX, bottomRight.getY() + ledSize + 2, ledSize, 16);
 }
 
 void NoiseGateEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+
     addAndMakeVisible(slider);
-    
+
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void NoiseGateEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramName) {
-        bool isAssignedToX = xParameterNames.contains(paramName);
-        bool isAssignedToY = yParameterNames.contains(paramName);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    thresholdLabel.setColour(juce::Label::textColourId, neutralColor);
+    attackLabel.setColour(juce::Label::textColourId, neutralColor);
+    holdLabel.setColour(juce::Label::textColourId, neutralColor);
+    releaseLabel.setColour(juce::Label::textColourId, neutralColor);
+    rangeLabel.setColour(juce::Label::textColourId, neutralColor);
+    lookaheadLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterNames.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterNames.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(thresholdLabel, "threshold");
-    updateLabelColor(attackLabel, "attack");
-    updateLabelColor(holdLabel, "hold");
-    updateLabelColor(releaseLabel, "release");
-    updateLabelColor(rangeLabel, "range");
-    updateLabelColor(lookaheadLabel, "lookahead");
+
+    updateSliderXY(thresholdSlider, "threshold");
+    updateSliderXY(attackSlider, "attack");
+    updateSliderXY(holdSlider, "hold");
+    updateSliderXY(releaseSlider, "release");
+    updateSliderXY(rangeSlider, "range");
+    updateSliderXY(lookaheadSlider, "lookahead");
+    repaint();
 }
 
 void NoiseGateEditor::updateXYPadFromParameters()
@@ -503,7 +561,18 @@ void NoiseGateEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void NoiseGateEditor::showParameterMenu(juce::Label* label, const juce::String& parameterName)
+
+void NoiseGateEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void NoiseGateEditor::showParameterMenu(juce::Component* target, const juce::String& parameterName)
 {
     juce::PopupMenu menu;
     
@@ -523,7 +592,7 @@ void NoiseGateEditor::showParameterMenu(juce::Label* label, const juce::String& 
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterName](int result)
         {

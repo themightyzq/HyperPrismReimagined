@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Auto Pan Processor
+// HyperPrism Reimagined - Auto Pan Processor
 //==============================================================================
 
 #include "AutoPanProcessor.h"
@@ -150,7 +150,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AutoPanProcessor::createPara
         PHASE_ID, "Phase", 
         juce::NormalisableRange<float>(0.0f, 360.0f, 1.0f), 0.0f,
         juce::String(), juce::AudioProcessorParameter::genericParameter,
-        [](float value, int) { return juce::String(static_cast<int>(value)) + "°"; }));
+        [](float value, int) { return juce::String(static_cast<int>(value)) + " deg"; }));
 
     // Sync (for future tempo sync implementation)
     parameters.push_back(std::make_unique<juce::AudioParameterBool>(

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Chorus Processor Implementation
+// HyperPrism Reimagined - Chorus Processor Implementation
 //==============================================================================
 
 #include "ChorusProcessor.h"
@@ -40,17 +40,26 @@ juce::AudioProcessorValueTreeState::ParameterLayout ChorusProcessor::createParam
         BYPASS_ID, "Bypass", false));
         
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
-        MIX_ID, "Mix", 0.0f, 1.0f, 0.5f));
-        
+        MIX_ID, "Mix",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.5f,
+        juce::String(), juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(static_cast<int>(value * 100.0f)) + " %"; }));
+
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
-        RATE_ID, "Rate", 
+        RATE_ID, "Rate",
         juce::NormalisableRange<float>(0.1f, 10.0f, 0.1f, 0.5f), 1.0f));
-        
+
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
-        DEPTH_ID, "Depth", 0.0f, 1.0f, 0.5f));
-        
+        DEPTH_ID, "Depth",
+        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f), 0.5f,
+        juce::String(), juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(static_cast<int>(value * 100.0f)) + " %"; }));
+
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
-        FEEDBACK_ID, "Feedback", 0.0f, 0.95f, 0.2f));
+        FEEDBACK_ID, "Feedback",
+        juce::NormalisableRange<float>(0.0f, 0.95f, 0.01f), 0.2f,
+        juce::String(), juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(static_cast<int>(value * 100.0f)) + " %"; }));
         
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
         DELAY_ID, "Delay", 
@@ -67,7 +76,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout ChorusProcessor::createParam
     return { parameters.begin(), parameters.end() };
 }
 
-void ChorusProcessor::prepareToPlay(double sampleRate, int /*samplesPerBlock*/)
+void ChorusProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
     
@@ -85,8 +94,12 @@ void ChorusProcessor::prepareToPlay(double sampleRate, int /*samplesPerBlock*/)
     leftHighCut.reset();
     rightHighCut.reset();
     
+    // Pre-allocate dry buffer
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+
     // Reset filter state
-    previousFilterFreq = -1.0f;
+    previousLowCutFreq = -1.0f;
+    previousHighCutFreq = -1.0f;
 }
 
 void ChorusProcessor::releaseResources()
@@ -143,8 +156,7 @@ void ChorusProcessor::processChorus(juce::AudioBuffer<float>& buffer)
     // Calculate LFO increment
     float lfoIncrement = (rate * juce::MathConstants<float>::twoPi) / static_cast<float>(currentSampleRate);
     
-    // Create a copy for dry signal
-    juce::AudioBuffer<float> dryBuffer;
+    // Copy dry signal (pre-allocated buffer)
     dryBuffer.makeCopyOf(buffer);
     
     // Get audio data
@@ -198,20 +210,17 @@ void ChorusProcessor::updateFilters()
 {
     float lowCutFreq = lowCutParam->load();
     float highCutFreq = highCutParam->load();
-    
-    // Only update if frequencies changed
-    if (std::abs(lowCutFreq - previousFilterFreq) > 0.1f || 
-        std::abs(highCutFreq - previousFilterFreq) > 0.1f)
+
+    if (std::abs(lowCutFreq - previousLowCutFreq) > 0.1f ||
+        std::abs(highCutFreq - previousHighCutFreq) > 0.1f)
     {
-        // High-pass filter (low cut)
         leftLowCut.setCoefficients(juce::IIRCoefficients::makeHighPass(currentSampleRate, lowCutFreq, 0.707f));
         rightLowCut.setCoefficients(juce::IIRCoefficients::makeHighPass(currentSampleRate, lowCutFreq, 0.707f));
-        
-        // Low-pass filter (high cut)
         leftHighCut.setCoefficients(juce::IIRCoefficients::makeLowPass(currentSampleRate, highCutFreq, 0.707f));
         rightHighCut.setCoefficients(juce::IIRCoefficients::makeLowPass(currentSampleRate, highCutFreq, 0.707f));
-        
-        previousFilterFreq = lowCutFreq; // Track one of them
+
+        previousLowCutFreq = lowCutFreq;
+        previousHighCutFreq = highCutFreq;
     }
 }
 

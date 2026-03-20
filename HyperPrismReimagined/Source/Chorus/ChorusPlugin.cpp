@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Chorus Plugin Entry Point
+// HyperPrism Reimagined - Chorus Plugin Entry Point
 //==============================================================================
 
 #include "ChorusProcessor.h"

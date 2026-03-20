@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Band-Reject (Notch) Filter Processor Implementation
+// HyperPrism Reimagined - Band-Reject (Notch) Filter Processor Implementation
 //==============================================================================
 
 #include "BandRejectProcessor.h"
@@ -119,6 +119,8 @@ void BandRejectProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     mixSmoothed.setCurrentAndTargetValue(valueTreeState.getRawParameterValue(MIX_ID)->load());
     
     updateFilter();
+
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void BandRejectProcessor::releaseResources()
@@ -167,7 +169,6 @@ void BandRejectProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     mixSmoothed.setTargetValue(valueTreeState.getRawParameterValue(MIX_ID)->load());
 
     // Store dry signal for mixing
-    juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
 
     // Always update filter to ensure real-time parameter changes

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Tube/Tape Saturation Processor
+// HyperPrism Reimagined - Tube/Tape Saturation Processor
 //==============================================================================
 
 #include "TubeTapeSaturationProcessor.h"

@@ -102,22 +102,38 @@ FlangerEditor::FlangerEditor(FlangerProcessor& p)
     xParameterIDs.add(FlangerProcessor::RATE_ID);
     yParameterIDs.add(FlangerProcessor::DEPTH_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Flanger", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("FLANGER", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
-    
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
+
     // Setup sliders with consistent style
-    setupSlider(rateSlider, rateLabel, "Rate", " Hz");
-    setupSlider(depthSlider, depthLabel, "Depth", "%");
-    setupSlider(feedbackSlider, feedbackLabel, "Feedback", "%");
-    setupSlider(delaySlider, delayLabel, "Delay", " ms");
-    setupSlider(phaseSlider, phaseLabel, "Phase", "°");
-    setupSlider(mixSlider, mixLabel, "Mix", "%");
-    setupSlider(lowCutSlider, lowCutLabel, "Low Cut", " Hz");
-    setupSlider(highCutSlider, highCutLabel, "High Cut", " Hz");
+    setupSlider(rateSlider, rateLabel, "Rate");
+    setupSlider(depthSlider, depthLabel, "Depth");
+    setupSlider(feedbackSlider, feedbackLabel, "Feedback");
+    setupSlider(delaySlider, delayLabel, "Delay");
+    setupSlider(phaseSlider, phaseLabel, "Phase");
+    setupSlider(mixSlider, mixLabel, "Mix");
+    setupSlider(lowCutSlider, lowCutLabel, "Low Cut");
+    setupSlider(highCutSlider, highCutLabel, "High Cut");
+
+    // Color-code knobs by category
+    rateSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    depthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    feedbackSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    delaySlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
+    phaseSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    lowCutSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
+    highCutSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
+    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set up right-click handlers for parameter assignment
     rateLabel.onClick = [this]() { showParameterMenu(&rateLabel, FlangerProcessor::RATE_ID); };
@@ -128,12 +144,33 @@ FlangerEditor::FlangerEditor(FlangerProcessor& p)
     mixLabel.onClick = [this]() { showParameterMenu(&mixLabel, FlangerProcessor::MIX_ID); };
     lowCutLabel.onClick = [this]() { showParameterMenu(&lowCutLabel, FlangerProcessor::LOW_CUT_ID); };
     highCutLabel.onClick = [this]() { showParameterMenu(&highCutLabel, FlangerProcessor::HIGH_CUT_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    rateSlider.addMouseListener(this, true);
+    rateSlider.getProperties().set("xyParamID", FlangerProcessor::RATE_ID);
+    depthSlider.addMouseListener(this, true);
+    depthSlider.getProperties().set("xyParamID", FlangerProcessor::DEPTH_ID);
+    feedbackSlider.addMouseListener(this, true);
+    feedbackSlider.getProperties().set("xyParamID", FlangerProcessor::FEEDBACK_ID);
+    delaySlider.addMouseListener(this, true);
+    delaySlider.getProperties().set("xyParamID", FlangerProcessor::DELAY_ID);
+    phaseSlider.addMouseListener(this, true);
+    phaseSlider.getProperties().set("xyParamID", FlangerProcessor::PHASE_ID);
+    mixSlider.addMouseListener(this, true);
+    mixSlider.getProperties().set("xyParamID", FlangerProcessor::MIX_ID);
+    lowCutSlider.addMouseListener(this, true);
+    lowCutSlider.getProperties().set("xyParamID", FlangerProcessor::LOW_CUT_ID);
+    highCutSlider.addMouseListener(this, true);
+    highCutSlider.getProperties().set("xyParamID", FlangerProcessor::HIGH_CUT_ID);
+
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -161,7 +198,7 @@ FlangerEditor::FlangerEditor(FlangerProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Rate / Depth", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
@@ -182,7 +219,21 @@ FlangerEditor::FlangerEditor(FlangerProcessor& p)
     lowCutSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     highCutSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    rateSlider.setTooltip("Speed of the flanging sweep");
+    depthSlider.setTooltip("Intensity of the flanging effect");
+    feedbackSlider.setTooltip("Amount of resonance -- creates a more metallic sound");
+    delaySlider.setTooltip("Base delay time that sets the character of the flange");
+    phaseSlider.setTooltip("Phase offset between left and right channels for stereo width");
+    mixSlider.setTooltip("Balance between dry and flanged signal");
+    lowCutSlider.setTooltip("Remove low frequencies from the flanged signal");
+    highCutSlider.setTooltip("Remove high frequencies from the flanged signal");
+    bypassButton.setTooltip("Bypass the effect");
+    xyPad.setTooltip("Click and drag to control two parameters at once");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 FlangerEditor::~FlangerEditor()
@@ -192,86 +243,109 @@ FlangerEditor::~FlangerEditor()
 
 void FlangerEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(rateSlider.getX() - 2, rateSlider.getY() - 20, 120,
+                      "MODULATION", HyperPrismLookAndFeel::Colors::modulation);
+    paintColumnHeader(delaySlider.getX() - 2, delaySlider.getY() - 20, 120,
+                      "TONE", HyperPrismLookAndFeel::Colors::frequency);
+    paintColumnHeader(outputSectionX, outputSectionY,
+                      getWidth() - outputSectionX - 12,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void FlangerEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Optimized layout for 8 parameters (2 rows of 4) to fit in 650x550 window
-    // Available height after title and margins: ~500px
-    // Distribution: 140px + 10px + 140px + 10px + 200px = 500px
-    
-    // Top row - first 4 knobs (Rate, Depth, Feedback, Delay)
-    auto topRow = bounds.removeFromTop(140);
-    auto sliderWidth = 80;
-    auto spacing = 15;
-    
-    // Calculate total width needed for 4 sliders per row
-    auto totalSliderWidth = sliderWidth * 4 + spacing * 3;
-    auto startX = (bounds.getWidth() - totalSliderWidth) / 2;
-    topRow.removeFromLeft(startX);
-    
-    // First row: Rate, Depth, Feedback, Delay
-    rateSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    rateLabel.setBounds(rateSlider.getX(), rateSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    depthSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    depthLabel.setBounds(depthSlider.getX(), depthSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    feedbackSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    feedbackLabel.setBounds(feedbackSlider.getX(), feedbackSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    delaySlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    delayLabel.setBounds(delaySlider.getX(), delaySlider.getBottom(), sliderWidth, 20);
-    
-    // Minimal spacing between rows
-    bounds.removeFromTop(10);
-    
-    // Second row: Phase, Mix, Low Cut, High Cut
-    auto secondRow = bounds.removeFromTop(140);
-    secondRow.removeFromLeft(startX);
-    
-    phaseSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    phaseLabel.setBounds(phaseSlider.getX(), phaseSlider.getBottom(), sliderWidth, 20);
-    secondRow.removeFromLeft(spacing);
-    
-    mixSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    mixLabel.setBounds(mixSlider.getX(), mixSlider.getBottom(), sliderWidth, 20);
-    secondRow.removeFromLeft(spacing);
-    
-    lowCutSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    lowCutLabel.setBounds(lowCutSlider.getX(), lowCutSlider.getBottom(), sliderWidth, 20);
-    secondRow.removeFromLeft(spacing);
-    
-    highCutSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    highCutLabel.setBounds(highCutSlider.getX(), highCutSlider.getBottom(), sliderWidth, 20);
-    
-    // Bottom section - XY Pad (use remaining bounds exactly)
-    bounds.removeFromTop(10);
-    
-    // Center the XY Pad horizontally, use available height efficiently
-    auto xyPadWidth = 200;
-    auto availableHeight = bounds.getHeight() - 25; // Leave 25px for label + padding
-    auto xyPadHeight = juce::jmin(180, availableHeight); // Cap at 180px or available space
-    auto xyPadX = bounds.getX() + (bounds.getWidth() - xyPadWidth) / 2;
-    auto xyPadY = bounds.getY() + 5;  // Small top padding
-    
-    xyPad.setBounds(xyPadX, xyPadY, xyPadWidth, xyPadHeight);
-    xyPadLabel.setBounds(xyPadX, xyPadY + xyPadHeight + 5, xyPadWidth, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: 2 columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 80;
+    int vSpace = 107;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: MODULATION — Rate, Depth, Feedback, Phase (4 knobs)
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(rateSlider, rateLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(depthSlider, depthLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(feedbackSlider, feedbackLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+    centerKnob(phaseSlider, phaseLabel, col1.getX(), colWidth, y1 + vSpace * 3, knobDiam);
+
+    // Column 2: CHARACTER — Delay; TONE — Low Cut, High Cut (3 knobs)
+    centerKnob(delaySlider, delayLabel, col2.getX(), colWidth, y1, knobDiam);
+    centerKnob(lowCutSlider, lowCutLabel, col2.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(highCutSlider, highCutLabel, col2.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // --- Right side: XY pad + output ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Output section: Mix knob centered
+    auto outputArea = rightSide;
+
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
+
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+    centerKnob(mixSlider, mixLabel, outputArea.getCentreX() - 50, 100, outY + outKnob / 2, outKnob);
 }
 
 void FlangerEditor::setupControls()
@@ -285,53 +359,57 @@ void FlangerEditor::setupXYPad()
 }
 
 void FlangerEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+
     addAndMakeVisible(slider);
-    
+
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void FlangerEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    rateLabel.setColour(juce::Label::textColourId, neutralColor);
+    depthLabel.setColour(juce::Label::textColourId, neutralColor);
+    feedbackLabel.setColour(juce::Label::textColourId, neutralColor);
+    delayLabel.setColour(juce::Label::textColourId, neutralColor);
+    phaseLabel.setColour(juce::Label::textColourId, neutralColor);
+    mixLabel.setColour(juce::Label::textColourId, neutralColor);
+    lowCutLabel.setColour(juce::Label::textColourId, neutralColor);
+    highCutLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(rateLabel, FlangerProcessor::RATE_ID);
-    updateLabelColor(depthLabel, FlangerProcessor::DEPTH_ID);
-    updateLabelColor(feedbackLabel, FlangerProcessor::FEEDBACK_ID);
-    updateLabelColor(delayLabel, FlangerProcessor::DELAY_ID);
-    updateLabelColor(phaseLabel, FlangerProcessor::PHASE_ID);
-    updateLabelColor(mixLabel, FlangerProcessor::MIX_ID);
-    updateLabelColor(lowCutLabel, FlangerProcessor::LOW_CUT_ID);
-    updateLabelColor(highCutLabel, FlangerProcessor::HIGH_CUT_ID);
+
+    updateSliderXY(rateSlider, FlangerProcessor::RATE_ID);
+    updateSliderXY(depthSlider, FlangerProcessor::DEPTH_ID);
+    updateSliderXY(feedbackSlider, FlangerProcessor::FEEDBACK_ID);
+    updateSliderXY(delaySlider, FlangerProcessor::DELAY_ID);
+    updateSliderXY(phaseSlider, FlangerProcessor::PHASE_ID);
+    updateSliderXY(mixSlider, FlangerProcessor::MIX_ID);
+    updateSliderXY(lowCutSlider, FlangerProcessor::LOW_CUT_ID);
+    updateSliderXY(highCutSlider, FlangerProcessor::HIGH_CUT_ID);
+    repaint();
 }
 
 void FlangerEditor::updateXYPadFromParameters()
@@ -392,7 +470,18 @@ void FlangerEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void FlangerEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void FlangerEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void FlangerEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -412,7 +501,7 @@ void FlangerEditor::showParameterMenu(juce::Label* label, const juce::String& pa
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {

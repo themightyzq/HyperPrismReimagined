@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Sonic Decimator Plugin Entry Point
+// HyperPrism Reimagined - Sonic Decimator Plugin Entry Point
 //==============================================================================
 
 #include "SonicDecimatorProcessor.h"

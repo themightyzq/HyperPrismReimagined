@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Pan Processor
+// HyperPrism Reimagined - Pan Processor
 //==============================================================================
 
 #pragma once
@@ -88,6 +88,8 @@ private:
     juce::SmoothedValue<float> smoothedLeftGain;
     juce::SmoothedValue<float> smoothedRightGain;
     
+    juce::AudioBuffer<float> originalBuffer;
+
     // Metering
     std::atomic<float> leftLevel { 0.0f };
     std::atomic<float> rightLevel { 0.0f };

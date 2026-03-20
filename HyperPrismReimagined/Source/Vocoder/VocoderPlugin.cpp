@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Vocoder Plugin Entry Point
+// HyperPrism Reimagined - Vocoder Plugin Entry Point
 //==============================================================================
 
 #include "VocoderProcessor.h"

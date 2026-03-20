@@ -183,41 +183,56 @@ LimiterEditor::LimiterEditor(LimiterProcessor& p)
     xParameterIDs.add(CEILING_ID);
     yParameterIDs.add(RELEASE_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Limiter", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("LIMITER", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
+
+    // Brand label
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
     
     // Setup sliders with consistent style (4 sliders + 1 toggle layout)
-    setupSlider(ceilingSlider, ceilingLabel, "Ceiling", " dB");
-    setupSlider(releaseSlider, releaseLabel, "Release", " ms");
-    setupSlider(lookaheadSlider, lookaheadLabel, "Lookahead", " ms");
-    setupSlider(inputGainSlider, inputGainLabel, "Input Gain", " dB");
+    setupSlider(ceilingSlider, ceilingLabel, "Ceiling");
+    ceilingSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    setupSlider(releaseSlider, releaseLabel, "Release");
+    releaseSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    setupSlider(lookaheadSlider, lookaheadLabel, "Lookahead");
+    lookaheadSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    setupSlider(inputGainSlider, inputGainLabel, "Input Gain");
+    inputGainSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
     
     // Set up right-click handlers for parameter assignment
     ceilingLabel.onClick = [this]() { showParameterMenu(&ceilingLabel, CEILING_ID); };
     releaseLabel.onClick = [this]() { showParameterMenu(&releaseLabel, RELEASE_ID); };
     lookaheadLabel.onClick = [this]() { showParameterMenu(&lookaheadLabel, LOOKAHEAD_ID); };
     inputGainLabel.onClick = [this]() { showParameterMenu(&inputGainLabel, INPUT_GAIN_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    ceilingSlider.addMouseListener(this, true);
+    ceilingSlider.getProperties().set("xyParamID", CEILING_ID);
+    releaseSlider.addMouseListener(this, true);
+    releaseSlider.getProperties().set("xyParamID", RELEASE_ID);
+    lookaheadSlider.addMouseListener(this, true);
+    lookaheadSlider.getProperties().set("xyParamID", LOOKAHEAD_ID);
+    inputGainSlider.addMouseListener(this, true);
+    inputGainSlider.getProperties().set("xyParamID", INPUT_GAIN_ID);
+
     
     // Soft Clip toggle
     softClipButton.setButtonText("Soft Clip");
-    softClipButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    softClipButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::cyan);
+    softClipButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    softClipButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     addAndMakeVisible(softClipButton);
     
-    softClipLabel.setText("Soft Clip", juce::dontSendNotification);
-    softClipLabel.setJustificationType(juce::Justification::centred);
-    softClipLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(softClipLabel);
-    
-    // Bypass button (top right like AutoPan)
+    // Bypass button (top right)
     bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    bypassButton.setClickingTogglesState(true);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -240,7 +255,7 @@ LimiterEditor::LimiterEditor(LimiterProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Ceiling / Release", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
@@ -249,10 +264,6 @@ LimiterEditor::LimiterEditor(LimiterProcessor& p)
     
     // Add gain reduction meter
     addAndMakeVisible(gainReductionMeter);
-    meterLabel.setText("Gain Reduction", juce::dontSendNotification);
-    meterLabel.setJustificationType(juce::Justification::centred);
-    meterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(meterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -264,7 +275,17 @@ LimiterEditor::LimiterEditor(LimiterProcessor& p)
     lookaheadSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     inputGainSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    ceilingSlider.setTooltip("Maximum output level -- signal will not exceed this");
+    releaseSlider.setTooltip("How quickly the limiter releases after catching a peak");
+    lookaheadSlider.setTooltip("Look ahead time to catch transients before they clip");
+    inputGainSlider.setTooltip("Boost input signal to drive the limiter harder");
+    bypassButton.setTooltip("Bypass the effect");
+    xyPad.setTooltip("Click and drag to control two parameters at once");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 LimiterEditor::~LimiterEditor()
@@ -274,86 +295,98 @@ LimiterEditor::~LimiterEditor()
 
 void LimiterEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color) {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(ceilingSlider.getX() - 2, ceilingSlider.getY() - 20, 200,
+                      "DYNAMICS", HyperPrismLookAndFeel::Colors::dynamics);
+    paintColumnHeader(outputSectionX, outputSectionY, 140,
+                      "METER", HyperPrismLookAndFeel::Colors::dynamics);
 }
 
 void LimiterEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // 5 parameter layout: 4 sliders + 1 toggle (similar to Phaser/HyperPhaser)
-    // Available height after title and margins: ~500px
-    // Distribution: 140px + 10px + 80px + 10px + 180px + 25px = 435px
-    
-    auto topRow = bounds.removeFromTop(140);
-    auto sliderWidth = 80;
-    auto spacing = 15;
-    
-    // Calculate total width needed for 4 sliders
-    auto totalSliderWidth = sliderWidth * 4 + spacing * 3;
-    auto startX = (bounds.getWidth() - totalSliderWidth) / 2;
-    topRow.removeFromLeft(startX);
-    
-    // Top row: Ceiling, Release, Lookahead, Input Gain
-    ceilingSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    ceilingLabel.setBounds(ceilingSlider.getX(), ceilingSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    releaseSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    releaseLabel.setBounds(releaseSlider.getX(), releaseSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    lookaheadSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    lookaheadLabel.setBounds(lookaheadSlider.getX(), lookaheadSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    inputGainSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    inputGainLabel.setBounds(inputGainSlider.getX(), inputGainSlider.getBottom(), sliderWidth, 20);
-    
-    bounds.removeFromTop(10);
-    
-    // Second row - Soft Clip toggle (centered)
-    auto secondRow = bounds.removeFromTop(80);
-    auto buttonWidth = 100;
-    auto buttonX = bounds.getX() + (bounds.getWidth() - buttonWidth) / 2;
-    
-    softClipButton.setBounds(buttonX, secondRow.getY() + 30, buttonWidth, 25);
-    softClipLabel.setBounds(buttonX, secondRow.getY() + 5, buttonWidth, 20);
-    
-    // Bottom section - XY Pad and Meter side by side (matching heights)
-    bounds.removeFromTop(10);
-    
-    // Split remaining space horizontally for XY pad and meter
-    auto bottomArea = bounds;
-    auto panelHeight = 180; // Standard XY pad height
-    
-    // Calculate positioning to center both panels
-    auto xyPadWidth = 200;
-    auto meterWidth = 100;
-    auto totalWidth = xyPadWidth + meterWidth + 20; // Plus spacing
-    auto startXBottom = (bottomArea.getWidth() - totalWidth) / 2;
-    
-    // XY Pad on left (200x180 standard)
-    auto xyPadBounds = bottomArea.withX(bottomArea.getX() + startXBottom).withWidth(xyPadWidth).withHeight(panelHeight);
-    xyPad.setBounds(xyPadBounds);
-    
-    // Gain Reduction Meter on right (matching height)
-    auto meterBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(meterWidth).withHeight(panelHeight);
-    gainReductionMeter.setBounds(meterBounds);
-    
-    // Align labels at the same Y position
-    auto labelY = xyPadBounds.getBottom() + 5;
-    xyPadLabel.setBounds(xyPadBounds.getX(), labelY, xyPadWidth, 20);
-    meterLabel.setBounds(meterBounds.getX(), labelY, meterWidth, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: 1 column with larger knobs ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = 200;
+    int colOffset = (columnsArea.getWidth() - colWidth) / 2;
+    columnsArea.removeFromLeft(colOffset);
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+
+    int knobDiam = 68;
+    int vSpace = 95;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column: DYNAMICS -- Ceiling, Release, Lookahead, Input Gain
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(ceilingSlider, ceilingLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(releaseSlider, releaseLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(lookaheadSlider, lookaheadLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+    centerKnob(inputGainSlider, inputGainLabel, col1.getX(), colWidth, y1 + vSpace * 3, knobDiam);
+
+    // Soft Clip toggle below knobs in column
+    int toggleY = y1 + vSpace * 3 + knobDiam / 2 + 36;
+    softClipButton.setBounds(col1.getX(), toggleY, colWidth, 25);
+
+    // --- Right side: XY pad + meter ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    // XY pad takes top portion, meter below
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Gain reduction meter below XY pad
+    auto bottomRight = rightSide;
+    outputSectionX = bottomRight.getX();
+    outputSectionY = bottomRight.getY();
+    bottomRight.removeFromTop(20);  // Space for "METER" section header
+    auto meterArea = bottomRight.reduced(4);
+    gainReductionMeter.setBounds(meterArea.reduced(4));
 }
 
 void LimiterEditor::setupControls()
@@ -367,49 +400,49 @@ void LimiterEditor::setupXYPad()
 }
 
 void LimiterEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+
     addAndMakeVisible(slider);
-    
+
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void LimiterEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    ceilingLabel.setColour(juce::Label::textColourId, neutralColor);
+    releaseLabel.setColour(juce::Label::textColourId, neutralColor);
+    lookaheadLabel.setColour(juce::Label::textColourId, neutralColor);
+    inputGainLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(ceilingLabel, CEILING_ID);
-    updateLabelColor(releaseLabel, RELEASE_ID);
-    updateLabelColor(lookaheadLabel, LOOKAHEAD_ID);
-    updateLabelColor(inputGainLabel, INPUT_GAIN_ID);
+
+    updateSliderXY(ceilingSlider, CEILING_ID);
+    updateSliderXY(releaseSlider, RELEASE_ID);
+    updateSliderXY(lookaheadSlider, LOOKAHEAD_ID);
+    updateSliderXY(inputGainSlider, INPUT_GAIN_ID);
+    repaint();
 }
 
 void LimiterEditor::updateXYPadFromParameters()
@@ -474,7 +507,18 @@ void LimiterEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void LimiterEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void LimiterEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void LimiterEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -494,7 +538,7 @@ void LimiterEditor::showParameterMenu(juce::Label* label, const juce::String& pa
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Echo Plugin Entry Point
+// HyperPrism Reimagined - Echo Plugin Entry Point
 //==============================================================================
 
 #include "EchoProcessor.h"

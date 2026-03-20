@@ -181,21 +181,45 @@ CompressorEditor::CompressorEditor(CompressorProcessor& p)
     xParameterIDs.add("threshold");
     yParameterIDs.add("ratio");
     
-    // Title (matching modern style)
-    titleLabel.setText("HyperPrism Reimagined Compressor", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("COMPRESSOR", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
-    
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
+
+    // Bypass button
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
+    addAndMakeVisible(bypassButton);
+
     // Setup sliders with consistent style
-    setupSlider(thresholdSlider, thresholdLabel, "Threshold", " dB");
-    setupSlider(ratioSlider, ratioLabel, "Ratio", ":1");
-    setupSlider(attackSlider, attackLabel, "Attack", " ms");
-    setupSlider(releaseSlider, releaseLabel, "Release", " ms");
-    setupSlider(kneeSlider, kneeLabel, "Knee", " dB");
-    setupSlider(makeupGainSlider, makeupGainLabel, "Makeup", " dB");
-    setupSlider(mixSlider, mixLabel, "Mix", " %");
+    setupSlider(thresholdSlider, thresholdLabel, "Threshold");
+    setupSlider(ratioSlider, ratioLabel, "Ratio");
+    setupSlider(attackSlider, attackLabel, "Attack");
+    setupSlider(releaseSlider, releaseLabel, "Release");
+    setupSlider(kneeSlider, kneeLabel, "Knee");
+    setupSlider(makeupGainSlider, makeupGainLabel, "Makeup");
+    setupSlider(mixSlider, mixLabel, "Mix");
+
+    // Color-code knobs by category
+    thresholdSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    ratioSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    kneeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    attackSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    releaseSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    makeupGainSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
+    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set up right-click handlers for parameter assignment
     thresholdLabel.onClick = [this]() { showParameterMenu(&thresholdLabel, "threshold"); };
@@ -205,8 +229,27 @@ CompressorEditor::CompressorEditor(CompressorProcessor& p)
     kneeLabel.onClick = [this]() { showParameterMenu(&kneeLabel, "knee"); };
     makeupGainLabel.onClick = [this]() { showParameterMenu(&makeupGainLabel, "makeupGain"); };
     mixLabel.onClick = [this]() { showParameterMenu(&mixLabel, "mix"); };
+
+    // Register right-click on sliders for XY pad assignment
+    thresholdSlider.addMouseListener(this, true);
+    thresholdSlider.getProperties().set("xyParamID", "threshold");
+    ratioSlider.addMouseListener(this, true);
+    ratioSlider.getProperties().set("xyParamID", "ratio");
+    attackSlider.addMouseListener(this, true);
+    attackSlider.getProperties().set("xyParamID", "attack");
+    releaseSlider.addMouseListener(this, true);
+    releaseSlider.getProperties().set("xyParamID", "release");
+    kneeSlider.addMouseListener(this, true);
+    kneeSlider.getProperties().set("xyParamID", "knee");
+    makeupGainSlider.addMouseListener(this, true);
+    makeupGainSlider.getProperties().set("xyParamID", "makeupGain");
+    mixSlider.addMouseListener(this, true);
+    mixSlider.getProperties().set("xyParamID", "mix");
+
     
     // Create attachments
+    bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        audioProcessor.apvts, "bypass", bypassButton);
     thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "threshold", thresholdSlider);
     ratioAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
@@ -227,7 +270,7 @@ CompressorEditor::CompressorEditor(CompressorProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);  // Set the axis colors
     xyPadLabel.setText("Threshold / Ratio", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
@@ -236,10 +279,6 @@ CompressorEditor::CompressorEditor(CompressorProcessor& p)
     
     // Setup gain reduction meter
     addAndMakeVisible(gainReductionMeter);
-    meterLabel.setText("GR", juce::dontSendNotification);
-    meterLabel.setJustificationType(juce::Justification::centred);
-    meterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(meterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -254,7 +293,20 @@ CompressorEditor::CompressorEditor(CompressorProcessor& p)
     makeupGainSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     mixSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    thresholdSlider.setTooltip("Signal level above which compression begins");
+    ratioSlider.setTooltip("Amount of gain reduction -- higher ratio means more compression");
+    attackSlider.setTooltip("How quickly compression responds to loud signals");
+    releaseSlider.setTooltip("How quickly compression releases after signal drops");
+    kneeSlider.setTooltip("Softness of the compression onset -- higher values are more gradual");
+    makeupGainSlider.setTooltip("Boost to compensate for volume lost during compression");
+    mixSlider.setTooltip("Balance between dry and compressed signal (parallel compression)");
+    bypassButton.setTooltip("Bypass the effect");
+    xyPad.setTooltip("Click and drag to control two parameters at once");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 CompressorEditor::~CompressorEditor()
@@ -264,130 +316,168 @@ CompressorEditor::~CompressorEditor()
 
 void CompressorEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching modern template
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    // Headers anchored to first slider in each column
+    paintColumnHeader(thresholdSlider.getX() - 2, thresholdSlider.getY() - 20, 120,
+                      "DYNAMICS", HyperPrismLookAndFeel::Colors::dynamics);
+    paintColumnHeader(attackSlider.getX() - 2, attackSlider.getY() - 20, 120,
+                      "TIMING", HyperPrismLookAndFeel::Colors::timing);
+
+    // Output section header
+    paintColumnHeader(outputSectionX, outputSectionY,
+                      getWidth() - outputSectionX - 12,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void CompressorEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    bounds.reduce(20, 10);
-    
-    // Optimized layout for 650x600 - single row with all controls
-    auto sliderWidth = 75;
-    auto spacing = 15;
-    
-    // Single row with all 7 controls
-    auto controlsRow = bounds.removeFromTop(130);
-    auto totalControlsWidth = sliderWidth * 7 + spacing * 6;
-    auto controlsStartX = (bounds.getWidth() - totalControlsWidth) / 2;
-    controlsRow.removeFromLeft(controlsStartX);
-    
-    // All controls in one row: Threshold, Ratio, Attack, Release, Knee, Makeup, Mix
-    thresholdSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    thresholdLabel.setBounds(thresholdSlider.getX(), thresholdSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    ratioSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    ratioLabel.setBounds(ratioSlider.getX(), ratioSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    attackSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    attackLabel.setBounds(attackSlider.getX(), attackSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    releaseSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    releaseLabel.setBounds(releaseSlider.getX(), releaseSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    kneeSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    kneeLabel.setBounds(kneeSlider.getX(), kneeSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    makeupGainSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    makeupGainLabel.setBounds(makeupGainSlider.getX(), makeupGainSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    mixSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    mixLabel.setBounds(mixSlider.getX(), mixSlider.getBottom(), sliderWidth, 20);
-    
-    bounds.removeFromTop(15);
-    
-    // Bottom section - XY Pad and Meter side by side (simplified layout)
-    auto bottomSection = bounds;
-    auto panelHeight = 180; // Standard XY pad height
-    
-    // Calculate positioning to center both panels
-    auto xyPadWidth = 200;
-    auto meterWidth = 150; // Slightly wider meter
-    auto totalBottomWidth = xyPadWidth + 20 + meterWidth;
-    auto bottomStartX = (bottomSection.getWidth() - totalBottomWidth) / 2;
-    
-    // XY Pad on left
-    auto xyPadBounds = bottomSection.withX(bottomSection.getX() + bottomStartX).withWidth(xyPadWidth).withHeight(panelHeight);
-    xyPad.setBounds(xyPadBounds);
-    
-    // Gain reduction meter on right (matching height)
-    auto meterBounds = bottomSection.withX(xyPadBounds.getRight() + 20).withWidth(meterWidth).withHeight(panelHeight);
-    gainReductionMeter.setBounds(meterBounds);
-    
-    // Align labels at the same Y position
-    auto labelY = xyPadBounds.getBottom() + 5;
-    xyPadLabel.setBounds(xyPad.getX(), labelY, xyPadWidth, 20);
-    meterLabel.setBounds(gainReductionMeter.getX(), labelY, meterWidth, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: Two parameter columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 80;
+    int vSpace = 107;
+    int colTop = col1.getY() + 20; // room for section header
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: DYNAMICS -- Threshold, Ratio, Knee
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(thresholdSlider, thresholdLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(ratioSlider, ratioLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(kneeSlider, kneeLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // Column 2: TIMING -- Attack, Release
+    centerKnob(attackSlider, attackLabel, col2.getX(), colWidth, y1, knobDiam);
+    centerKnob(releaseSlider, releaseLabel, col2.getX(), colWidth, y1 + vSpace, knobDiam);
+
+    // --- Right side: XY pad + output + meter ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    // XY pad takes top portion
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Bottom right: Output knobs side-by-side + Meter
+    auto bottomRight = rightSide;
+    outputSectionX = bottomRight.getX();
+    outputSectionY = bottomRight.getY();
+
+    auto outputArea = bottomRight.removeFromLeft(180);
+    auto meterArea = bottomRight;
+
+    int outKnob = 54;
+    int outY = outputArea.getY() + 24;
+    centerKnob(makeupGainSlider, makeupGainLabel, outputArea.getX(), 90, outY + outKnob / 2, outKnob);
+    centerKnob(mixSlider, mixLabel, outputArea.getX() + 90, 90, outY + outKnob / 2, outKnob);
+
+    gainReductionMeter.setBounds(meterArea.reduced(4));
 }
 
 void CompressorEditor::setupSlider(juce::Slider& slider, juce::Label& label, 
-                                   const juce::String& text, const juce::String& suffix)
+                                   const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+
     addAndMakeVisible(slider);
-    
+
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void CompressorEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    thresholdLabel.setColour(juce::Label::textColourId, neutralColor);
+    ratioLabel.setColour(juce::Label::textColourId, neutralColor);
+    attackLabel.setColour(juce::Label::textColourId, neutralColor);
+    releaseLabel.setColour(juce::Label::textColourId, neutralColor);
+    kneeLabel.setColour(juce::Label::textColourId, neutralColor);
+    makeupGainLabel.setColour(juce::Label::textColourId, neutralColor);
+    mixLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(thresholdLabel, "threshold");
-    updateLabelColor(ratioLabel, "ratio");
-    updateLabelColor(attackLabel, "attack");
-    updateLabelColor(releaseLabel, "release");
-    updateLabelColor(kneeLabel, "knee");
-    updateLabelColor(makeupGainLabel, "makeupGain");
-    updateLabelColor(mixLabel, "mix");
+
+    updateSliderXY(thresholdSlider, "threshold");
+    updateSliderXY(ratioSlider, "ratio");
+    updateSliderXY(attackSlider, "attack");
+    updateSliderXY(releaseSlider, "release");
+    updateSliderXY(kneeSlider, "knee");
+    updateSliderXY(makeupGainSlider, "makeupGain");
+    updateSliderXY(mixSlider, "mix");
+    repaint();
 }
 
 void CompressorEditor::updateXYPadFromParameters()
@@ -448,7 +538,18 @@ void CompressorEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void CompressorEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void CompressorEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void CompressorEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -468,7 +569,7 @@ void CompressorEditor::showParameterMenu(juce::Label* label, const juce::String&
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {

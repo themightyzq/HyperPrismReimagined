@@ -119,7 +119,7 @@ void StereoDynamicsMeter::paint(juce::Graphics& g)
     // Create meter area
     auto meterArea = bounds.reduced(10.0f);
     float meterWidth = meterArea.getWidth();
-    float meterHeight = meterArea.getHeight() * 0.75f; // Leave space for labels
+    float meterHeight = meterArea.getHeight() * 0.9f; // Leave space for labels
     
     // Divide into four sections
     float sectionWidth = meterWidth / 4.0f;
@@ -233,35 +233,6 @@ void StereoDynamicsMeter::paint(juce::Graphics& g)
     labelArea.translate(sectionWidth, 0);
     g.drawText("SIDE", labelArea, juce::Justification::centred);
     
-    // Gain reduction values for mid/side
-    g.setFont(8.0f);
-    auto grY = labelY + 15;
-    
-    // Mid gain reduction
-    auto midGRArea = juce::Rectangle<float>(meterArea.getX() + sectionWidth * 2, grY, sectionWidth, 10);
-    juce::String midGRText = midGainReduction > 0.1f ? "-" + juce::String(midGainReduction, 1) + "dB" : "0dB";
-    g.drawText(midGRText, midGRArea, juce::Justification::centred);
-    
-    // Side gain reduction
-    auto sideGRArea = juce::Rectangle<float>(meterArea.getX() + sectionWidth * 3, grY, sectionWidth, 10);
-    juce::String sideGRText = sideGainReduction > 0.1f ? "-" + juce::String(sideGainReduction, 1) + "dB" : "0dB";
-    g.drawText(sideGRText, sideGRArea, juce::Justification::centred);
-    
-    // Level percentages
-    g.setFont(7.0f);
-    auto percentY = grY + 15;
-    auto percentArea = juce::Rectangle<float>(meterArea.getX(), percentY, sectionWidth, 10);
-    
-    g.drawText(juce::String(static_cast<int>(leftLevel * 100)) + "%", percentArea, juce::Justification::centred);
-    
-    percentArea.translate(sectionWidth, 0);
-    g.drawText(juce::String(static_cast<int>(rightLevel * 100)) + "%", percentArea, juce::Justification::centred);
-    
-    percentArea.translate(sectionWidth, 0);
-    g.drawText(juce::String(static_cast<int>(midLevel * 100)) + "%", percentArea, juce::Justification::centred);
-    
-    percentArea.translate(sectionWidth, 0);
-    g.drawText(juce::String(static_cast<int>(sideLevel * 100)) + "%", percentArea, juce::Justification::centred);
 }
 
 void StereoDynamicsMeter::timerCallback()
@@ -299,21 +270,36 @@ StereoDynamicsEditor::StereoDynamicsEditor(StereoDynamicsProcessor& p)
     xParameterIDs.add(StereoDynamicsProcessor::MID_THRESHOLD_ID);
     yParameterIDs.add(StereoDynamicsProcessor::SIDE_THRESHOLD_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Stereo Dynamics", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("STEREO DYNAMICS", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
     
     // Setup sliders with consistent style
-    setupSlider(midThresholdSlider, midThresholdLabel, "Mid Threshold", " dB");
-    setupSlider(midRatioSlider, midRatioLabel, "Mid Ratio", ":1");
-    setupSlider(sideThresholdSlider, sideThresholdLabel, "Side Threshold", " dB");
-    setupSlider(sideRatioSlider, sideRatioLabel, "Side Ratio", ":1");
-    setupSlider(attackTimeSlider, attackTimeLabel, "Attack Time", " ms");
-    setupSlider(releaseTimeSlider, releaseTimeLabel, "Release Time", " ms");
-    setupSlider(outputLevelSlider, outputLevelLabel, "Output Level", " dB");
+    setupSlider(midThresholdSlider, midThresholdLabel, "Threshold");
+    setupSlider(midRatioSlider, midRatioLabel, "Ratio");
+    setupSlider(sideThresholdSlider, sideThresholdLabel, "Threshold");
+    setupSlider(sideRatioSlider, sideRatioLabel, "Ratio");
+    setupSlider(attackTimeSlider, attackTimeLabel, "Attack");
+    setupSlider(releaseTimeSlider, releaseTimeLabel, "Release");
+    setupSlider(outputLevelSlider, outputLevelLabel, "Output");
+
+    // Color-code knobs by category
+    midThresholdSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    midRatioSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    sideThresholdSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    sideRatioSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    attackTimeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    releaseTimeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    outputLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set parameter ranges (example ranges - adjust based on processor)
     midThresholdSlider.setRange(-60.0, 0.0, 0.1);
@@ -332,12 +318,32 @@ StereoDynamicsEditor::StereoDynamicsEditor(StereoDynamicsProcessor& p)
     attackTimeLabel.onClick = [this]() { showParameterMenu(&attackTimeLabel, StereoDynamicsProcessor::ATTACK_TIME_ID); };
     releaseTimeLabel.onClick = [this]() { showParameterMenu(&releaseTimeLabel, StereoDynamicsProcessor::RELEASE_TIME_ID); };
     outputLevelLabel.onClick = [this]() { showParameterMenu(&outputLevelLabel, StereoDynamicsProcessor::OUTPUT_LEVEL_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    midThresholdSlider.addMouseListener(this, true);
+    midThresholdSlider.getProperties().set("xyParamID", StereoDynamicsProcessor::MID_THRESHOLD_ID);
+    midRatioSlider.addMouseListener(this, true);
+    midRatioSlider.getProperties().set("xyParamID", StereoDynamicsProcessor::MID_RATIO_ID);
+    sideThresholdSlider.addMouseListener(this, true);
+    sideThresholdSlider.getProperties().set("xyParamID", StereoDynamicsProcessor::SIDE_THRESHOLD_ID);
+    sideRatioSlider.addMouseListener(this, true);
+    sideRatioSlider.getProperties().set("xyParamID", StereoDynamicsProcessor::SIDE_RATIO_ID);
+    attackTimeSlider.addMouseListener(this, true);
+    attackTimeSlider.getProperties().set("xyParamID", StereoDynamicsProcessor::ATTACK_TIME_ID);
+    releaseTimeSlider.addMouseListener(this, true);
+    releaseTimeSlider.getProperties().set("xyParamID", StereoDynamicsProcessor::RELEASE_TIME_ID);
+    outputLevelSlider.addMouseListener(this, true);
+    outputLevelSlider.getProperties().set("xyParamID", StereoDynamicsProcessor::OUTPUT_LEVEL_ID);
+
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    // Bypass button
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -364,19 +370,16 @@ StereoDynamicsEditor::StereoDynamicsEditor(StereoDynamicsProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Mid Threshold / Side Threshold", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
         updateParametersFromXYPad(x, y);
     };
-    
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+
     // Add stereo dynamics meter
     addAndMakeVisible(stereoDynamicsMeter);
-    stereoDynamicsMeterLabel.setText("Stereo Dynamics Analysis", juce::dontSendNotification);
-    stereoDynamicsMeterLabel.setJustificationType(juce::Justification::centred);
-    stereoDynamicsMeterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(stereoDynamicsMeterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -391,7 +394,19 @@ StereoDynamicsEditor::StereoDynamicsEditor(StereoDynamicsProcessor& p)
     releaseTimeSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     outputLevelSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    midThresholdSlider.setTooltip("Compression threshold for the mid (center) channel");
+    midRatioSlider.setTooltip("Compression ratio for the mid channel");
+    sideThresholdSlider.setTooltip("Compression threshold for the side (stereo) channel");
+    sideRatioSlider.setTooltip("Compression ratio for the side channel");
+    attackTimeSlider.setTooltip("How quickly compression responds to loud signals");
+    releaseTimeSlider.setTooltip("How quickly compression releases after signal drops");
+    outputLevelSlider.setTooltip("Overall output volume");
+    bypassButton.setTooltip("Bypass the effect");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 StereoDynamicsEditor::~StereoDynamicsEditor()
@@ -401,134 +416,171 @@ StereoDynamicsEditor::~StereoDynamicsEditor()
 
 void StereoDynamicsEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(midThresholdSlider.getX() - 2, midThresholdSlider.getY() - 20, 105,
+                      "MID", HyperPrismLookAndFeel::Colors::dynamics);
+    paintColumnHeader(sideThresholdSlider.getX() - 2, sideThresholdSlider.getY() - 20, 105,
+                      "SIDE", HyperPrismLookAndFeel::Colors::dynamics);
+    paintColumnHeader(attackTimeSlider.getX() - 2, attackTimeSlider.getY() - 20, 105,
+                      "TIMING", HyperPrismLookAndFeel::Colors::timing);
+    paintColumnHeader(outputSectionX, outputSectionY, 105,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void StereoDynamicsEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Optimized layout for 650x600 - single row with all 7 controls
-    auto sliderWidth = 70;
-    auto spacing = 10;
-    
-    // Single row with all 7 controls
-    auto controlsRow = bounds.removeFromTop(130);
-    auto totalControlsWidth = sliderWidth * 7 + spacing * 6;
-    auto controlsStartX = (bounds.getWidth() - totalControlsWidth) / 2;
-    controlsRow.removeFromLeft(controlsStartX);
-    
-    // All controls in one row: Mid Threshold, Mid Ratio, Side Threshold, Side Ratio, Attack Time, Release Time, Output Level
-    midThresholdSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    midThresholdLabel.setBounds(midThresholdSlider.getX(), midThresholdSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    midRatioSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    midRatioLabel.setBounds(midRatioSlider.getX(), midRatioSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    sideThresholdSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    sideThresholdLabel.setBounds(sideThresholdSlider.getX(), sideThresholdSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    sideRatioSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    sideRatioLabel.setBounds(sideRatioSlider.getX(), sideRatioSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    attackTimeSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    attackTimeLabel.setBounds(attackTimeSlider.getX(), attackTimeSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    releaseTimeSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    releaseTimeLabel.setBounds(releaseTimeSlider.getX(), releaseTimeSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    outputLevelSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    outputLevelLabel.setBounds(outputLevelSlider.getX(), outputLevelSlider.getBottom(), sliderWidth, 20);
-    
-    // Bottom section - XY Pad and Meter side by side (brought up)
-    bounds.removeFromTop(15);
-    
-    // Split remaining space horizontally for XY pad and meter
-    auto bottomArea = bounds;
-    auto panelHeight = 180; // Standard XY pad height
-    
-    // Calculate positioning to center both panels
-    auto xyPadWidth = 200;
-    auto meterSize = 180;
-    auto totalBottomWidth = xyPadWidth + 20 + meterSize; // XY pad + spacing + meter
-    auto bottomStartX = (bottomArea.getWidth() - totalBottomWidth) / 2;
-    
-    // XY Pad on left
-    auto xyPadBounds = bottomArea.withX(bottomArea.getX() + bottomStartX).withWidth(xyPadWidth).withHeight(panelHeight);
-    xyPad.setBounds(xyPadBounds);
-    
-    // Stereo dynamics meter on right (matching height)
-    auto meterBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(meterSize).withHeight(panelHeight);
-    stereoDynamicsMeter.setBounds(meterBounds);
-    
-    // Align labels at the same Y position
-    auto labelY = xyPadBounds.getBottom() + 5;
-    xyPadLabel.setBounds(xyPad.getX(), labelY, xyPadWidth, 20);
-    stereoDynamicsMeterLabel.setBounds(stereoDynamicsMeter.getX(), labelY, meterSize, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: 3 columns with larger knobs, fixed 312px right-side allocation ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 20) / 3;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col3 = columnsArea;
+
+    int knobDiam = 70;
+    int vSpace = 97;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: MID -- Mid Threshold, Mid Ratio
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(midThresholdSlider, midThresholdLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(midRatioSlider, midRatioLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+
+    // Column 2: SIDE -- Side Threshold, Side Ratio
+    centerKnob(sideThresholdSlider, sideThresholdLabel, col2.getX(), colWidth, y1, knobDiam);
+    centerKnob(sideRatioSlider, sideRatioLabel, col2.getX(), colWidth, y1 + vSpace, knobDiam);
+
+    // Column 3: TIMING -- Attack, Release
+    centerKnob(attackTimeSlider, attackTimeLabel, col3.getX(), colWidth, y1, knobDiam);
+    centerKnob(releaseTimeSlider, releaseTimeLabel, col3.getX(), colWidth, y1 + vSpace, knobDiam);
+
+    // --- Right side: XY pad + meter + output ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    // XY pad takes most of the right side
+    int outputHeight = 130;
+    int meterHeight = 80;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - meterHeight - 30);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Meter below XY pad
+    auto meterArea = rightSide.removeFromTop(meterHeight);
+    stereoDynamicsMeter.setBounds(meterArea);
+    rightSide.removeFromTop(20);
+
+    // Output section: Output Level knob + meter side by side
+    auto bottomRight = rightSide;
+    auto outputArea = bottomRight.removeFromLeft(140);
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+    centerKnob(outputLevelSlider, outputLevelLabel, outputArea.getX() + 20, 100, outY + outKnob / 2, outKnob);
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
 }
 
 void StereoDynamicsEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void StereoDynamicsEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    midThresholdLabel.setColour(juce::Label::textColourId, neutralColor);
+    midRatioLabel.setColour(juce::Label::textColourId, neutralColor);
+    sideThresholdLabel.setColour(juce::Label::textColourId, neutralColor);
+    sideRatioLabel.setColour(juce::Label::textColourId, neutralColor);
+    attackTimeLabel.setColour(juce::Label::textColourId, neutralColor);
+    releaseTimeLabel.setColour(juce::Label::textColourId, neutralColor);
+    outputLevelLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(midThresholdLabel, StereoDynamicsProcessor::MID_THRESHOLD_ID);
-    updateLabelColor(midRatioLabel, StereoDynamicsProcessor::MID_RATIO_ID);
-    updateLabelColor(sideThresholdLabel, StereoDynamicsProcessor::SIDE_THRESHOLD_ID);
-    updateLabelColor(sideRatioLabel, StereoDynamicsProcessor::SIDE_RATIO_ID);
-    updateLabelColor(attackTimeLabel, StereoDynamicsProcessor::ATTACK_TIME_ID);
-    updateLabelColor(releaseTimeLabel, StereoDynamicsProcessor::RELEASE_TIME_ID);
-    updateLabelColor(outputLevelLabel, StereoDynamicsProcessor::OUTPUT_LEVEL_ID);
+
+    updateSliderXY(midThresholdSlider, StereoDynamicsProcessor::MID_THRESHOLD_ID);
+    updateSliderXY(midRatioSlider, StereoDynamicsProcessor::MID_RATIO_ID);
+    updateSliderXY(sideThresholdSlider, StereoDynamicsProcessor::SIDE_THRESHOLD_ID);
+    updateSliderXY(sideRatioSlider, StereoDynamicsProcessor::SIDE_RATIO_ID);
+    updateSliderXY(attackTimeSlider, StereoDynamicsProcessor::ATTACK_TIME_ID);
+    updateSliderXY(releaseTimeSlider, StereoDynamicsProcessor::RELEASE_TIME_ID);
+    updateSliderXY(outputLevelSlider, StereoDynamicsProcessor::OUTPUT_LEVEL_ID);
+    repaint();
 }
 
 void StereoDynamicsEditor::updateXYPadFromParameters()
@@ -587,7 +639,18 @@ void StereoDynamicsEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void StereoDynamicsEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void StereoDynamicsEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void StereoDynamicsEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -607,7 +670,7 @@ void StereoDynamicsEditor::showParameterMenu(juce::Label* label, const juce::Str
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {
@@ -666,7 +729,7 @@ void StereoDynamicsEditor::updateXYPadLabel()
         if (paramID == StereoDynamicsProcessor::SIDE_RATIO_ID) return "Side Ratio";
         if (paramID == StereoDynamicsProcessor::ATTACK_TIME_ID) return "Attack Time";
         if (paramID == StereoDynamicsProcessor::RELEASE_TIME_ID) return "Release Time";
-        if (paramID == StereoDynamicsProcessor::OUTPUT_LEVEL_ID) return "Output Level";
+        if (paramID == StereoDynamicsProcessor::OUTPUT_LEVEL_ID) return "Output";
         return paramID;
     };
     

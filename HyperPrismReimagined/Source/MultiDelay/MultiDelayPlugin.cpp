@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Multi Delay Plugin Entry Point
+// HyperPrism Reimagined - Multi Delay Plugin Entry Point
 //==============================================================================
 
 #include "MultiDelayProcessor.h"

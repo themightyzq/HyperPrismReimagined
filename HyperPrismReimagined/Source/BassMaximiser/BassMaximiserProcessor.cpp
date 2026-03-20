@@ -2,17 +2,10 @@
 #include "BassMaximiserEditor.h"
 
 BassMaximiserProcessor::BassMaximiserProcessor()
-#ifndef JucePlugin_PreferredChannelConfigurations
-     : AudioProcessor(BusesProperties()
-                     #if ! JucePlugin_IsMidiEffect
-                      #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                      #endif
-                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                     #endif
-                       ),
-#endif
-      apvts(*this, nullptr, "Parameters", 
+    : AudioProcessor(BusesProperties()
+          .withInput("Input", juce::AudioChannelSet::stereo(), true)
+          .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+      apvts(*this, nullptr, "Parameters",
       {
           std::make_unique<juce::AudioParameterFloat>("frequency", "Frequency", 
               juce::NormalisableRange<float>(20.0f, 500.0f, 1.0f, 0.3f), 80.0f, "Hz"),
@@ -24,7 +17,8 @@ BassMaximiserProcessor::BassMaximiserProcessor()
               juce::NormalisableRange<float>(0.0f, 100.0f, 1.0f), 50.0f, "%"),
           std::make_unique<juce::AudioParameterFloat>("outputGain", "Output Gain", 
               juce::NormalisableRange<float>(-20.0f, 20.0f, 0.1f), 0.0f, "dB"),
-          std::make_unique<juce::AudioParameterBool>("phaseInvert", "Phase Invert", false)
+          std::make_unique<juce::AudioParameterBool>("phaseInvert", "Phase Invert", false),
+          std::make_unique<juce::AudioParameterBool>("bypass", "Bypass", false)
       })
 {
     // Get parameter references
@@ -34,6 +28,7 @@ BassMaximiserProcessor::BassMaximiserProcessor()
     tightnessParam = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("tightness"));
     outputGainParam = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("outputGain"));
     phaseInvertParam = dynamic_cast<juce::AudioParameterBool*>(apvts.getParameter("phaseInvert"));
+    bypassParam = apvts.getRawParameterValue("bypass");
 }
 
 BassMaximiserProcessor::~BassMaximiserProcessor()
@@ -142,21 +137,10 @@ void BassMaximiserProcessor::releaseResources()
 
 bool BassMaximiserProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-  #if JucePlugin_IsMidiEffect
-    juce::ignoreUnused(layouts);
-    return true;
-  #else
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+    if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
 
-    #if ! JucePlugin_IsSynth
-     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
-         return false;
-    #endif
-
-    return true;
-  #endif
+    return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
 }
 
 void BassMaximiserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
@@ -167,6 +151,9 @@ void BassMaximiserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
+
+    if (bypassParam->load() > 0.5f)
+        return;
 
     // Update filters if frequency changed
     updateFilters();

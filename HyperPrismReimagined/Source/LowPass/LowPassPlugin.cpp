@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Low-Pass Filter Plugin Entry Point
+// HyperPrism Reimagined - Low-Pass Filter Plugin Entry Point
 //==============================================================================
 
 #include "LowPassProcessor.h"

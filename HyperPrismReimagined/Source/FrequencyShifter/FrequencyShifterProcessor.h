@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Frequency Shifter Processor
+// HyperPrism Reimagined - Frequency Shifter Processor
 //==============================================================================
 
 #pragma once
@@ -65,7 +65,7 @@ private:
     public:
         HilbertTransform();
         
-        void prepare(double sampleRate);
+        void prepare(double sampleRate, int samplesPerBlock);
         void reset();
         
         void processBlock(juce::AudioBuffer<float>& buffer);

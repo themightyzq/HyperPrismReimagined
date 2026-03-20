@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Delay Processor Implementation
+// HyperPrism Reimagined - Delay Processor Implementation
 //==============================================================================
 
 #include "DelayProcessor.h"

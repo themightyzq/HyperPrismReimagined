@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Frequency Shifter Processor
+// HyperPrism Reimagined - Frequency Shifter Processor
 //==============================================================================
 
 #include "FrequencyShifterProcessor.h"
@@ -13,11 +13,11 @@ FrequencyShifterProcessor::HilbertTransform::HilbertTransform()
     createHilbertCoefficients();
 }
 
-void FrequencyShifterProcessor::HilbertTransform::prepare(double sampleRate)
+void FrequencyShifterProcessor::HilbertTransform::prepare(double sampleRate, int samplesPerBlock)
 {
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = 512;
+    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
     spec.numChannels = 1;
     
     // Create and assign Hilbert transform coefficients
@@ -198,10 +198,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout FrequencyShifterProcessor::c
 //==============================================================================
 void FrequencyShifterProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    juce::ignoreUnused(samplesPerBlock);
-    
-    // Prepare DSP components
-    hilbertTransform.prepare(sampleRate);
+    // Prepare DSP components with actual buffer size (fixes 512-sample artifact bug)
+    hilbertTransform.prepare(sampleRate, samplesPerBlock);
     oscillator.prepare(sampleRate);
     
     // Reset metering

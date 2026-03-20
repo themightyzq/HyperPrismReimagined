@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Auto Pan Processor
+// HyperPrism Reimagined - Auto Pan Processor
 //==============================================================================
 
 #pragma once

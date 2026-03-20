@@ -149,7 +149,7 @@ void EnhancedStereoMeter::paint(juce::Graphics& g)
     g.setColour(HyperPrismLookAndFeel::Colors::primary);
     g.fillEllipse(xPos - 8, yPos - 8, 16, 16);
     
-    g.setColour(juce::Colours::white);
+    g.setColour(HyperPrismLookAndFeel::Colors::onSurface);
     g.fillEllipse(xPos - 4, yPos - 4, 8, 8);
     
     // Labels
@@ -158,14 +158,6 @@ void EnhancedStereoMeter::paint(juce::Graphics& g)
     g.drawText("L", centerX - radius - 25, centerY - 7, 15, 15, juce::Justification::right);
     g.drawText("R", centerX + radius + 10, centerY - 7, 15, 15, juce::Justification::left);
     g.drawText("AMB", centerX - 20, centerY - radius - 25, 40, 15, juce::Justification::centred);
-    
-    // Level values
-    g.setFont(9.0f);
-    g.setColour(HyperPrismLookAndFeel::Colors::primary);
-    auto valueArea = bounds.removeFromBottom(20).reduced(5, 0);
-    g.drawText("Width: " + juce::String(static_cast<int>(stereoWidth * 100)) + "% | " +
-               "Ambience: " + juce::String(static_cast<int>(ambienceLevel * 100)) + "%", 
-               valueArea, juce::Justification::centred);
 }
 
 void EnhancedStereoMeter::timerCallback()
@@ -197,20 +189,34 @@ MoreStereoEditor::MoreStereoEditor(MoreStereoProcessor& p)
     xParameterIDs.add(MoreStereoProcessor::WIDTH_ID);
     yParameterIDs.add(MoreStereoProcessor::STEREO_ENHANCE_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined More Stereo", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("MORE STEREO", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
     
     // Setup sliders with consistent style (6 parameters)
-    setupSlider(widthSlider, widthLabel, "Stereo Width", "");
-    setupSlider(bassMonoSlider, bassMonoLabel, "Bass Mono", "");
-    setupSlider(crossoverFreqSlider, crossoverFreqLabel, "Crossover", " Hz");
-    setupSlider(stereoEnhanceSlider, stereoEnhanceLabel, "Stereo Enhance", "");
-    setupSlider(ambienceSlider, ambienceLabel, "Ambience", "");
-    setupSlider(outputLevelSlider, outputLevelLabel, "Output Level", " dB");
+    setupSlider(widthSlider, widthLabel, "Stereo Width");
+    setupSlider(bassMonoSlider, bassMonoLabel, "Bass Mono");
+    setupSlider(crossoverFreqSlider, crossoverFreqLabel, "Crossover");
+    setupSlider(stereoEnhanceSlider, stereoEnhanceLabel, "Stereo Enhance");
+    setupSlider(ambienceSlider, ambienceLabel, "Ambience");
+    setupSlider(outputLevelSlider, outputLevelLabel, "Output");
+
+    // Color-code knobs by category
+    widthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    stereoEnhanceSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    ambienceSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    bassMonoSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    crossoverFreqSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    outputLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set up right-click handlers for parameter assignment
     widthLabel.onClick = [this]() { showParameterMenu(&widthLabel, MoreStereoProcessor::WIDTH_ID); };
@@ -219,12 +225,30 @@ MoreStereoEditor::MoreStereoEditor(MoreStereoProcessor& p)
     stereoEnhanceLabel.onClick = [this]() { showParameterMenu(&stereoEnhanceLabel, MoreStereoProcessor::STEREO_ENHANCE_ID); };
     ambienceLabel.onClick = [this]() { showParameterMenu(&ambienceLabel, MoreStereoProcessor::AMBIENCE_ID); };
     outputLevelLabel.onClick = [this]() { showParameterMenu(&outputLevelLabel, MoreStereoProcessor::OUTPUT_LEVEL_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    widthSlider.addMouseListener(this, true);
+    widthSlider.getProperties().set("xyParamID", MoreStereoProcessor::WIDTH_ID);
+    bassMonoSlider.addMouseListener(this, true);
+    bassMonoSlider.getProperties().set("xyParamID", MoreStereoProcessor::BASS_MONO_ID);
+    crossoverFreqSlider.addMouseListener(this, true);
+    crossoverFreqSlider.getProperties().set("xyParamID", MoreStereoProcessor::CROSSOVER_FREQ_ID);
+    stereoEnhanceSlider.addMouseListener(this, true);
+    stereoEnhanceSlider.getProperties().set("xyParamID", MoreStereoProcessor::STEREO_ENHANCE_ID);
+    ambienceSlider.addMouseListener(this, true);
+    ambienceSlider.getProperties().set("xyParamID", MoreStereoProcessor::AMBIENCE_ID);
+    outputLevelSlider.addMouseListener(this, true);
+    outputLevelSlider.getProperties().set("xyParamID", MoreStereoProcessor::OUTPUT_LEVEL_ID);
+
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    // Bypass button
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -249,19 +273,16 @@ MoreStereoEditor::MoreStereoEditor(MoreStereoProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Stereo Width / Stereo Enhance", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
         updateParametersFromXYPad(x, y);
     };
-    
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+
     // Add enhanced stereo meter
     addAndMakeVisible(enhancedStereoMeter);
-    enhancedStereoMeterLabel.setText("Stereo Field", juce::dontSendNotification);
-    enhancedStereoMeterLabel.setJustificationType(juce::Justification::centred);
-    enhancedStereoMeterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(enhancedStereoMeterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -275,7 +296,18 @@ MoreStereoEditor::MoreStereoEditor(MoreStereoProcessor& p)
     ambienceSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     outputLevelSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    widthSlider.setTooltip("Overall stereo width enhancement");
+    bassMonoSlider.setTooltip("Makes low frequencies mono for tighter bass");
+    crossoverFreqSlider.setTooltip("Frequency that separates bass and treble processing");
+    stereoEnhanceSlider.setTooltip("Enhances existing stereo differences in the treble");
+    ambienceSlider.setTooltip("Adds subtle reverb-based spaciousness");
+    outputLevelSlider.setTooltip("Overall output volume");
+    bypassButton.setTooltip("Bypass the effect");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 MoreStereoEditor::~MoreStereoEditor()
@@ -285,86 +317,113 @@ MoreStereoEditor::~MoreStereoEditor()
 
 void MoreStereoEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(widthSlider.getX() - 2, widthSlider.getY() - 20, 120,
+                      "STEREO", HyperPrismLookAndFeel::Colors::modulation);
+    paintColumnHeader(bassMonoSlider.getX() - 2, bassMonoSlider.getY() - 20, 120,
+                      "BASS", HyperPrismLookAndFeel::Colors::frequency);
+
+    paintColumnHeader(outputSectionX, outputSectionY,
+                      getWidth() - outputSectionX - 12,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void MoreStereoEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // 6 parameter layout: 3+3 sliders in two rows (similar to MSMatrix)
-    // Available height after title and margins: ~500px
-    
-    auto topRow = bounds.removeFromTop(140);
-    auto sliderWidth = 80;
-    auto spacing = 20;
-    
-    // Calculate total width needed for 3 sliders
-    auto totalSliderWidth = sliderWidth * 3 + spacing * 2;
-    auto startX = (bounds.getWidth() - totalSliderWidth) / 2;
-    topRow.removeFromLeft(startX);
-    
-    // Top row: Width, Bass Mono, Crossover Freq
-    widthSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    widthLabel.setBounds(widthSlider.getX(), widthSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    bassMonoSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    bassMonoLabel.setBounds(bassMonoSlider.getX(), bassMonoSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    crossoverFreqSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    crossoverFreqLabel.setBounds(crossoverFreqSlider.getX(), crossoverFreqSlider.getBottom(), sliderWidth, 20);
-    
-    bounds.removeFromTop(10);
-    
-    // Second row: Stereo Enhance, Ambience, Output Level
-    auto secondRow = bounds.removeFromTop(140);
-    secondRow.removeFromLeft(startX);
-    
-    stereoEnhanceSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    stereoEnhanceLabel.setBounds(stereoEnhanceSlider.getX(), stereoEnhanceSlider.getBottom(), sliderWidth, 20);
-    secondRow.removeFromLeft(spacing);
-    
-    ambienceSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    ambienceLabel.setBounds(ambienceSlider.getX(), ambienceSlider.getBottom(), sliderWidth, 20);
-    secondRow.removeFromLeft(spacing);
-    
-    outputLevelSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    outputLevelLabel.setBounds(outputLevelSlider.getX(), outputLevelSlider.getBottom(), sliderWidth, 20);
-    
-    // Bottom section - XY Pad and Meter side by side
-    bounds.removeFromTop(10);
-    
-    // Split remaining space horizontally for XY pad and meter
-    auto bottomArea = bounds;
-    auto componentHeight = 180;
-    
-    // XY Pad on left (200x180 standard)
-    auto xyPadWidth = 200;
-    auto xyPadHeight = 180;
-    auto xyPadBounds = bottomArea.withWidth(xyPadWidth).withHeight(xyPadHeight);
-    auto xyPadX = bottomArea.getX() + (bottomArea.getWidth() - xyPadWidth - 150 - 20) / 2; // center both components
-    xyPadBounds.translate(xyPadX - bottomArea.getX(), 0);
-    
-    xyPad.setBounds(xyPadBounds);
-    xyPadLabel.setBounds(xyPadBounds.getX(), xyPadBounds.getBottom() + 5, xyPadWidth, 20);
-    
-    // Enhanced Stereo Meter on right
-    auto meterWidth = 150;
-    auto meterBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(meterWidth).withHeight(componentHeight);
-    
-    enhancedStereoMeter.setBounds(meterBounds);
-    enhancedStereoMeterLabel.setBounds(meterBounds.getX(), meterBounds.getBottom() + 5, meterWidth, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: Two parameter columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 80;
+    int vSpace = 107;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: STEREO -- Width, Stereo Enhance, Ambience
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(widthSlider, widthLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(stereoEnhanceSlider, stereoEnhanceLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(ambienceSlider, ambienceLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // Column 2: BASS -- Bass Mono, Crossover Freq
+    centerKnob(bassMonoSlider, bassMonoLabel, col2.getX(), colWidth, y1, knobDiam);
+    centerKnob(crossoverFreqSlider, crossoverFreqLabel, col2.getX(), colWidth, y1 + vSpace, knobDiam);
+
+    // --- Right side: XY pad + output + meter ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Bottom right: Output knob + Enhanced Stereo Meter
+    auto bottomRight = rightSide;
+    auto outputArea = bottomRight.removeFromLeft(140);
+    auto meterArea = bottomRight;
+
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
+
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+    centerKnob(outputLevelSlider, outputLevelLabel, outputArea.getX() + 20, 100, outY + outKnob / 2, outKnob);
+
+    // Meter
+    enhancedStereoMeter.setBounds(meterArea.reduced(4));
 }
 
 void MoreStereoEditor::setupControls()
@@ -378,51 +437,53 @@ void MoreStereoEditor::setupXYPad()
 }
 
 void MoreStereoEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void MoreStereoEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    widthLabel.setColour(juce::Label::textColourId, neutralColor);
+    bassMonoLabel.setColour(juce::Label::textColourId, neutralColor);
+    crossoverFreqLabel.setColour(juce::Label::textColourId, neutralColor);
+    stereoEnhanceLabel.setColour(juce::Label::textColourId, neutralColor);
+    ambienceLabel.setColour(juce::Label::textColourId, neutralColor);
+    outputLevelLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(widthLabel, MoreStereoProcessor::WIDTH_ID);
-    updateLabelColor(bassMonoLabel, MoreStereoProcessor::BASS_MONO_ID);
-    updateLabelColor(crossoverFreqLabel, MoreStereoProcessor::CROSSOVER_FREQ_ID);
-    updateLabelColor(stereoEnhanceLabel, MoreStereoProcessor::STEREO_ENHANCE_ID);
-    updateLabelColor(ambienceLabel, MoreStereoProcessor::AMBIENCE_ID);
-    updateLabelColor(outputLevelLabel, MoreStereoProcessor::OUTPUT_LEVEL_ID);
+
+    updateSliderXY(widthSlider, MoreStereoProcessor::WIDTH_ID);
+    updateSliderXY(bassMonoSlider, MoreStereoProcessor::BASS_MONO_ID);
+    updateSliderXY(crossoverFreqSlider, MoreStereoProcessor::CROSSOVER_FREQ_ID);
+    updateSliderXY(stereoEnhanceSlider, MoreStereoProcessor::STEREO_ENHANCE_ID);
+    updateSliderXY(ambienceSlider, MoreStereoProcessor::AMBIENCE_ID);
+    updateSliderXY(outputLevelSlider, MoreStereoProcessor::OUTPUT_LEVEL_ID);
+    repaint();
 }
 
 void MoreStereoEditor::updateXYPadFromParameters()
@@ -487,7 +548,18 @@ void MoreStereoEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void MoreStereoEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void MoreStereoEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void MoreStereoEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -507,7 +579,7 @@ void MoreStereoEditor::showParameterMenu(juce::Label* label, const juce::String&
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {
@@ -565,7 +637,7 @@ void MoreStereoEditor::updateXYPadLabel()
         if (paramID == MoreStereoProcessor::CROSSOVER_FREQ_ID) return "Crossover";
         if (paramID == MoreStereoProcessor::STEREO_ENHANCE_ID) return "Stereo Enhance";
         if (paramID == MoreStereoProcessor::AMBIENCE_ID) return "Ambience";
-        if (paramID == MoreStereoProcessor::OUTPUT_LEVEL_ID) return "Output Level";
+        if (paramID == MoreStereoProcessor::OUTPUT_LEVEL_ID) return "Output";
         return paramID;
     };
     

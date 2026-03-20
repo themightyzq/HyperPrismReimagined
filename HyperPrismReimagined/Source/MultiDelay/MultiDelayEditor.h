@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Multi Delay Editor
+// HyperPrism Reimagined - Multi Delay Editor
 // Updated to match AutoPan template with complex layout
 //==============================================================================
 
@@ -32,7 +32,7 @@ public:
 //==============================================================================
 // XY Pad component (matching AutoPan style)
 //==============================================================================
-class XYPad : public juce::Component
+class XYPad : public juce::Component, public juce::SettableTooltipClient
 {
 public:
     XYPad();
@@ -90,13 +90,14 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    void mouseDown(const juce::MouseEvent& event) override;
 
 private:
     void setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                    const juce::String& text, const juce::String& suffix);
+                    const juce::String& text);
     void updateXYPadFromParameters();
     void updateParametersFromXYPad(float x, float y);
-    void showParameterMenu(juce::Label* label, const juce::String& parameterID);
+    void showParameterMenu(juce::Component* target, const juce::String& parameterID);
     void updateParameterColors();
     void updateXYPadLabel();
     
@@ -105,11 +106,17 @@ private:
     
     // Title
     juce::Label titleLabel;
-    
+    juce::Label brandLabel;
+
     // Bypass
-    juce::ToggleButton bypassButton;
+    juce::TextButton bypassButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
-    
+
+    // Tab selector
+    int selectedTap = 0;
+    std::array<juce::TextButton, 4> tapButtons;
+    void selectTap(int tapIndex);
+
     // Global controls with ParameterLabel for right-click assignment
     juce::Slider masterMixSlider;
     ParameterLabel masterMixLabel;
@@ -144,7 +151,6 @@ private:
     
     // Multi-delay meter
     MultiDelayMeter multiDelayMeter;
-    juce::Label multiDelayMeterLabel;
     
     // X/Y Pad parameter assignments (support multiple parameters per axis)
     juce::StringArray xParameterIDs;
@@ -153,6 +159,11 @@ private:
     // Color coding for assignments
     const juce::Colour xAssignmentColor = juce::Colour(0, 150, 255);   // Blue
     const juce::Colour yAssignmentColor = juce::Colour(255, 220, 0);   // Yellow
+
+    int outputSectionX = 0;
+    int outputSectionY = 0;
+
+    juce::TooltipWindow tooltipWindow { this, 500 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MultiDelayEditor)
 };

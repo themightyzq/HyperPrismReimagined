@@ -1,27 +1,24 @@
-# Claude AI specific files
+# =============================================
+# HyperPrism Reimagined — .gitignore
+# =============================================
+# Only track: Source code, CMakeLists.txt, JUCE submodule,
+# ThirdParty deps, essential scripts, and project docs.
+
+# ----- Claude / AI agent files -----
 .claude/
-CLAUDE.md
 .dvignore
 .diversion/
 
-# Archive folders
-Archive/
-zARCHIVE/
-
-# Windows build scripts (keep locally but not in repo)
-build_windows_option*.sh
-
-# macOS
+# ----- macOS system files -----
 .DS_Store
+._*
 .AppleDouble
 .LSOverride
-Icon
-._*
+.Spotlight-V100
+.Trashes
+.TemporaryItems
 .DocumentRevisions-V100
 .fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
 .AppleDB
@@ -29,23 +26,26 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+Icon?
 
-# Build artifacts
+# ----- Build artifacts -----
 HyperPrismReimagined/build/
 HyperPrismReimagined/build-*/
+HyperPrismReimagined/build_test/
 HyperPrismReimagined/build.log
 HyperPrismReimagined/plugin_backups/
-temp_parser_*.cpp
 *.o
 *.obj
+*.a
+*.lib
 *.pdb
 *.ilk
-*.exe
 *.dll
 *.so
 *.dylib
+temp_parser_*.cpp
 
-# IDE files
+# ----- IDE files -----
 .vscode/
 .idea/
 *.xcodeproj/
@@ -57,16 +57,48 @@ xcuserdata/
 *.pbxuser
 *.xcuserstate
 
-# JUCE specific
+# ----- JUCE legacy paths -----
 HyperPrismReimagined/JuceLibraryCode/
 HyperPrismReimagined/Builds/
 
-# Distribution builds (keep source, ignore built)
+# ----- JUCE demo/example files (large, not needed) -----
+HyperPrismReimagined/JUCE/examples/
+HyperPrismReimagined/JUCE/extras/
+HyperPrismReimagined/JUCE/DemoRunner.app/
+
+# ----- Old/unused scripts (superseded by CMake build) -----
+build_and_notarize.sh
+notarize_plugins.sh
+notarize_au_plugins.sh
+HyperPrismReimagined/Scripts/build_mac.sh
+HyperPrismReimagined/Scripts/collect_existing_builds.sh
+HyperPrismReimagined/Scripts/create_release.sh
+HyperPrismReimagined/Scripts/build_windows.bat
+HyperPrismReimagined/Scripts/mac_installer/
+HyperPrismReimagined/Scripts/windows_installer/
+
+# ----- Old AI-generated audit/guide docs (superseded by best practices) -----
+HyperPrismReimagined/PLUGIN_UX_UI_AUDIT.md
+HyperPrismReimagined/UI_LAYOUT_GUIDE.md
+HyperPrismReimagined/UI_STANDARDIZATION_GUIDE.md
+HyperPrismReimagined/UI_UPDATE_SUMMARY.md
+VST3_SOUNDMINER_SETUP.md
+
+# ----- Distribution / release artifacts -----
+HyperPrismReimagined/Distribution/Release/
 HyperPrismReimagined/Distribution/Mac/VST3/*.vst3
-HyperPrismReimagined/Distribution/Mac/AU/*.component
 HyperPrismReimagined/Distribution/Windows/
 
-# Temporary files
+# ----- Old .command double-click installers -----
+HyperPrismReimagined/*.command
+
+# ----- Cross-compile toolchains (not currently used) -----
+HyperPrismReimagined/cmake/Toolchain-mingw64.cmake
+
+# ----- CI workflows (premature — not in active use) -----
+.github/
+
+# ----- Temporary files -----
 *.tmp
 *.temp
 notarization_temp*/
@@ -74,10 +106,7 @@ notarization_temp*/
 *.swp
 *.swo
 
-# Archive folder (optional - uncomment to exclude from repo)
-# Archive/
-
-# Credentials and sensitive data
+# ----- Credentials and sensitive data -----
 *.keychain
 credentials.json
 .env
@@ -85,16 +114,14 @@ credentials.json
 *.cer
 *.key
 google-services.json
-**/google-services.json
 
-# JUCE demo and example files
-HyperPrismReimagined/JUCE/examples/
-HyperPrismReimagined/JUCE/extras/
-HyperPrismReimagined/JUCE/DemoRunner.app/
-
-# Large binary files
+# ----- Large binary / distribution files -----
 *.zip
 *.dmg
 *.pkg
-*.exe
 *.msi
+*.vst3
+
+# ----- Archive folders -----
+Archive/
+zARCHIVE/

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Vibrato Processor
+// HyperPrism Reimagined - Vibrato Processor
 //==============================================================================
 
 #pragma once

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Quasi Stereo Plugin Entry Point
+// HyperPrism Reimagined - Quasi Stereo Plugin Entry Point
 //==============================================================================
 
 #include "QuasiStereoProcessor.h"

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Delay Plugin Entry Point
+// HyperPrism Reimagined - Delay Plugin Entry Point
 //==============================================================================
 
 #include "DelayProcessor.h"

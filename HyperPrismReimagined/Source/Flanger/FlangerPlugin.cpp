@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Flanger Plugin Entry Point
+// HyperPrism Reimagined - Flanger Plugin Entry Point
 //==============================================================================
 
 #include "FlangerProcessor.h"

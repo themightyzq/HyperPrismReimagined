@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Modern Look and Feel Implementation
+// HyperPrism Reimagined - Modern Look and Feel Implementation
 //==============================================================================
 
 #include "HyperPrismLookAndFeel.h"
@@ -19,6 +19,13 @@ const juce::Colour HyperPrismLookAndFeel::Colors::error               = juce::Co
 const juce::Colour HyperPrismLookAndFeel::Colors::warning             = juce::Colour(0xffffab00);  // Warning amber
 const juce::Colour HyperPrismLookAndFeel::Colors::success             = juce::Colour(0xff00ff41);  // Success green
 
+// Parameter group colors
+const juce::Colour HyperPrismLookAndFeel::Colors::dynamics     = juce::Colour(0xff00d9ff);  // Cyan
+const juce::Colour HyperPrismLookAndFeel::Colors::timing       = juce::Colour(0xff9b7adb);  // Purple
+const juce::Colour HyperPrismLookAndFeel::Colors::output       = juce::Colour(0xff00ff41);  // Green
+const juce::Colour HyperPrismLookAndFeel::Colors::frequency    = juce::Colour(0xffffab00);  // Amber
+const juce::Colour HyperPrismLookAndFeel::Colors::modulation   = juce::Colour(0xffff6bb5);  // Pink
+
 HyperPrismLookAndFeel::HyperPrismLookAndFeel()
 {
     setupFonts();
@@ -34,8 +41,8 @@ HyperPrismLookAndFeel::HyperPrismLookAndFeel()
     setColour(juce::Slider::rotarySliderFillColourId, Colors::primary);
     setColour(juce::Slider::rotarySliderOutlineColourId, Colors::outline);
     setColour(juce::Slider::textBoxTextColourId, Colors::onSurface);
-    setColour(juce::Slider::textBoxBackgroundColourId, Colors::surfaceVariant);
-    setColour(juce::Slider::textBoxOutlineColourId, Colors::outline);
+    setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
+    setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     
     // Button colors
     setColour(juce::TextButton::buttonColourId, Colors::surfaceVariant);
@@ -69,45 +76,98 @@ void HyperPrismLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, in
                                             float sliderPos, float rotaryStartAngle, float rotaryEndAngle,
                                             juce::Slider& slider)
 {
-    auto radius = (float) juce::jmin(width / 2, height / 2) - 4.0f;
+    auto radius = (float) juce::jmin(width / 2, height / 2) - 6.0f;
     auto centreX = (float) x + (float) width * 0.5f;
     auto centreY = (float) y + (float) height * 0.5f;
-    auto rx = centreX - radius;
-    auto ry = centreY - radius;
-    auto rw = radius * 2.0f;
     auto angle = rotaryStartAngle + sliderPos * (rotaryEndAngle - rotaryStartAngle);
+    auto arcRadius = radius;
 
-    // Draw outer ring
+    // Draw background track arc
+    juce::Path backgroundArc;
+    backgroundArc.addCentredArc(centreX, centreY, arcRadius, arcRadius,
+                                 0.0f, rotaryStartAngle, rotaryEndAngle, true);
     g.setColour(Colors::outline);
-    g.drawEllipse(rx, ry, rw, rw, 2.0f);
-    
-    // Draw inner fill
-    g.setColour(Colors::surfaceVariant);
-    g.fillEllipse(rx + 2, ry + 2, rw - 4, rw - 4);
-    
-    // Draw value arc
-    juce::Path valueArc;
-    valueArc.addPieSegment(rx, ry, rw, rw, rotaryStartAngle, angle, 0.0f);
-    g.setColour(Colors::primary.withAlpha(0.3f));
-    g.fillPath(valueArc);
-    
-    // Draw value arc outline
-    g.setColour(Colors::primary);
-    g.strokePath(valueArc, juce::PathStrokeType(2.0f));
-    
-    // Draw pointer
-    juce::Path pointer;
-    auto pointerLength = radius * 0.7f;
-    auto pointerThickness = 3.0f;
-    pointer.addRectangle(-pointerThickness * 0.5f, -radius + 8, pointerThickness, pointerLength);
-    pointer.applyTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
-    
-    g.setColour(Colors::primary);
-    g.fillPath(pointer);
-    
-    // Draw center dot
+    g.strokePath(backgroundArc, juce::PathStrokeType(3.5f, juce::PathStrokeType::curved,
+                                                      juce::PathStrokeType::rounded));
+
+    // Draw value arc (just the stroke, no fill)
+    auto arcColour = slider.findColour(juce::Slider::rotarySliderFillColourId);
+    if (sliderPos > 0.0f)
+    {
+        juce::Path valueArc;
+        valueArc.addCentredArc(centreX, centreY, arcRadius, arcRadius,
+                                0.0f, rotaryStartAngle, angle, true);
+
+        g.setColour(arcColour);
+        g.strokePath(valueArc, juce::PathStrokeType(3.5f, juce::PathStrokeType::curved,
+                                                     juce::PathStrokeType::rounded));
+    }
+
+    // Draw subtle inner circle
+    auto innerRadius = radius * 0.68f;
+    g.setColour(Colors::surface);
+    g.fillEllipse(centreX - innerRadius, centreY - innerRadius,
+                  innerRadius * 2.0f, innerRadius * 2.0f);
+    g.setColour(Colors::outlineVariant);
+    g.drawEllipse(centreX - innerRadius, centreY - innerRadius,
+                  innerRadius * 2.0f, innerRadius * 2.0f, 0.5f);
+
+    // Draw thin needle pointer
+    juce::Path needle;
+    auto needleLength = radius * 0.52f;
+    auto needleThickness = 1.5f;
+    needle.addRoundedRectangle(-needleThickness * 0.5f, -radius + 4.0f,
+                                needleThickness, needleLength, 1.0f);
+    needle.applyTransform(juce::AffineTransform::rotation(angle).translated(centreX, centreY));
     g.setColour(Colors::onSurface);
-    g.fillEllipse(centreX - 3, centreY - 3, 6, 6);
+    g.fillPath(needle);
+
+    // Check for XY pad assignment badges (set via component properties)
+    bool isXAssigned = slider.getProperties().contains("xyAxisX");
+    bool isYAssigned = slider.getProperties().contains("xyAxisY");
+
+    if (isXAssigned || isYAssigned)
+    {
+        // Draw XY badge text inside the inner circle instead of center dot
+        juce::String badgeText;
+        juce::Colour badgeColour;
+
+        if (isXAssigned && isYAssigned)
+        {
+            badgeText = "XY";
+            badgeColour = juce::Colour(0, 150, 255).interpolatedWith(juce::Colour(255, 220, 0), 0.5f);
+        }
+        else if (isXAssigned)
+        {
+            badgeText = "X";
+            badgeColour = juce::Colour(0, 150, 255);
+        }
+        else
+        {
+            badgeText = "Y";
+            badgeColour = juce::Colour(255, 220, 0);
+        }
+
+        g.setColour(badgeColour.withAlpha(0.9f));
+        g.setFont(juce::Font(juce::FontOptions(innerRadius * 0.85f).withStyle("Bold")));
+        g.drawText(badgeText,
+                   static_cast<int>(centreX - innerRadius), static_cast<int>(centreY - innerRadius),
+                   static_cast<int>(innerRadius * 2.0f), static_cast<int>(innerRadius * 2.0f),
+                   juce::Justification::centred);
+    }
+    else
+    {
+        // Draw small center dot (default when no XY assignment)
+        g.setColour(Colors::onSurface);
+        g.fillEllipse(centreX - 2.0f, centreY - 2.0f, 4.0f, 4.0f);
+    }
+
+    // Draw dot indicator at end of value arc
+    auto dotRadius = 3.0f;
+    auto dotX = centreX + arcRadius * std::cos(angle - juce::MathConstants<float>::halfPi);
+    auto dotY = centreY + arcRadius * std::sin(angle - juce::MathConstants<float>::halfPi);
+    g.setColour(arcColour);
+    g.fillEllipse(dotX - dotRadius, dotY - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
 }
 
 void HyperPrismLookAndFeel::drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
@@ -284,18 +344,22 @@ void HyperPrismLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& 
 juce::Label* HyperPrismLookAndFeel::createSliderTextBox(juce::Slider& slider)
 {
     auto* l = new juce::Label();
-    
+
     l->setJustificationType(juce::Justification::centred);
     l->setKeyboardType(juce::TextInputTarget::decimalKeyboard);
-    
-    l->setColour(juce::Label::textColourId, slider.findColour(juce::Slider::textBoxTextColourId));
-    l->setColour(juce::Label::backgroundColourId,
-                 (slider.getSliderStyle() == juce::Slider::LinearBar || slider.getSliderStyle() == juce::Slider::LinearBarVertical)
-                     ? juce::Colours::transparentBlack
-                     : slider.findColour(juce::Slider::textBoxBackgroundColourId));
-    l->setColour(juce::Label::outlineColourId, slider.findColour(juce::Slider::textBoxOutlineColourId));
+
+    // Use the slider's fill colour for the value text (matches knob arc color)
+    l->setColour(juce::Label::textColourId,
+                 slider.findColour(juce::Slider::rotarySliderFillColourId));
+    l->setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
+    l->setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
+
+    // When editing, show a subtle background
+    l->setColour(juce::Label::backgroundWhenEditingColourId, Colors::surfaceVariant);
+    l->setColour(juce::Label::outlineWhenEditingColourId, Colors::primary);
+
     l->setFont(captionFont);
-    
+
     return l;
 }
 

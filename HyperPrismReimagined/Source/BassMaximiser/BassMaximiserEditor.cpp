@@ -102,19 +102,32 @@ BassMaximiserEditor::BassMaximiserEditor(BassMaximiserProcessor& p)
     xParameterIDs.add(FREQUENCY_ID);
     yParameterIDs.add(BOOST_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Bass Maximizer", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("BASS MAXIMIZER", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
     
     // Setup sliders with consistent style (6 parameters - 4+2 layout)
-    setupSlider(frequencySlider, frequencyLabel, "Frequency", " Hz");
-    setupSlider(boostSlider, boostLabel, "Boost", " dB");
-    setupSlider(harmonicsSlider, harmonicsLabel, "Harmonics", "%");
-    setupSlider(tightnessSlider, tightnessLabel, "Tightness", "%");
-    setupSlider(outputGainSlider, outputGainLabel, "Output Gain", " dB");
+    setupSlider(frequencySlider, frequencyLabel, "Frequency");
+    setupSlider(boostSlider, boostLabel, "Boost");
+    setupSlider(harmonicsSlider, harmonicsLabel, "Harmonics");
+    setupSlider(tightnessSlider, tightnessLabel, "Tightness");
+    setupSlider(outputGainSlider, outputGainLabel, "Output");
+
+    // Color-code knobs by category
+    frequencySlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    boostSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    harmonicsSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    tightnessSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    outputGainSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set up right-click handlers for parameter assignment
     frequencyLabel.onClick = [this]() { showParameterMenu(&frequencyLabel, FREQUENCY_ID); };
@@ -122,18 +135,34 @@ BassMaximiserEditor::BassMaximiserEditor(BassMaximiserProcessor& p)
     harmonicsLabel.onClick = [this]() { showParameterMenu(&harmonicsLabel, HARMONICS_ID); };
     tightnessLabel.onClick = [this]() { showParameterMenu(&tightnessLabel, TIGHTNESS_ID); };
     outputGainLabel.onClick = [this]() { showParameterMenu(&outputGainLabel, OUTPUT_GAIN_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    frequencySlider.addMouseListener(this, true);
+    frequencySlider.getProperties().set("xyParamID", FREQUENCY_ID);
+    boostSlider.addMouseListener(this, true);
+    boostSlider.getProperties().set("xyParamID", BOOST_ID);
+    harmonicsSlider.addMouseListener(this, true);
+    harmonicsSlider.getProperties().set("xyParamID", HARMONICS_ID);
+    tightnessSlider.addMouseListener(this, true);
+    tightnessSlider.getProperties().set("xyParamID", TIGHTNESS_ID);
+    outputGainSlider.addMouseListener(this, true);
+    outputGainSlider.getProperties().set("xyParamID", OUTPUT_GAIN_ID);
+
     
     // Phase Invert toggle
     phaseInvertButton.setButtonText("Phase Invert");
-    phaseInvertButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    phaseInvertButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::cyan);
+    phaseInvertButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    phaseInvertButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     addAndMakeVisible(phaseInvertButton);
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    // Bypass button
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -158,7 +187,7 @@ BassMaximiserEditor::BassMaximiserEditor(BassMaximiserProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Frequency / Boost", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
@@ -176,7 +205,18 @@ BassMaximiserEditor::BassMaximiserEditor(BassMaximiserProcessor& p)
     tightnessSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     outputGainSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    frequencySlider.setTooltip("Crossover frequency -- bass below this point is boosted");
+    boostSlider.setTooltip("Amount of bass boost in decibels");
+    harmonicsSlider.setTooltip("Adds harmonic overtones to make bass audible on small speakers");
+    tightnessSlider.setTooltip("Compresses the bass to keep it controlled and punchy");
+    outputGainSlider.setTooltip("Overall output volume after processing");
+    bypassButton.setTooltip("Bypass the effect");
+    xyPad.setTooltip("Click and drag to control two parameters at once");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 BassMaximiserEditor::~BassMaximiserEditor()
@@ -186,75 +226,111 @@ BassMaximiserEditor::~BassMaximiserEditor()
 
 void BassMaximiserEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(frequencySlider.getX() - 2, frequencySlider.getY() - 20, 120,
+                      "BASS", HyperPrismLookAndFeel::Colors::frequency);
+    paintColumnHeader(tightnessSlider.getX() - 2, tightnessSlider.getY() - 20, 120,
+                      "CHARACTER", HyperPrismLookAndFeel::Colors::dynamics);
+
+    // Output section header
+    paintColumnHeader(outputSectionX, outputSectionY,
+                      getWidth() - outputSectionX - 12,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void BassMaximiserEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Single row layout: All 5 knobs on one row
-    // Available height after title and margins: ~550px
-    // Distribution: 140px + 50px + 180px = 370px
-    
-    auto topRow = bounds.removeFromTop(140);
-    auto sliderWidth = 80;
-    auto spacing = 15;
-    
-    // Calculate total width needed for 5 sliders
-    auto totalSliderWidth = sliderWidth * 5 + spacing * 4;
-    auto startX = (bounds.getWidth() - totalSliderWidth) / 2;
-    topRow.removeFromLeft(startX);
-    
-    // Single row: Frequency, Boost, Harmonics, Tightness, Output Gain
-    frequencySlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    frequencyLabel.setBounds(frequencySlider.getX(), frequencySlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    boostSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    boostLabel.setBounds(boostSlider.getX(), boostSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    harmonicsSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    harmonicsLabel.setBounds(harmonicsSlider.getX(), harmonicsSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    tightnessSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    tightnessLabel.setBounds(tightnessSlider.getX(), tightnessSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    outputGainSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    outputGainLabel.setBounds(outputGainSlider.getX(), outputGainSlider.getBottom(), sliderWidth, 20);
-    
-    bounds.removeFromTop(10);
-    
-    // Phase Invert toggle row (under Frequency knob, keep where it is)
-    auto toggleRow = bounds.removeFromTop(50);
-    
-    // Align Phase Invert under Frequency knob
-    auto phaseInvertX = startX; // Same X position as frequency knob
-    phaseInvertButton.setBounds(phaseInvertX, toggleRow.getY() + 10, sliderWidth, 30);
-    
-    // Bottom section - XY Pad (brought up with less spacing)
-    bounds.removeFromTop(20); // Reduced spacing to bring XY pad up
-    
-    // Center the XY Pad horizontally (200x180 standard)
-    auto xyPadWidth = 200;
-    auto xyPadHeight = 180;
-    auto xyPadX = bounds.getX() + (bounds.getWidth() - xyPadWidth) / 2;
-    auto xyPadY = bounds.getY();
-    
-    xyPad.setBounds(xyPadX, xyPadY, xyPadWidth, xyPadHeight);
-    xyPadLabel.setBounds(xyPadX, xyPadY + xyPadHeight + 5, xyPadWidth, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: Two parameter columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 80;
+    int vSpace = 107;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: BASS -- Frequency, Boost, Harmonics
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(frequencySlider, frequencyLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(boostSlider, boostLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(harmonicsSlider, harmonicsLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // Column 2: CHARACTER -- Tightness + Phase Invert
+    centerKnob(tightnessSlider, tightnessLabel, col2.getX(), colWidth, y1, knobDiam);
+    phaseInvertButton.setBounds(col2.getX() + 5, y1 + vSpace - 12, colWidth - 10, 22);
+
+    // --- Right side: XY pad + output ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Bottom right: Output knob centered
+    auto bottomRight = rightSide;
+    auto outputArea = bottomRight;
+
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
+
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+
+    centerKnob(outputGainSlider, outputGainLabel, outputArea.getCentreX() - 50, 100, outY + outKnob / 2, outKnob);
 }
 
 void BassMaximiserEditor::setupControls()
@@ -268,50 +344,51 @@ void BassMaximiserEditor::setupXYPad()
 }
 
 void BassMaximiserEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void BassMaximiserEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    frequencyLabel.setColour(juce::Label::textColourId, neutralColor);
+    boostLabel.setColour(juce::Label::textColourId, neutralColor);
+    harmonicsLabel.setColour(juce::Label::textColourId, neutralColor);
+    tightnessLabel.setColour(juce::Label::textColourId, neutralColor);
+    outputGainLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(frequencyLabel, FREQUENCY_ID);
-    updateLabelColor(boostLabel, BOOST_ID);
-    updateLabelColor(harmonicsLabel, HARMONICS_ID);
-    updateLabelColor(tightnessLabel, TIGHTNESS_ID);
-    updateLabelColor(outputGainLabel, OUTPUT_GAIN_ID);
+
+    updateSliderXY(frequencySlider, FREQUENCY_ID);
+    updateSliderXY(boostSlider, BOOST_ID);
+    updateSliderXY(harmonicsSlider, HARMONICS_ID);
+    updateSliderXY(tightnessSlider, TIGHTNESS_ID);
+    updateSliderXY(outputGainSlider, OUTPUT_GAIN_ID);
+    repaint();
 }
 
 void BassMaximiserEditor::updateXYPadFromParameters()
@@ -372,7 +449,18 @@ void BassMaximiserEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void BassMaximiserEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void BassMaximiserEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void BassMaximiserEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -392,7 +480,7 @@ void BassMaximiserEditor::showParameterMenu(juce::Label* label, const juce::Stri
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {
@@ -449,7 +537,7 @@ void BassMaximiserEditor::updateXYPadLabel()
         if (paramID == BOOST_ID) return "Boost";
         if (paramID == HARMONICS_ID) return "Harmonics";
         if (paramID == TIGHTNESS_ID) return "Tightness";
-        if (paramID == OUTPUT_GAIN_ID) return "Output Gain";
+        if (paramID == OUTPUT_GAIN_ID) return "Output";
         return paramID;
     };
     
