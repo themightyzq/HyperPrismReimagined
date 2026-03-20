@@ -95,8 +95,8 @@ HyperPrismReimagined/*.command
 # ----- Cross-compile toolchains (not currently used) -----
 HyperPrismReimagined/cmake/Toolchain-mingw64.cmake
 
-# ----- CI workflows (premature — not in active use) -----
-.github/
+# ----- CI workflows -----
+# .github/ is tracked — contains build workflows for macOS/Linux/Windows
 
 # ----- Temporary files -----
 *.tmp
