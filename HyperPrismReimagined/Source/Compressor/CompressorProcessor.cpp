@@ -15,6 +15,7 @@ CompressorProcessor::CompressorProcessor()
     kneeParam = apvts.getRawParameterValue("knee");
     makeupGainParam = apvts.getRawParameterValue("makeupGain");
     mixParam = apvts.getRawParameterValue("mix");
+    bypassParam = apvts.getRawParameterValue("bypass");
 }
 
 CompressorProcessor::~CompressorProcessor()
@@ -74,6 +75,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout CompressorProcessor::createP
         100.0f,
         "%"));
 
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        "bypass", "Bypass", false));
+
     return layout;
 }
 
@@ -81,6 +85,7 @@ void CompressorProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
     envelope = 0.0f;
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void CompressorProcessor::releaseResources()
@@ -89,14 +94,10 @@ void CompressorProcessor::releaseResources()
 
 bool CompressorProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
 
-    return true;
+    return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
 }
 
 float CompressorProcessor::calculateAttackCoeff(float attackTimeMs)
@@ -109,63 +110,6 @@ float CompressorProcessor::calculateReleaseCoeff(float releaseTimeMs)
     return std::exp(-1.0f / (releaseTimeMs * 0.001f * currentSampleRate));
 }
 
-float CompressorProcessor::applyCompression(float inputSample, float& envelopeValue)
-{
-    const float threshold = thresholdParam->load();
-    const float ratio = ratioParam->load();
-    const float knee = kneeParam->load();
-    const float makeupGain = juce::Decibels::decibelsToGain(makeupGainParam->load());
-    
-    // Get input level in dB
-    float inputDb = juce::Decibels::gainToDecibels(std::abs(inputSample));
-    
-    // Calculate gain reduction
-    float gainReductionDb = 0.0f;
-    
-    if (inputDb > threshold)
-    {
-        // Hard knee compression
-        if (knee < 0.1f)
-        {
-            gainReductionDb = (inputDb - threshold) * (1.0f - 1.0f / ratio);
-        }
-        // Soft knee compression
-        else
-        {
-            float kneeStart = threshold - knee;
-            float kneeEnd = threshold + knee;
-            
-            if (inputDb > kneeEnd)
-            {
-                gainReductionDb = (inputDb - threshold) * (1.0f - 1.0f / ratio);
-            }
-            else if (inputDb > kneeStart)
-            {
-                float kneeProgress = (inputDb - kneeStart) / (2.0f * knee);
-                float kneeRatio = 1.0f + (ratio - 1.0f) * kneeProgress * kneeProgress;
-                gainReductionDb = (inputDb - kneeStart) * (1.0f - 1.0f / kneeRatio);
-            }
-        }
-    }
-    
-    float targetGainReduction = juce::Decibels::decibelsToGain(-gainReductionDb);
-    
-    // Apply attack/release envelope
-    float attackCoeff = calculateAttackCoeff(attackParam->load());
-    float releaseCoeff = calculateReleaseCoeff(releaseParam->load());
-    
-    if (targetGainReduction < envelopeValue)
-        envelopeValue = targetGainReduction + (envelopeValue - targetGainReduction) * attackCoeff;
-    else
-        envelopeValue = targetGainReduction + (envelopeValue - targetGainReduction) * releaseCoeff;
-    
-    // Store current gain reduction for metering
-    currentGainReduction.store(1.0f - envelopeValue);
-    
-    // Apply compression and makeup gain
-    return inputSample * envelopeValue * makeupGain;
-}
-
 void CompressorProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
@@ -175,25 +119,67 @@ void CompressorProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
+    if (bypassParam->load() > 0.5f)
+        return;
+
     const float mixAmount = mixParam->load() * 0.01f;
-    
-    // Create a copy for dry signal (parallel compression)
-    juce::AudioBuffer<float> dryBuffer;
+    const float threshold = thresholdParam->load();
+    const float ratio = ratioParam->load();
+    const float knee = kneeParam->load();
+    const float makeupGain = juce::Decibels::decibelsToGain(makeupGainParam->load());
+    const float attackCoeff = calculateAttackCoeff(attackParam->load());
+    const float releaseCoeff = calculateReleaseCoeff(releaseParam->load());
+
     dryBuffer.makeCopyOf(buffer);
-    
-    // Process each channel
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+
+    const int numSamples = buffer.getNumSamples();
+
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        auto* dryData = dryBuffer.getReadPointer(channel);
-        
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        // Linked stereo: detect from max level across all channels
+        float maxInputLevel = 0.0f;
+        for (int channel = 0; channel < totalNumInputChannels; ++channel)
+            maxInputLevel = std::max(maxInputLevel, std::abs(buffer.getSample(channel, sample)));
+
+        float inputDb = juce::Decibels::gainToDecibels(maxInputLevel);
+        float gainReductionDb = 0.0f;
+
+        if (inputDb > threshold)
         {
-            float inputSample = channelData[sample];
-            float compressedSample = applyCompression(inputSample, envelope);
-            
-            // Mix dry and wet signals for parallel compression
-            channelData[sample] = dryData[sample] * (1.0f - mixAmount) + compressedSample * mixAmount;
+            if (knee < 0.1f)
+            {
+                gainReductionDb = (inputDb - threshold) * (1.0f - 1.0f / ratio);
+            }
+            else
+            {
+                float kneeStart = threshold - knee;
+                float kneeEnd = threshold + knee;
+                if (inputDb > kneeEnd)
+                    gainReductionDb = (inputDb - threshold) * (1.0f - 1.0f / ratio);
+                else if (inputDb > kneeStart)
+                {
+                    float kneeProgress = (inputDb - kneeStart) / (2.0f * knee);
+                    float kneeRatio = 1.0f + (ratio - 1.0f) * kneeProgress * kneeProgress;
+                    gainReductionDb = (inputDb - kneeStart) * (1.0f - 1.0f / kneeRatio);
+                }
+            }
+        }
+
+        float targetGainReduction = juce::Decibels::decibelsToGain(-gainReductionDb);
+
+        if (targetGainReduction < envelope)
+            envelope = targetGainReduction + (envelope - targetGainReduction) * attackCoeff;
+        else
+            envelope = targetGainReduction + (envelope - targetGainReduction) * releaseCoeff;
+
+        currentGainReduction.store(1.0f - envelope);
+
+        // Apply same gain to all channels
+        for (int channel = 0; channel < totalNumInputChannels; ++channel)
+        {
+            float dry = dryBuffer.getSample(channel, sample);
+            float compressed = buffer.getSample(channel, sample) * envelope * makeupGain;
+            buffer.setSample(channel, sample, dry * (1.0f - mixAmount) + compressed * mixAmount);
         }
     }
 }

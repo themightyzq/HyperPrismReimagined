@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Single Delay Processor
+// HyperPrism Reimagined - Single Delay Processor
 //==============================================================================
 
 #include "SingleDelayProcessor.h"

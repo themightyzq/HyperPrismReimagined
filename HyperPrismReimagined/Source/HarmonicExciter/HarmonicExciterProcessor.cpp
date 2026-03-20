@@ -8,20 +8,29 @@ HarmonicExciterProcessor::HarmonicExciterProcessor()
 {
     // Add parameters
     addParameter(driveParam = new juce::AudioParameterFloat(
-        "drive", "Drive", 0.0f, 1.0f, 0.3f));
-    
+        "drive", "Drive",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f),
+        30.0f));
+
     addParameter(frequencyParam = new juce::AudioParameterFloat(
-        "frequency", "Frequency", 
-        juce::NormalisableRange<float>(1000.0f, 20000.0f, 1.0f, 0.3f), 5000.0f));
-    
+        "frequency", "Frequency",
+        juce::NormalisableRange<float>(1000.0f, 20000.0f, 1.0f, 0.3f),
+        5000.0f));
+
     addParameter(harmonicsParam = new juce::AudioParameterFloat(
-        "harmonics", "Harmonics", 1.0f, 5.0f, 2.0f));
-    
+        "harmonics", "Harmonics",
+        juce::NormalisableRange<float>(1.0f, 5.0f, 0.1f),
+        2.0f));
+
     addParameter(mixParam = new juce::AudioParameterFloat(
-        "mix", "Mix", 0.0f, 1.0f, 0.5f));
+        "mix", "Mix",
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f),
+        50.0f));
     
     addParameter(typeParam = new juce::AudioParameterChoice(
         "type", "Type", juce::StringArray("Warm", "Bright"), 0));
+
+    addParameter(bypassParamBool = new juce::AudioParameterBool("bypass", "Bypass", false));
 }
 
 HarmonicExciterProcessor::~HarmonicExciterProcessor()
@@ -95,6 +104,9 @@ void HarmonicExciterProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     // Set initial filter frequencies
     highPassFilter.setCutoffFrequency(frequencyParam->get());
     lowPassFilter.setCutoffFrequency(frequencyParam->get());
+
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    highFreqBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void HarmonicExciterProcessor::releaseResources()
@@ -106,11 +118,7 @@ bool HarmonicExciterProcessor::isBusesLayoutSupported(const BusesLayout& layouts
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
 
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-
-    return true;
+    return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
 }
 
 void HarmonicExciterProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
@@ -124,20 +132,23 @@ void HarmonicExciterProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
+    if (bypassParamBool->get())
+        return;
+
     // Get parameter values
-    const float drive = driveParam->get();
+    const float drive = driveParam->get() / 100.0f;
     const float frequency = frequencyParam->get();
     const float harmonics = harmonicsParam->get();
-    const float mix = mixParam->get();
+    const float mix = mixParam->get() / 100.0f;
     const int type = typeParam->getIndex();
 
     // Update filter frequencies
     highPassFilter.setCutoffFrequency(frequency);
     lowPassFilter.setCutoffFrequency(frequency);
 
-    // Create copies for processing
-    juce::AudioBuffer<float> dryBuffer(totalNumInputChannels, buffer.getNumSamples());
-    juce::AudioBuffer<float> highFreqBuffer(totalNumInputChannels, buffer.getNumSamples());
+    // Use pre-allocated buffers for processing
+    dryBuffer.setSize(totalNumInputChannels, buffer.getNumSamples(), false, false, true);
+    highFreqBuffer.setSize(totalNumInputChannels, buffer.getNumSamples(), false, false, true);
     
     // Copy original signal to dry buffer
     for (int channel = 0; channel < totalNumInputChannels; ++channel)

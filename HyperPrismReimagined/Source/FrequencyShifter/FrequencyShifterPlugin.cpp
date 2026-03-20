@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Frequency Shifter Plugin Entry Point
+// HyperPrism Reimagined - Frequency Shifter Plugin Entry Point
 //==============================================================================
 
 #include "FrequencyShifterProcessor.h"

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - M+S Matrix Plugin Entry Point
+// HyperPrism Reimagined - M+S Matrix Plugin Entry Point
 //==============================================================================
 
 #include "MSMatrixProcessor.h"

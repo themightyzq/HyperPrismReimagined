@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Pitch Changer Plugin Entry Point
+// HyperPrism Reimagined - Pitch Changer Plugin Entry Point
 //==============================================================================
 
 #include "PitchChangerProcessor.h"

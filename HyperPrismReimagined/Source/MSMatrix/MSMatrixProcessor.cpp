@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - M+S Matrix Processor
+// HyperPrism Reimagined - M+S Matrix Processor
 //==============================================================================
 
 #include "MSMatrixProcessor.h"
@@ -44,7 +44,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MSMatrixProcessor::createPar
     // Matrix Mode
     parameters.push_back(std::make_unique<juce::AudioParameterChoice>(
         MATRIX_MODE_ID, "Matrix Mode", 
-        juce::StringArray{"L/R → M/S", "M/S → L/R", "M/S Through"}, 0));
+        juce::StringArray{"L/R to M/S", "M/S to L/R", "M/S Through"}, 0));
 
     // Mid Level (-inf to +20 dB)
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -52,7 +52,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MSMatrixProcessor::createPar
         juce::NormalisableRange<float>(-60.0f, 20.0f, 0.1f), 0.0f,
         juce::String(), juce::AudioProcessorParameter::genericParameter,
         [](float value, int) { 
-            return value <= -59.9f ? "-∞ dB" : juce::String(value, 1) + " dB"; 
+            return value <= -59.9f ? "-inf dB" : juce::String(value, 1) + " dB"; 
         }));
 
     // Side Level (-inf to +20 dB)
@@ -61,7 +61,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout MSMatrixProcessor::createPar
         juce::NormalisableRange<float>(-60.0f, 20.0f, 0.1f), 0.0f,
         juce::String(), juce::AudioProcessorParameter::genericParameter,
         [](float value, int) { 
-            return value <= -59.9f ? "-∞ dB" : juce::String(value, 1) + " dB"; 
+            return value <= -59.9f ? "-inf dB" : juce::String(value, 1) + " dB"; 
         }));
 
     // Mid Solo

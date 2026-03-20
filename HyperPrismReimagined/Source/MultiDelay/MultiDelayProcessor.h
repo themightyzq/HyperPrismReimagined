@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Multi Delay Processor
+// HyperPrism Reimagined - Multi Delay Processor
 //==============================================================================
 
 #pragma once
@@ -111,7 +111,9 @@ private:
     
     // State variables
     double currentSampleRate = 44100.0;
-    
+
+    juce::AudioBuffer<float> dryBuffer;
+
     // Metering
     std::atomic<float> inputLevel { 0.0f };
     std::atomic<float> outputLevel { 0.0f };

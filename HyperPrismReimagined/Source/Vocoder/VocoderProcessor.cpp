@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Vocoder Processor
+// HyperPrism Reimagined - Vocoder Processor
 //==============================================================================
 
 #include "VocoderProcessor.h"
@@ -8,18 +8,18 @@
 //==============================================================================
 // VocoderBand Implementation
 //==============================================================================
-void VocoderProcessor::VocoderBand::prepare(double sampleRate)
+void VocoderProcessor::VocoderBand::prepare(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
-    
+
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = 512;
+    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
     spec.numChannels = 1;
-    
+
     carrierFilter.prepare(spec);
     modulatorFilter.prepare(spec);
-    
+
     updateEnvelopeCoeff();
     reset();
 }
@@ -154,7 +154,8 @@ VocoderProcessor::VocoderProcessor()
     
     // Initialize band levels for metering
     bandLevels.resize(maxBands, 0.0f);
-    
+    bandLevelSums.resize(maxBands, 0.0f);
+
     setupVocoderBands();
 }
 
@@ -204,11 +205,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout VocoderProcessor::createPara
 //==============================================================================
 void VocoderProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    juce::ignoreUnused(samplesPerBlock);
-    
-    // Prepare DSP components
+    // Prepare DSP components with actual buffer size (fixes 512-sample artifact bug)
     for (auto& band : vocoderBands)
-        band.prepare(sampleRate);
+        band.prepare(sampleRate, samplesPerBlock);
     
     carrierOscillator.prepare(sampleRate);
     
@@ -286,8 +285,8 @@ void VocoderProcessor::processVocoding(juce::AudioBuffer<float>& buffer)
     float modulatorLevelSum = 0.0f;
     float outputLevelSum = 0.0f;
     
-    // Reset band level accumulation
-    std::vector<float> bandLevelSums(maxBands, 0.0f);
+    // Reset band level accumulation (pre-allocated buffer)
+    std::fill(bandLevelSums.begin(), bandLevelSums.end(), 0.0f);
     
     for (int channel = 0; channel < numChannels; ++channel)
     {

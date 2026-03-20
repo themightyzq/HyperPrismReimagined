@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Bass Maximiser Plugin Entry Point
+// HyperPrism Reimagined - Bass Maximiser Plugin Entry Point
 //==============================================================================
 
 #include "BassMaximiserProcessor.h"

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Tube/Tape Saturation Plugin Entry Point
+// HyperPrism Reimagined - Tube/Tape Saturation Plugin Entry Point
 //==============================================================================
 
 #include "TubeTapeSaturationProcessor.h"

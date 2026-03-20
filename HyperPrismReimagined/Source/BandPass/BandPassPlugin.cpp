@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Band-Pass Filter Plugin Entry Point
+// HyperPrism Reimagined - Band-Pass Filter Plugin Entry Point
 //==============================================================================
 
 #include "BandPassProcessor.h"

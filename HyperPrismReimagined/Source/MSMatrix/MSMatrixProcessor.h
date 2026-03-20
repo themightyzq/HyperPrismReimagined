@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - M+S Matrix Processor
+// HyperPrism Reimagined - M+S Matrix Processor
 //==============================================================================
 
 #pragma once

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Limiter Editor
+// HyperPrism Reimagined - Limiter Editor
 // Updated to match AutoPan template exactly
 //==============================================================================
 
@@ -31,7 +31,7 @@ public:
 //==============================================================================
 // XY Pad component (matching AutoPan style)
 //==============================================================================
-class XYPad : public juce::Component
+class XYPad : public juce::Component, public juce::SettableTooltipClient
 {
 public:
     XYPad();
@@ -87,6 +87,7 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    void mouseDown(const juce::MouseEvent& event) override;
 
     // Parameter IDs
     static constexpr auto CEILING_ID = "ceiling";
@@ -100,10 +101,10 @@ private:
     void setupControls();
     void setupXYPad();
     void setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                    const juce::String& text, const juce::String& suffix);
+                    const juce::String& text);
     void updateXYPadFromParameters();
     void updateParametersFromXYPad(float x, float y);
-    void showParameterMenu(juce::Label* label, const juce::String& parameterID);
+    void showParameterMenu(juce::Component* target, const juce::String& parameterID);
     void updateParameterColors();
     void updateXYPadLabel();
     
@@ -112,9 +113,10 @@ private:
     
     // Title
     juce::Label titleLabel;
-    
+    juce::Label brandLabel;
+
     // Bypass
-    juce::ToggleButton bypassButton;
+    juce::TextButton bypassButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Parameter controls with ParameterLabel for right-click assignment
@@ -136,7 +138,6 @@ private:
     
     // Soft Clip toggle
     juce::ToggleButton softClipButton;
-    juce::Label softClipLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> softClipAttachment;
     
     // XY Pad
@@ -145,7 +146,6 @@ private:
     
     // Gain Reduction Meter
     GainReductionMeter gainReductionMeter;
-    juce::Label meterLabel;
     
     // X/Y Pad parameter assignments (support multiple parameters per axis)
     juce::StringArray xParameterIDs;
@@ -154,6 +154,11 @@ private:
     // Color coding for assignments
     const juce::Colour xAssignmentColor = juce::Colour(0, 150, 255);   // Blue
     const juce::Colour yAssignmentColor = juce::Colour(255, 220, 0);   // Yellow
+
+    int outputSectionX = 0;
+    int outputSectionY = 0;
+
+    juce::TooltipWindow tooltipWindow { this, 500 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LimiterEditor)
 };

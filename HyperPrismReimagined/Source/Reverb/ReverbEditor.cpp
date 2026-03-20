@@ -102,21 +102,36 @@ ReverbEditor::ReverbEditor(ReverbProcessor& p)
     xParameterIDs.add(ReverbProcessor::ROOM_SIZE_ID);
     yParameterIDs.add(ReverbProcessor::DAMPING_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Reverb", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("REVERB", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
-    
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
+
     // Setup sliders with consistent style (7 parameters arranged as 4+3)
-    setupSlider(roomSizeSlider, roomSizeLabel, "Room Size", "%");
-    setupSlider(dampingSlider, dampingLabel, "Damping", "%");
-    setupSlider(preDelaySlider, preDelayLabel, "Pre Delay", " ms");
-    setupSlider(widthSlider, widthLabel, "Width", "%");
-    setupSlider(lowCutSlider, lowCutLabel, "Low Cut", " Hz");
-    setupSlider(highCutSlider, highCutLabel, "High Cut", " Hz");
-    setupSlider(mixSlider, mixLabel, "Mix", "%");
+    setupSlider(roomSizeSlider, roomSizeLabel, "Room Size");
+    setupSlider(dampingSlider, dampingLabel, "Damping");
+    setupSlider(preDelaySlider, preDelayLabel, "Pre Delay");
+    setupSlider(widthSlider, widthLabel, "Width");
+    setupSlider(lowCutSlider, lowCutLabel, "Low Cut");
+    setupSlider(highCutSlider, highCutLabel, "High Cut");
+    setupSlider(mixSlider, mixLabel, "Mix");
+
+    // Color-code knobs by parameter category
+    roomSizeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    dampingSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    preDelaySlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    widthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    lowCutSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
+    highCutSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
+    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set up right-click handlers for parameter assignment
     roomSizeLabel.onClick = [this]() { showParameterMenu(&roomSizeLabel, ReverbProcessor::ROOM_SIZE_ID); };
@@ -126,12 +141,31 @@ ReverbEditor::ReverbEditor(ReverbProcessor& p)
     lowCutLabel.onClick = [this]() { showParameterMenu(&lowCutLabel, ReverbProcessor::LOW_CUT_ID); };
     highCutLabel.onClick = [this]() { showParameterMenu(&highCutLabel, ReverbProcessor::HIGH_CUT_ID); };
     mixLabel.onClick = [this]() { showParameterMenu(&mixLabel, ReverbProcessor::MIX_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    roomSizeSlider.addMouseListener(this, true);
+    roomSizeSlider.getProperties().set("xyParamID", ReverbProcessor::ROOM_SIZE_ID);
+    dampingSlider.addMouseListener(this, true);
+    dampingSlider.getProperties().set("xyParamID", ReverbProcessor::DAMPING_ID);
+    preDelaySlider.addMouseListener(this, true);
+    preDelaySlider.getProperties().set("xyParamID", ReverbProcessor::PRE_DELAY_ID);
+    widthSlider.addMouseListener(this, true);
+    widthSlider.getProperties().set("xyParamID", ReverbProcessor::WIDTH_ID);
+    lowCutSlider.addMouseListener(this, true);
+    lowCutSlider.getProperties().set("xyParamID", ReverbProcessor::LOW_CUT_ID);
+    highCutSlider.addMouseListener(this, true);
+    highCutSlider.getProperties().set("xyParamID", ReverbProcessor::HIGH_CUT_ID);
+    mixSlider.addMouseListener(this, true);
+    mixSlider.getProperties().set("xyParamID", ReverbProcessor::MIX_ID);
+
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -157,17 +191,18 @@ ReverbEditor::ReverbEditor(ReverbProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Room Size / Damping", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
         updateParametersFromXYPad(x, y);
     };
-    
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
     updateParameterColors();
-    
+
     // Listen for parameter changes - update XY pad when any parameter changes
     roomSizeSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     dampingSlider.onValueChange = [this] { updateXYPadFromParameters(); };
@@ -177,7 +212,19 @@ ReverbEditor::ReverbEditor(ReverbProcessor& p)
     highCutSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     mixSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    roomSizeSlider.setTooltip("Size of the simulated space — larger values create longer reverb");
+    dampingSlider.setTooltip("High frequency absorption — higher values are darker");
+    preDelaySlider.setTooltip("Time before reverb begins — creates sense of distance");
+    widthSlider.setTooltip("Stereo width of the reverb");
+    lowCutSlider.setTooltip("Remove low frequencies from the reverb tail");
+    highCutSlider.setTooltip("Remove high frequencies from the reverb tail");
+    mixSlider.setTooltip("Balance between dry and reverb signal");
+    bypassButton.setTooltip("Bypass the effect");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 ReverbEditor::~ReverbEditor()
@@ -187,86 +234,108 @@ ReverbEditor::~ReverbEditor()
 
 void ReverbEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70), juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(roomSizeSlider.getX() - 2, roomSizeSlider.getY() - 20, 120,
+                      "SPACE", HyperPrismLookAndFeel::Colors::dynamics);
+    paintColumnHeader(lowCutSlider.getX() - 2, lowCutSlider.getY() - 20, 120,
+                      "TONE", HyperPrismLookAndFeel::Colors::frequency);
+
+    paintColumnHeader(outputSectionX, outputSectionY,
+                      getWidth() - outputSectionX - 12,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void ReverbEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Optimized layout for 7 parameters (4+3 rows) to fit in 650x550 window
-    // Available height after title and margins: ~500px
-    // Distribution: 140px + 10px + 140px + 10px + 200px = 500px
-    
-    // Top row - first 4 knobs (Room Size, Damping, Pre Delay, Width)
-    auto topRow = bounds.removeFromTop(140);
-    auto sliderWidth = 80;
-    auto spacing = 15;
-    
-    // Calculate total width needed for 4 sliders
-    auto totalSliderWidth = sliderWidth * 4 + spacing * 3;
-    auto startX = (bounds.getWidth() - totalSliderWidth) / 2;
-    topRow.removeFromLeft(startX);
-    
-    // First row: Room Size, Damping, Pre Delay, Width
-    roomSizeSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    roomSizeLabel.setBounds(roomSizeSlider.getX(), roomSizeSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    dampingSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    dampingLabel.setBounds(dampingSlider.getX(), dampingSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    preDelaySlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    preDelayLabel.setBounds(preDelaySlider.getX(), preDelaySlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    widthSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    widthLabel.setBounds(widthSlider.getX(), widthSlider.getBottom(), sliderWidth, 20);
-    
-    // Minimal spacing between rows
-    bounds.removeFromTop(10);
-    
-    // Second row - remaining 3 knobs (Low Cut, High Cut, Mix) - centered
-    auto secondRow = bounds.removeFromTop(140);
-    
-    // Calculate width for 3 sliders and center them
-    auto secondRowWidth = sliderWidth * 3 + spacing * 2;
-    auto secondRowStartX = (bounds.getWidth() - secondRowWidth) / 2;
-    secondRow.removeFromLeft(secondRowStartX);
-    
-    lowCutSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    lowCutLabel.setBounds(lowCutSlider.getX(), lowCutSlider.getBottom(), sliderWidth, 20);
-    secondRow.removeFromLeft(spacing);
-    
-    highCutSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    highCutLabel.setBounds(highCutSlider.getX(), highCutSlider.getBottom(), sliderWidth, 20);
-    secondRow.removeFromLeft(spacing);
-    
-    mixSlider.setBounds(secondRow.removeFromLeft(sliderWidth).reduced(0, 10));
-    mixLabel.setBounds(mixSlider.getX(), mixSlider.getBottom(), sliderWidth, 20);
-    
-    // Bottom section - XY Pad (use remaining bounds exactly)
-    bounds.removeFromTop(10);
-    
-    // Center the XY Pad horizontally, use available height efficiently
-    auto xyPadWidth = 200;
-    auto availableHeight = bounds.getHeight() - 25; // Leave 25px for label + padding
-    auto xyPadHeight = juce::jmin(180, availableHeight); // Cap at 180px or available space
-    auto xyPadX = bounds.getX() + (bounds.getWidth() - xyPadWidth) / 2;
-    auto xyPadY = bounds.getY() + 5;  // Small top padding
-    
-    xyPad.setBounds(xyPadX, xyPadY, xyPadWidth, xyPadHeight);
-    xyPadLabel.setBounds(xyPadX, xyPadY + xyPadHeight + 5, xyPadWidth, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: Two parameter columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 74;
+    int vSpace = 101;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: SPACE -- Room Size, Damping, Pre Delay, Width
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(roomSizeSlider, roomSizeLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(dampingSlider, dampingLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(preDelaySlider, preDelayLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+    centerKnob(widthSlider, widthLabel, col1.getX(), colWidth, y1 + vSpace * 3, knobDiam);
+
+    // Column 2: TONE -- Low Cut, High Cut
+    centerKnob(lowCutSlider, lowCutLabel, col2.getX(), colWidth, y1, knobDiam);
+    centerKnob(highCutSlider, highCutLabel, col2.getX(), colWidth, y1 + vSpace, knobDiam);
+
+    // --- Right side: XY pad + output ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Bottom right: Output knob (single, no meter)
+    auto bottomRight = rightSide;
+    auto outputArea = bottomRight;
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+    centerKnob(mixSlider, mixLabel, outputArea.getCentreX() - 50, 100, outY + outKnob / 2, outKnob);
+
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
 }
 
 void ReverbEditor::setupControls()
@@ -280,52 +349,55 @@ void ReverbEditor::setupXYPad()
 }
 
 void ReverbEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void ReverbEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    roomSizeLabel.setColour(juce::Label::textColourId, neutralColor);
+    dampingLabel.setColour(juce::Label::textColourId, neutralColor);
+    preDelayLabel.setColour(juce::Label::textColourId, neutralColor);
+    widthLabel.setColour(juce::Label::textColourId, neutralColor);
+    lowCutLabel.setColour(juce::Label::textColourId, neutralColor);
+    highCutLabel.setColour(juce::Label::textColourId, neutralColor);
+    mixLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(roomSizeLabel, ReverbProcessor::ROOM_SIZE_ID);
-    updateLabelColor(dampingLabel, ReverbProcessor::DAMPING_ID);
-    updateLabelColor(preDelayLabel, ReverbProcessor::PRE_DELAY_ID);
-    updateLabelColor(widthLabel, ReverbProcessor::WIDTH_ID);
-    updateLabelColor(lowCutLabel, ReverbProcessor::LOW_CUT_ID);
-    updateLabelColor(highCutLabel, ReverbProcessor::HIGH_CUT_ID);
-    updateLabelColor(mixLabel, ReverbProcessor::MIX_ID);
+
+    updateSliderXY(roomSizeSlider, ReverbProcessor::ROOM_SIZE_ID);
+    updateSliderXY(dampingSlider, ReverbProcessor::DAMPING_ID);
+    updateSliderXY(preDelaySlider, ReverbProcessor::PRE_DELAY_ID);
+    updateSliderXY(widthSlider, ReverbProcessor::WIDTH_ID);
+    updateSliderXY(lowCutSlider, ReverbProcessor::LOW_CUT_ID);
+    updateSliderXY(highCutSlider, ReverbProcessor::HIGH_CUT_ID);
+    updateSliderXY(mixSlider, ReverbProcessor::MIX_ID);
+    repaint();
 }
 
 void ReverbEditor::updateXYPadFromParameters()
@@ -386,7 +458,18 @@ void ReverbEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void ReverbEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void ReverbEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void ReverbEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -406,7 +489,7 @@ void ReverbEditor::showParameterMenu(juce::Label* label, const juce::String& par
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {

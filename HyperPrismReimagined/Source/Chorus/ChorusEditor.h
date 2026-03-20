@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Chorus Editor
+// HyperPrism Reimagined - Chorus Editor
 // Updated to match AutoPan UI template
 //==============================================================================
 
@@ -8,7 +8,6 @@
 #include <JuceHeader.h>
 #include "ChorusProcessor.h"
 #include "../Shared/HyperPrismLookAndFeel.h"
-#include "../Shared/StandardLayout.h"
 
 //==============================================================================
 // Clickable parameter label for X/Y assignment
@@ -32,7 +31,7 @@ public:
 //==============================================================================
 // XY Pad component (matching AutoPan style)
 //==============================================================================
-class XYPad : public juce::Component
+class XYPad : public juce::Component, public juce::SettableTooltipClient
 {
 public:
     XYPad();
@@ -68,13 +67,14 @@ public:
 
     void paint(juce::Graphics&) override;
     void resized() override;
+    void mouseDown(const juce::MouseEvent& event) override;
 
 private:
     void setupSlider(juce::Slider& slider, juce::Label& label, 
-                    const juce::String& text, const juce::String& suffix);
+                    const juce::String& text);
     void updateXYPadFromParameters();
     void updateParametersFromXYPad(float x, float y);
-    void showParameterMenu(juce::Label* label, const juce::String& parameterID);
+    void showParameterMenu(juce::Component* target, const juce::String& parameterID);
     void assignParameterToXYPad(const juce::String& parameterID, bool assignToX);
     void updateParameterColors();
     void updateXYPadLabel();
@@ -84,9 +84,10 @@ private:
     
     // Title
     juce::Label titleLabel;
-    
+    juce::Label brandLabel;
+
     // Bypass
-    juce::ToggleButton bypassButton;
+    juce::TextButton bypassButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Main controls
@@ -129,6 +130,11 @@ private:
     // Color coding for assignments
     const juce::Colour xAssignmentColor = juce::Colour(0, 150, 255);   // Blue
     const juce::Colour yAssignmentColor = juce::Colour(255, 220, 0);   // Yellow
+
+    int outputSectionX = 0;
+    int outputSectionY = 0;
+
+    juce::TooltipWindow tooltipWindow { this, 500 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChorusEditor)
 };

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Low-Pass Filter Processor Implementation
+// HyperPrism Reimagined - Low-Pass Filter Processor Implementation
 //==============================================================================
 
 #include "LowPassProcessor.h"
@@ -119,6 +119,8 @@ void LowPassProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     mixSmoothed.setCurrentAndTargetValue(valueTreeState.getRawParameterValue(MIX_ID)->load());
     
     updateFilter();
+
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void LowPassProcessor::releaseResources()
@@ -167,7 +169,6 @@ void LowPassProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     mixSmoothed.setTargetValue(valueTreeState.getRawParameterValue(MIX_ID)->load());
 
     // Store dry signal for mixing
-    juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
 
     // Always update filter to ensure real-time parameter changes

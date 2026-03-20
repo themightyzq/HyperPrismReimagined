@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Stereo Dynamics Processor
+// HyperPrism Reimagined - Stereo Dynamics Processor
 //==============================================================================
 
 #pragma once

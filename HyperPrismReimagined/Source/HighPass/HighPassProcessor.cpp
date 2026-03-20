@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - High-Pass Filter Processor Implementation
+// HyperPrism Reimagined - High-Pass Filter Processor Implementation
 //==============================================================================
 
 #include "HighPassProcessor.h"
@@ -119,6 +119,8 @@ void HighPassProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     mixSmoothed.setCurrentAndTargetValue(valueTreeState.getRawParameterValue(MIX_ID)->load());
     
     updateFilter();
+
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void HighPassProcessor::releaseResources()
@@ -167,7 +169,6 @@ void HighPassProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
     mixSmoothed.setTargetValue(valueTreeState.getRawParameterValue(MIX_ID)->load());
 
     // Store dry signal for mixing
-    juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
 
     // Always update filter to ensure real-time parameter changes

@@ -35,9 +35,12 @@ NoiseGateProcessor::NoiseGateProcessor()
         -40.0f, "dB"));
     
     addParameter(lookahead = new juce::AudioParameterFloat(
-        "lookahead", "Lookahead", 
-        juce::NormalisableRange<float>(0.0f, 10.0f, 0.01f), 
+        "lookahead", "Lookahead",
+        juce::NormalisableRange<float>(0.0f, 10.0f, 0.01f),
         2.0f, "ms"));
+
+    addParameter(bypassParamBool = new juce::AudioParameterBool(
+        "bypass", "Bypass", false));
 }
 
 NoiseGateProcessor::~NoiseGateProcessor()
@@ -113,6 +116,9 @@ void NoiseGateProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     
     lookaheadBuffer.prepare(spec);
     lookaheadBuffer.setMaximumDelayInSamples(static_cast<int>(sampleRate * 0.01)); // 10ms max
+
+    // Pre-allocate lookahead data buffer
+    lookaheadData.resize(static_cast<size_t>(samplesPerBlock) * 2);
 }
 
 void NoiseGateProcessor::releaseResources()
@@ -122,14 +128,10 @@ void NoiseGateProcessor::releaseResources()
 
 bool NoiseGateProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
 
-    return true;
+    return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
 }
 
 void NoiseGateProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
@@ -146,6 +148,9 @@ void NoiseGateProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
         buffer.clear(i, 0, numSamples);
 
     if (numSamples == 0)
+        return;
+
+    if (bypassParamBool->get())
         return;
 
     // Get parameter values
@@ -174,8 +179,9 @@ void NoiseGateProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
     {
         float* channelData = buffer.getWritePointer(channel);
         
-        // Create a copy for lookahead processing
-        std::vector<float> lookaheadData(channelData, channelData + numSamples);
+        // Copy data for lookahead processing (pre-allocated buffer)
+        jassert(lookaheadData.size() >= static_cast<size_t>(numSamples));
+        std::copy(channelData, channelData + numSamples, lookaheadData.data());
         
         for (int sample = 0; sample < numSamples; ++sample)
         {

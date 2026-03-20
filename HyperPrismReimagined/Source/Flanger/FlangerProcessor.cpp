@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Flanger Processor Implementation
+// HyperPrism Reimagined - Flanger Processor Implementation
 //==============================================================================
 
 #include "FlangerProcessor.h"
@@ -72,7 +72,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout FlangerProcessor::createPara
     return { parameters.begin(), parameters.end() };
 }
 
-void FlangerProcessor::prepareToPlay(double sampleRate, int /*samplesPerBlock*/)
+void FlangerProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
     
@@ -92,6 +92,8 @@ void FlangerProcessor::prepareToPlay(double sampleRate, int /*samplesPerBlock*/)
     
     // Reset filter state
     previousFilterFreq = -1.0f;
+
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void FlangerProcessor::releaseResources()
@@ -153,7 +155,6 @@ void FlangerProcessor::processFlanger(juce::AudioBuffer<float>& buffer)
     float phaseOffsetRad = (phaseOffset / 180.0f) * juce::MathConstants<float>::pi;
     
     // Create a copy for dry signal
-    juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
     
     // Get audio data

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - More Stereo Processor
+// HyperPrism Reimagined - More Stereo Processor
 //==============================================================================
 
 #include "MoreStereoProcessor.h"
@@ -129,7 +129,12 @@ void MoreStereoProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     highPassRight.reset();
     
     previousCrossoverFreq = -1.0f;
-    
+
+    // Pre-allocate processing buffers
+    bassBuffer.setSize(2, samplesPerBlock);
+    trebleBuffer.setSize(2, samplesPerBlock);
+    ambienceBuffer.setSize(2, samplesPerBlock);
+
     // Reset metering
     leftLevel.store(0.0f);
     rightLevel.store(0.0f);
@@ -206,11 +211,7 @@ void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer)
     auto* leftData = buffer.getWritePointer(0);
     auto* rightData = buffer.getWritePointer(1);
     
-    // Create separate buffers for processing
-    juce::AudioBuffer<float> bassBuffer;
-    juce::AudioBuffer<float> trebleBuffer;
-    juce::AudioBuffer<float> ambienceBuffer;
-    
+    // Copy to pre-allocated processing buffers
     bassBuffer.makeCopyOf(buffer);
     trebleBuffer.makeCopyOf(buffer);
     ambienceBuffer.makeCopyOf(buffer);

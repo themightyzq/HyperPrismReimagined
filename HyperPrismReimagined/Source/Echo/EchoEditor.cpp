@@ -102,28 +102,45 @@ EchoEditor::EchoEditor(EchoProcessor& p)
     xParameterIDs.add(EchoProcessor::DELAY_ID);
     yParameterIDs.add(EchoProcessor::FEEDBACK_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Echo", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("ECHO", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
+
+    // Brand label
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
     
     // Setup sliders with consistent style (3 parameters in single row)
-    setupSlider(delaySlider, delayLabel, "Delay", " ms");
-    setupSlider(feedbackSlider, feedbackLabel, "Feedback", "%");
-    setupSlider(mixSlider, mixLabel, "Mix", "%");
+    setupSlider(delaySlider, delayLabel, "Delay");
+    delaySlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    setupSlider(feedbackSlider, feedbackLabel, "Feedback");
+    feedbackSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    setupSlider(mixSlider, mixLabel, "Mix");
+    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set up right-click handlers for parameter assignment
     delayLabel.onClick = [this]() { showParameterMenu(&delayLabel, EchoProcessor::DELAY_ID); };
     feedbackLabel.onClick = [this]() { showParameterMenu(&feedbackLabel, EchoProcessor::FEEDBACK_ID); };
     mixLabel.onClick = [this]() { showParameterMenu(&mixLabel, EchoProcessor::MIX_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    delaySlider.addMouseListener(this, true);
+    delaySlider.getProperties().set("xyParamID", EchoProcessor::DELAY_ID);
+    feedbackSlider.addMouseListener(this, true);
+    feedbackSlider.getProperties().set("xyParamID", EchoProcessor::FEEDBACK_ID);
+    mixSlider.addMouseListener(this, true);
+    mixSlider.getProperties().set("xyParamID", EchoProcessor::MIX_ID);
+
     
-    // Bypass button (top right like AutoPan)
+    // Bypass button (top right)
     bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    bypassButton.setClickingTogglesState(true);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -141,7 +158,7 @@ EchoEditor::EchoEditor(EchoProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Delay / Feedback", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
@@ -157,7 +174,16 @@ EchoEditor::EchoEditor(EchoProcessor& p)
     feedbackSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     mixSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    delaySlider.setTooltip("Time between echoes in milliseconds");
+    feedbackSlider.setTooltip("Number of echo repeats -- higher values create longer trails");
+    mixSlider.setTooltip("Balance between dry signal and echo");
+    bypassButton.setTooltip("Bypass the effect");
+    xyPad.setTooltip("Click and drag to control two parameters at once");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 EchoEditor::~EchoEditor()
@@ -167,59 +193,100 @@ EchoEditor::~EchoEditor()
 
 void EchoEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column header
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(delaySlider.getX() - 2, delaySlider.getY() - 20, 200,
+                      "TIMING", HyperPrismLookAndFeel::Colors::timing);
+
+    // Output section header
+    paintColumnHeader(outputSectionX, outputSectionY, 140,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void EchoEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Single row layout for 3 parameters (like AutoPan)
-    // Available height after title and margins: ~500px
-    // Distribution: 160px knobs + 20px spacing + 320px XY pad = 500px
-    
-    auto topRow = bounds.removeFromTop(160);
-    auto sliderWidth = 80;
-    auto spacing = 15;
-    
-    // Calculate total width needed for 3 sliders
-    auto totalSliderWidth = sliderWidth * 3 + spacing * 2;
-    auto startX = (bounds.getWidth() - totalSliderWidth) / 2;
-    topRow.removeFromLeft(startX);
-    
-    // Single row: Delay, Feedback, Mix
-    delaySlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    delayLabel.setBounds(delaySlider.getX(), delaySlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    feedbackSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    feedbackLabel.setBounds(feedbackSlider.getX(), feedbackSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    mixSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    mixLabel.setBounds(mixSlider.getX(), mixSlider.getBottom(), sliderWidth, 20);
-    
-    // Bottom section - Large XY Pad (use remaining bounds)
-    bounds.removeFromTop(20);
-    
-    // Center the XY Pad horizontally, use generous height for 3-parameter layout
-    auto xyPadWidth = 200;  // Larger for 3-parameter layout
-    auto availableHeight = bounds.getHeight() - 25; // Leave 25px for label + padding
-    auto xyPadHeight = 180; // 200x180 standard
-    auto xyPadX = bounds.getX() + (bounds.getWidth() - xyPadWidth) / 2;
-    auto xyPadY = bounds.getY() + 10;  // Small top padding
-    
-    xyPad.setBounds(xyPadX, xyPadY, xyPadWidth, xyPadHeight);
-    xyPadLabel.setBounds(xyPadX, xyPadY + xyPadHeight + 5, xyPadWidth, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: 1 column with larger knobs ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = 200;
+    int colOffset = (columnsArea.getWidth() - colWidth) / 2;
+    columnsArea.removeFromLeft(colOffset);
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+
+    int knobDiam = 96;
+    int vSpace = 123;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: TIMING — Delay, Feedback
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(delaySlider, delayLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(feedbackSlider, feedbackLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+
+    // --- Right side: XY pad + output ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Output section: Mix knob centered
+    auto bottomRight = rightSide;
+    auto outputArea = bottomRight;
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+    centerKnob(mixSlider, mixLabel, outputArea.getCentreX() - 50, 100, outY + outKnob / 2, outKnob);
 }
 
 void EchoEditor::setupControls()
@@ -233,48 +300,47 @@ void EchoEditor::setupXYPad()
 }
 
 void EchoEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+
     addAndMakeVisible(slider);
-    
+
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void EchoEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    delayLabel.setColour(juce::Label::textColourId, neutralColor);
+    feedbackLabel.setColour(juce::Label::textColourId, neutralColor);
+    mixLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(delayLabel, EchoProcessor::DELAY_ID);
-    updateLabelColor(feedbackLabel, EchoProcessor::FEEDBACK_ID);
-    updateLabelColor(mixLabel, EchoProcessor::MIX_ID);
+
+    updateSliderXY(delaySlider, EchoProcessor::DELAY_ID);
+    updateSliderXY(feedbackSlider, EchoProcessor::FEEDBACK_ID);
+    updateSliderXY(mixSlider, EchoProcessor::MIX_ID);
+    repaint();
 }
 
 void EchoEditor::updateXYPadFromParameters()
@@ -335,7 +401,18 @@ void EchoEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void EchoEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void EchoEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void EchoEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -355,7 +432,7 @@ void EchoEditor::showParameterMenu(juce::Label* label, const juce::String& param
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {

@@ -44,8 +44,11 @@ private:
     float carrierPhase = 0.0f;
     float modulatorPhase = 0.0f;
 
+    // Bypass
+    std::atomic<float>* bypassParam = nullptr;
+
     // Helper functions for waveform generation
     float generateWaveform(float phase, int waveformType);
-    
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RingModulatorProcessor)
 };

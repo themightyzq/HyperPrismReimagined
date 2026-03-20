@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Phaser Processor Implementation
+// HyperPrism Reimagined - Phaser Processor Implementation
 //==============================================================================
 
 #include "PhaserProcessor.h"
@@ -119,6 +119,8 @@ void PhaserProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     mixSmoothed.setCurrentAndTargetValue(*valueTreeState.getRawParameterValue(MIX_ID));
     
     lfoPhase = 0.0f;
+
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void PhaserProcessor::releaseResources()
@@ -172,7 +174,6 @@ void PhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     const int stages = static_cast<int>(*valueTreeState.getRawParameterValue(STAGES_ID));
     
     // Store dry signal for mixing
-    juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
     
     // Process each channel

@@ -52,6 +52,7 @@ public:
 private:
     // Parameter state
     juce::AudioProcessorValueTreeState apvts;
+    std::atomic<float>* bypassParam = nullptr;
     // DSP members
     double currentSampleRate = 44100.0;
     

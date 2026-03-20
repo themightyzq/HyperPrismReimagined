@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Chorus Processor
+// HyperPrism Reimagined - Chorus Processor
 //==============================================================================
 
 #pragma once
@@ -96,9 +96,13 @@ private:
     std::atomic<float>* lowCutParam = nullptr;
     std::atomic<float>* highCutParam = nullptr;
     
+    // Pre-allocated dry buffer (real-time safe)
+    juce::AudioBuffer<float> dryBuffer;
+
     // Processing state
     double currentSampleRate = 44100.0;
-    float previousFilterFreq = -1.0f;
+    float previousLowCutFreq = -1.0f;
+    float previousHighCutFreq = -1.0f;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChorusProcessor)
 };

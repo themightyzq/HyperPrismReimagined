@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - HyperPhaser Processor
+// HyperPrism Reimagined - HyperPhaser Processor
 // Deep analog-sounding phaser/flanger with unique peak/notch control
 //==============================================================================
 

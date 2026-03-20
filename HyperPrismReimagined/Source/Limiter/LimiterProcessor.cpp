@@ -24,10 +24,13 @@ static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
         "softclip", "Soft Clip", false));
     
     layout.add(std::make_unique<juce::AudioParameterFloat>(
-        "inputgain", "Input Gain", 
-        juce::NormalisableRange<float>(-20.0f, 20.0f, 0.1f), 
+        "inputgain", "Input Gain",
+        juce::NormalisableRange<float>(-20.0f, 20.0f, 0.1f),
         0.0f));
-    
+
+    layout.add(std::make_unique<juce::AudioParameterBool>(
+        "bypass", "Bypass", false));
+
     return layout;
 }
 
@@ -43,6 +46,7 @@ LimiterProcessor::LimiterProcessor()
     lookaheadParam = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("lookahead"));
     softClipParam = dynamic_cast<juce::AudioParameterBool*>(apvts.getParameter("softclip"));
     inputGainParam = dynamic_cast<juce::AudioParameterFloat*>(apvts.getParameter("inputgain"));
+    bypassParam = apvts.getRawParameterValue("bypass");
 }
 
 LimiterProcessor::~LimiterProcessor()
@@ -124,14 +128,10 @@ void LimiterProcessor::releaseResources()
 
 bool LimiterProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
-        && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
-        return false;
-
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
 
-    return true;
+    return layouts.getMainOutputChannelSet() == juce::AudioChannelSet::stereo();
 }
 
 float LimiterProcessor::softClip(float input)
@@ -188,6 +188,9 @@ void LimiterProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     // Clear unused output channels
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
+
+    if (bypassParam->load() > 0.5f)
+        return;
 
     // Get parameter values
     float ceilingDB = ceilingParam->get();

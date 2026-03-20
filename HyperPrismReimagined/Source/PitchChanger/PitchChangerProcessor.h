@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Pitch Changer Processor
+// HyperPrism Reimagined - Pitch Changer Processor
 //==============================================================================
 
 #pragma once

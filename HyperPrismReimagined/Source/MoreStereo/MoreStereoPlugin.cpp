@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - More Stereo Plugin Entry Point
+// HyperPrism Reimagined - More Stereo Plugin Entry Point
 //==============================================================================
 
 #include "MoreStereoProcessor.h"

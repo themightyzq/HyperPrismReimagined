@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Modern Look and Feel
+// HyperPrism Reimagined - Modern Look and Feel
 //==============================================================================
 
 #pragma once
@@ -28,6 +28,13 @@ public:
         static const juce::Colour error;               // Error/warning
         static const juce::Colour warning;             // Warning states
         static const juce::Colour success;             // Success states
+
+        // Parameter group colors (for knob arcs and section headers)
+        static const juce::Colour dynamics;        // Cyan — threshold, ratio, knee, depth
+        static const juce::Colour timing;          // Purple — attack, release, hold, rate
+        static const juce::Colour output;          // Green — mix, output level, makeup gain
+        static const juce::Colour frequency;       // Amber/warm — frequency, cutoff, bandwidth
+        static const juce::Colour modulation;      // Pink/magenta — LFO rate, depth, waveform
     };
 
     // Custom Component Drawing

@@ -178,12 +178,6 @@ void StereoWidthMeter::paint(juce::Graphics& g)
     g.drawText("L", centerX - radius - 15, centerY - 8, 15, 16, juce::Justification::centred);
     g.drawText("R", centerX + radius, centerY - 8, 15, 16, juce::Justification::centred);
     g.drawText("MONO", centerX - 15, centerY - radius - 20, 30, 16, juce::Justification::centred);
-    
-    // Width value
-    g.setColour(HyperPrismLookAndFeel::Colors::primary);
-    g.setFont(12.0f);
-    juce::String widthText = "Width: " + juce::String(stereoWidth * 200.0f, 0) + "%";
-    g.drawText(widthText, meterArea.removeFromBottom(20), juce::Justification::centred);
 }
 
 void StereoWidthMeter::timerCallback()
@@ -213,20 +207,34 @@ QuasiStereoEditor::QuasiStereoEditor(QuasiStereoProcessor& p)
     xParameterIDs.add(QuasiStereoProcessor::WIDTH_ID);
     yParameterIDs.add(QuasiStereoProcessor::DELAY_TIME_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Quasi Stereo", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("QUASI STEREO", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
     
     // Setup sliders with consistent style (6 parameters)
-    setupSlider(widthSlider, widthLabel, "Width", "");
-    setupSlider(delayTimeSlider, delayTimeLabel, "Delay Time", " ms");
-    setupSlider(frequencyShiftSlider, frequencyShiftLabel, "Freq Shift", " Hz");
-    setupSlider(phaseShiftSlider, phaseShiftLabel, "Phase Shift", " °");
-    setupSlider(highFreqEnhanceSlider, highFreqEnhanceLabel, "HF Enhance", "");
-    setupSlider(outputLevelSlider, outputLevelLabel, "Output Level", " dB");
+    setupSlider(widthSlider, widthLabel, "Width");
+    setupSlider(delayTimeSlider, delayTimeLabel, "Delay Time");
+    setupSlider(frequencyShiftSlider, frequencyShiftLabel, "Freq Shift");
+    setupSlider(phaseShiftSlider, phaseShiftLabel, "Phase Shift");
+    setupSlider(highFreqEnhanceSlider, highFreqEnhanceLabel, "HF Enhance");
+    setupSlider(outputLevelSlider, outputLevelLabel, "Output");
+
+    // Color-code knobs by category
+    widthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    delayTimeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    frequencyShiftSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    phaseShiftSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    highFreqEnhanceSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    outputLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set parameter ranges
     widthSlider.setRange(0.0, 200.0, 0.1);
@@ -243,12 +251,30 @@ QuasiStereoEditor::QuasiStereoEditor(QuasiStereoProcessor& p)
     phaseShiftLabel.onClick = [this]() { showParameterMenu(&phaseShiftLabel, QuasiStereoProcessor::PHASE_SHIFT_ID); };
     highFreqEnhanceLabel.onClick = [this]() { showParameterMenu(&highFreqEnhanceLabel, QuasiStereoProcessor::HIGH_FREQ_ENHANCE_ID); };
     outputLevelLabel.onClick = [this]() { showParameterMenu(&outputLevelLabel, QuasiStereoProcessor::OUTPUT_LEVEL_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    widthSlider.addMouseListener(this, true);
+    widthSlider.getProperties().set("xyParamID", QuasiStereoProcessor::WIDTH_ID);
+    delayTimeSlider.addMouseListener(this, true);
+    delayTimeSlider.getProperties().set("xyParamID", QuasiStereoProcessor::DELAY_TIME_ID);
+    frequencyShiftSlider.addMouseListener(this, true);
+    frequencyShiftSlider.getProperties().set("xyParamID", QuasiStereoProcessor::FREQUENCY_SHIFT_ID);
+    phaseShiftSlider.addMouseListener(this, true);
+    phaseShiftSlider.getProperties().set("xyParamID", QuasiStereoProcessor::PHASE_SHIFT_ID);
+    highFreqEnhanceSlider.addMouseListener(this, true);
+    highFreqEnhanceSlider.getProperties().set("xyParamID", QuasiStereoProcessor::HIGH_FREQ_ENHANCE_ID);
+    outputLevelSlider.addMouseListener(this, true);
+    outputLevelSlider.getProperties().set("xyParamID", QuasiStereoProcessor::OUTPUT_LEVEL_ID);
+
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    // Bypass button
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -273,19 +299,16 @@ QuasiStereoEditor::QuasiStereoEditor(QuasiStereoProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Width / Delay Time", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
         updateParametersFromXYPad(x, y);
     };
-    
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+
     // Add stereo width meter
     addAndMakeVisible(stereoWidthMeter);
-    stereoWidthMeterLabel.setText("Stereo Width", juce::dontSendNotification);
-    stereoWidthMeterLabel.setJustificationType(juce::Justification::centred);
-    stereoWidthMeterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(stereoWidthMeterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -299,7 +322,18 @@ QuasiStereoEditor::QuasiStereoEditor(QuasiStereoProcessor& p)
     highFreqEnhanceSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     outputLevelSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    widthSlider.setTooltip("Amount of stereo widening applied");
+    phaseShiftSlider.setTooltip("Phase difference between channels to create stereo image");
+    delayTimeSlider.setTooltip("Small delay between channels for Haas-effect stereo");
+    frequencyShiftSlider.setTooltip("Frequency shift between channels");
+    highFreqEnhanceSlider.setTooltip("Boost high frequency content for added brightness and air");
+    outputLevelSlider.setTooltip("Overall output volume");
+    bypassButton.setTooltip("Bypass the effect");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 QuasiStereoEditor::~QuasiStereoEditor()
@@ -309,129 +343,163 @@ QuasiStereoEditor::~QuasiStereoEditor()
 
 void QuasiStereoEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(widthSlider.getX() - 2, widthSlider.getY() - 20, 120,
+                      "STEREO", HyperPrismLookAndFeel::Colors::modulation);
+    paintColumnHeader(delayTimeSlider.getX() - 2, delayTimeSlider.getY() - 20, 120,
+                      "TIMING", HyperPrismLookAndFeel::Colors::timing);
+
+    paintColumnHeader(outputSectionX, outputSectionY,
+                      getWidth() - outputSectionX - 12,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void QuasiStereoEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Optimized layout for 650x600 - single row with all 6 controls
-    auto sliderWidth = 75;
-    auto spacing = 12;
-    
-    // Single row with all 6 controls
-    auto controlsRow = bounds.removeFromTop(130);
-    auto totalControlsWidth = sliderWidth * 6 + spacing * 5;
-    auto controlsStartX = (bounds.getWidth() - totalControlsWidth) / 2;
-    controlsRow.removeFromLeft(controlsStartX);
-    
-    // All controls in one row: Width, Delay Time, Freq Shift, Phase Shift, HF Enhance, Output Level
-    widthSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    widthLabel.setBounds(widthSlider.getX(), widthSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    delayTimeSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    delayTimeLabel.setBounds(delayTimeSlider.getX(), delayTimeSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    frequencyShiftSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    frequencyShiftLabel.setBounds(frequencyShiftSlider.getX(), frequencyShiftSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    phaseShiftSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    phaseShiftLabel.setBounds(phaseShiftSlider.getX(), phaseShiftSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    highFreqEnhanceSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    highFreqEnhanceLabel.setBounds(highFreqEnhanceSlider.getX(), highFreqEnhanceSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    outputLevelSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    outputLevelLabel.setBounds(outputLevelSlider.getX(), outputLevelSlider.getBottom(), sliderWidth, 20);
-    
-    // Bottom section - XY Pad and Meter side by side (brought up)
-    bounds.removeFromTop(15);
-    
-    // Split remaining space horizontally for XY pad and meter
-    auto bottomArea = bounds;
-    auto panelHeight = 180; // Standard XY pad height
-    
-    // Calculate positioning to center both panels
-    auto xyPadWidth = 200;
-    auto meterSize = 180;
-    auto totalBottomWidth = xyPadWidth + 20 + meterSize; // XY pad + spacing + meter
-    auto bottomStartX = (bottomArea.getWidth() - totalBottomWidth) / 2;
-    
-    // XY Pad on left
-    auto xyPadBounds = bottomArea.withX(bottomArea.getX() + bottomStartX).withWidth(xyPadWidth).withHeight(panelHeight);
-    xyPad.setBounds(xyPadBounds);
-    
-    // Stereo width meter on right (matching height)
-    auto meterBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(meterSize).withHeight(panelHeight);
-    stereoWidthMeter.setBounds(meterBounds);
-    
-    // Align labels at the same Y position
-    auto labelY = xyPadBounds.getBottom() + 5;
-    xyPadLabel.setBounds(xyPad.getX(), labelY, xyPadWidth, 20);
-    stereoWidthMeterLabel.setBounds(stereoWidthMeter.getX(), labelY, meterSize, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: Two parameter columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 80;
+    int vSpace = 107;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: STEREO -- Width, Frequency Shift, HF Enhance
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(widthSlider, widthLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(frequencyShiftSlider, frequencyShiftLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(highFreqEnhanceSlider, highFreqEnhanceLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // Column 2: TIMING -- Delay Time, Phase Shift
+    centerKnob(delayTimeSlider, delayTimeLabel, col2.getX(), colWidth, y1, knobDiam);
+    centerKnob(phaseShiftSlider, phaseShiftLabel, col2.getX(), colWidth, y1 + vSpace, knobDiam);
+
+    // --- Right side: XY pad + output + meter ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Bottom right: Output knob + Stereo Width Meter
+    auto bottomRight = rightSide;
+    auto outputArea = bottomRight.removeFromLeft(140);
+    auto meterArea = bottomRight.reduced(4);
+
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+    centerKnob(outputLevelSlider, outputLevelLabel, outputArea.getX() + 20, 100, outY + outKnob / 2, outKnob);
+
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
+
+    // Meter
+    stereoWidthMeter.setBounds(meterArea.reduced(4));
 }
 
 void QuasiStereoEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void QuasiStereoEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    widthLabel.setColour(juce::Label::textColourId, neutralColor);
+    delayTimeLabel.setColour(juce::Label::textColourId, neutralColor);
+    frequencyShiftLabel.setColour(juce::Label::textColourId, neutralColor);
+    phaseShiftLabel.setColour(juce::Label::textColourId, neutralColor);
+    highFreqEnhanceLabel.setColour(juce::Label::textColourId, neutralColor);
+    outputLevelLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(widthLabel, QuasiStereoProcessor::WIDTH_ID);
-    updateLabelColor(delayTimeLabel, QuasiStereoProcessor::DELAY_TIME_ID);
-    updateLabelColor(frequencyShiftLabel, QuasiStereoProcessor::FREQUENCY_SHIFT_ID);
-    updateLabelColor(phaseShiftLabel, QuasiStereoProcessor::PHASE_SHIFT_ID);
-    updateLabelColor(highFreqEnhanceLabel, QuasiStereoProcessor::HIGH_FREQ_ENHANCE_ID);
-    updateLabelColor(outputLevelLabel, QuasiStereoProcessor::OUTPUT_LEVEL_ID);
+
+    updateSliderXY(widthSlider, QuasiStereoProcessor::WIDTH_ID);
+    updateSliderXY(delayTimeSlider, QuasiStereoProcessor::DELAY_TIME_ID);
+    updateSliderXY(frequencyShiftSlider, QuasiStereoProcessor::FREQUENCY_SHIFT_ID);
+    updateSliderXY(phaseShiftSlider, QuasiStereoProcessor::PHASE_SHIFT_ID);
+    updateSliderXY(highFreqEnhanceSlider, QuasiStereoProcessor::HIGH_FREQ_ENHANCE_ID);
+    updateSliderXY(outputLevelSlider, QuasiStereoProcessor::OUTPUT_LEVEL_ID);
+    repaint();
 }
 
 void QuasiStereoEditor::updateXYPadFromParameters()
@@ -496,7 +564,18 @@ void QuasiStereoEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void QuasiStereoEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void QuasiStereoEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void QuasiStereoEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -516,7 +595,7 @@ void QuasiStereoEditor::showParameterMenu(juce::Label* label, const juce::String
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {
@@ -574,7 +653,7 @@ void QuasiStereoEditor::updateXYPadLabel()
         if (paramID == QuasiStereoProcessor::FREQUENCY_SHIFT_ID) return "Freq Shift";
         if (paramID == QuasiStereoProcessor::PHASE_SHIFT_ID) return "Phase Shift";
         if (paramID == QuasiStereoProcessor::HIGH_FREQ_ENHANCE_ID) return "HF Enhance";
-        if (paramID == QuasiStereoProcessor::OUTPUT_LEVEL_ID) return "Output Level";
+        if (paramID == QuasiStereoProcessor::OUTPUT_LEVEL_ID) return "Output";
         return paramID;
     };
     

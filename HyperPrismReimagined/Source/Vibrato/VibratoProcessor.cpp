@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Vibrato Processor Implementation
+// HyperPrism Reimagined - Vibrato Processor Implementation
 //==============================================================================
 
 #include "VibratoProcessor.h"

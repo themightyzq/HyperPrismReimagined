@@ -136,7 +136,7 @@ void VibratoMeter::paint(juce::Graphics& g)
     auto displayArea = bounds.reduced(10.0f);
     
     // Top section - LFO waveform
-    auto lfoArea = displayArea.removeFromTop(displayArea.getHeight() * 0.4f);
+    auto lfoArea = displayArea.removeFromTop(displayArea.getHeight() * 0.45f);
     
     // Draw LFO waveform
     g.setColour(HyperPrismLookAndFeel::Colors::primary);
@@ -173,7 +173,7 @@ void VibratoMeter::paint(juce::Graphics& g)
     displayArea.removeFromTop(15); // spacing for label
     
     // Middle section - Delay visualization
-    auto delayVisualizationArea = displayArea.removeFromTop(displayArea.getHeight() * 0.4f);
+    auto delayVisualizationArea = displayArea;
     
     // Draw delay buffer as a circular visualization
     auto centerX = delayVisualizationArea.getCentreX();
@@ -213,27 +213,6 @@ void VibratoMeter::paint(juce::Graphics& g)
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(9.0f);
     g.drawText("Delay Buffer", delayVisualizationArea.withY(delayLabelY).withHeight(12), juce::Justification::centred);
-    
-    displayArea.removeFromTop(15); // spacing for label
-    
-    // Bottom section - Parameter display
-    auto infoArea = displayArea;
-    
-    // Parameter values
-    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
-    g.setFont(8.0f);
-    
-    auto paramArea = infoArea.removeFromTop(infoArea.getHeight() / 2);
-    auto leftParamArea = paramArea.removeFromLeft(paramArea.getWidth() / 2);
-    
-    g.drawText("Rate: " + juce::String(rate, 1) + " Hz", leftParamArea, juce::Justification::centredLeft);
-    g.drawText("Depth: " + juce::String(static_cast<int>(depth * 100)) + "%", paramArea, juce::Justification::centredLeft);
-    
-    auto bottomParamArea = infoArea;
-    auto leftBottomArea = bottomParamArea.removeFromLeft(bottomParamArea.getWidth() / 2);
-    
-    g.drawText("Delay: " + juce::String(delay, 1) + " ms", leftBottomArea, juce::Justification::centredLeft);
-    g.drawText("Feedback: " + juce::String(static_cast<int>(feedback * 100)) + "%", bottomParamArea, juce::Justification::centredLeft);
 }
 
 void VibratoMeter::timerCallback()
@@ -287,19 +266,32 @@ VibratoEditor::VibratoEditor(VibratoProcessor& p)
     xParameterIDs.add(VibratoProcessor::RATE_ID);
     yParameterIDs.add(VibratoProcessor::DEPTH_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Vibrato", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("VIBRATO", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
-    
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
+
     // Setup sliders with consistent style
-    setupSlider(mixSlider, mixLabel, "Mix", " %");
-    setupSlider(rateSlider, rateLabel, "Rate", " Hz");
-    setupSlider(depthSlider, depthLabel, "Depth", " %");
-    setupSlider(delaySlider, delayLabel, "Delay", " ms");
-    setupSlider(feedbackSlider, feedbackLabel, "Feedback", " %");
+    setupSlider(mixSlider, mixLabel, "Mix");
+    setupSlider(rateSlider, rateLabel, "Rate");
+    setupSlider(depthSlider, depthLabel, "Depth");
+    setupSlider(delaySlider, delayLabel, "Delay");
+    setupSlider(feedbackSlider, feedbackLabel, "Feedback");
+
+    // Color-code knobs by parameter category
+    rateSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    depthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    delaySlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
+    feedbackSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
+    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set parameter ranges (example ranges - adjust based on processor)
     mixSlider.setRange(0.0, 100.0, 0.1);
@@ -314,12 +306,27 @@ VibratoEditor::VibratoEditor(VibratoProcessor& p)
     depthLabel.onClick = [this]() { showParameterMenu(&depthLabel, VibratoProcessor::DEPTH_ID); };
     delayLabel.onClick = [this]() { showParameterMenu(&delayLabel, VibratoProcessor::DELAY_ID); };
     feedbackLabel.onClick = [this]() { showParameterMenu(&feedbackLabel, VibratoProcessor::FEEDBACK_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    mixSlider.addMouseListener(this, true);
+    mixSlider.getProperties().set("xyParamID", VibratoProcessor::MIX_ID);
+    rateSlider.addMouseListener(this, true);
+    rateSlider.getProperties().set("xyParamID", VibratoProcessor::RATE_ID);
+    depthSlider.addMouseListener(this, true);
+    depthSlider.getProperties().set("xyParamID", VibratoProcessor::DEPTH_ID);
+    delaySlider.addMouseListener(this, true);
+    delaySlider.getProperties().set("xyParamID", VibratoProcessor::DELAY_ID);
+    feedbackSlider.addMouseListener(this, true);
+    feedbackSlider.getProperties().set("xyParamID", VibratoProcessor::FEEDBACK_ID);
+
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -342,19 +349,16 @@ VibratoEditor::VibratoEditor(VibratoProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Rate / Depth", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
         updateParametersFromXYPad(x, y);
     };
-    
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+
     // Add vibrato meter
     addAndMakeVisible(vibratoMeter);
-    vibratoMeterLabel.setText("Vibrato Analysis", juce::dontSendNotification);
-    vibratoMeterLabel.setJustificationType(juce::Justification::centred);
-    vibratoMeterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(vibratoMeterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -382,7 +386,17 @@ VibratoEditor::VibratoEditor(VibratoProcessor& p)
         vibratoMeter.repaint(); 
     };
     
-    setSize(650, 600);
+    // Tooltips
+    rateSlider.setTooltip("Speed of the pitch modulation");
+    depthSlider.setTooltip("Amount of pitch variation");
+    delaySlider.setTooltip("Base delay time that the vibrato modulates around");
+    feedbackSlider.setTooltip("Feeds signal back for a more complex modulated sound");
+    mixSlider.setTooltip("Balance between dry and vibrato signal");
+    bypassButton.setTooltip("Bypass the effect");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 VibratoEditor::~VibratoEditor()
@@ -392,124 +406,162 @@ VibratoEditor::~VibratoEditor()
 
 void VibratoEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(rateSlider.getX() - 2, rateSlider.getY() - 20, 120,
+                      "MODULATION", HyperPrismLookAndFeel::Colors::modulation);
+    paintColumnHeader(delaySlider.getX() - 2, delaySlider.getY() - 20, 120,
+                      "TIMING", HyperPrismLookAndFeel::Colors::timing);
+
+    // Output section header
+    paintColumnHeader(outputSectionX, outputSectionY,
+                      getWidth() - outputSectionX - 12,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void VibratoEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Optimized layout for 650x600 - single row with all 5 controls
-    auto sliderWidth = 75;
-    auto spacing = 12;
-    
-    // Single row with all 5 controls
-    auto controlsRow = bounds.removeFromTop(130);
-    auto totalControlsWidth = sliderWidth * 5 + spacing * 4;
-    auto controlsStartX = (bounds.getWidth() - totalControlsWidth) / 2;
-    controlsRow.removeFromLeft(controlsStartX);
-    
-    // All controls in one row: Mix, Rate, Depth, Delay, Feedback
-    mixSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    mixLabel.setBounds(mixSlider.getX(), mixSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    rateSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    rateLabel.setBounds(rateSlider.getX(), rateSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    depthSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    depthLabel.setBounds(depthSlider.getX(), depthSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    delaySlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    delayLabel.setBounds(delaySlider.getX(), delaySlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    feedbackSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    feedbackLabel.setBounds(feedbackSlider.getX(), feedbackSlider.getBottom(), sliderWidth, 20);
-    
-    // Bottom section - XY Pad and Meter side by side (brought up)
-    bounds.removeFromTop(15);
-    
-    // Split remaining space horizontally for XY pad and meter
-    auto bottomArea = bounds;
-    auto panelHeight = 180; // Standard XY pad height
-    
-    // Calculate positioning to center both panels
-    auto xyPadWidth = 200;
-    auto meterSize = 180;
-    auto totalBottomWidth = xyPadWidth + 20 + meterSize; // XY pad + spacing + meter
-    auto bottomStartX = (bottomArea.getWidth() - totalBottomWidth) / 2;
-    
-    // XY Pad on left
-    auto xyPadBounds = bottomArea.withX(bottomArea.getX() + bottomStartX).withWidth(xyPadWidth).withHeight(panelHeight);
-    xyPad.setBounds(xyPadBounds);
-    
-    // Vibrato meter on right (matching height)
-    auto meterBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(meterSize).withHeight(panelHeight);
-    vibratoMeter.setBounds(meterBounds);
-    
-    // Align labels at the same Y position
-    auto labelY = xyPadBounds.getBottom() + 5;
-    xyPadLabel.setBounds(xyPad.getX(), labelY, xyPadWidth, 20);
-    vibratoMeterLabel.setBounds(vibratoMeter.getX(), labelY, meterSize, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Left: Two parameter columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 80;
+    int vSpace = 107;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: MODULATION -- Rate, Depth, Feedback
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(rateSlider, rateLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(depthSlider, depthLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(feedbackSlider, feedbackLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // Column 2: TIMING -- Delay
+    centerKnob(delaySlider, delayLabel, col2.getX(), colWidth, y1, knobDiam);
+
+    // --- Right side: XY pad + output + meter ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Bottom right: Output knob + Meter
+    auto bottomRight = rightSide;
+    auto outputArea = bottomRight.removeFromLeft(140);
+    auto meterArea = bottomRight.reduced(4);
+
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+
+    centerKnob(mixSlider, mixLabel, outputArea.getX() + 20, 100, outY + outKnob / 2, outKnob);
+
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
+
+    // Meter
+    vibratoMeter.setBounds(meterArea.reduced(4));
 }
 
 void VibratoEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void VibratoEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    mixLabel.setColour(juce::Label::textColourId, neutralColor);
+    rateLabel.setColour(juce::Label::textColourId, neutralColor);
+    depthLabel.setColour(juce::Label::textColourId, neutralColor);
+    delayLabel.setColour(juce::Label::textColourId, neutralColor);
+    feedbackLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(mixLabel, VibratoProcessor::MIX_ID);
-    updateLabelColor(rateLabel, VibratoProcessor::RATE_ID);
-    updateLabelColor(depthLabel, VibratoProcessor::DEPTH_ID);
-    updateLabelColor(delayLabel, VibratoProcessor::DELAY_ID);
-    updateLabelColor(feedbackLabel, VibratoProcessor::FEEDBACK_ID);
+
+    updateSliderXY(mixSlider, VibratoProcessor::MIX_ID);
+    updateSliderXY(rateSlider, VibratoProcessor::RATE_ID);
+    updateSliderXY(depthSlider, VibratoProcessor::DEPTH_ID);
+    updateSliderXY(delaySlider, VibratoProcessor::DELAY_ID);
+    updateSliderXY(feedbackSlider, VibratoProcessor::FEEDBACK_ID);
+    repaint();
 }
 
 void VibratoEditor::updateXYPadFromParameters()
@@ -568,7 +620,18 @@ void VibratoEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void VibratoEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void VibratoEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void VibratoEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -588,7 +651,7 @@ void VibratoEditor::showParameterMenu(juce::Label* label, const juce::String& pa
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {

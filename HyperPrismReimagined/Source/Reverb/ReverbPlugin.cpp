@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Reverb Plugin Entry Point
+// HyperPrism Reimagined - Reverb Plugin Entry Point
 //==============================================================================
 
 #include "ReverbProcessor.h"

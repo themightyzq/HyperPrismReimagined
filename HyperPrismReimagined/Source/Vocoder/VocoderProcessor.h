@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Vocoder Processor
+// HyperPrism Reimagined - Vocoder Processor
 //==============================================================================
 
 #pragma once
@@ -70,8 +70,8 @@ private:
     {
     public:
         VocoderBand() = default;
-        
-        void prepare(double sampleRate);
+
+        void prepare(double sampleRate, int samplesPerBlock);
         void setFrequency(float frequency, float bandwidth);
         void setReleaseTime(float releaseMs);
         void reset();
@@ -140,6 +140,9 @@ private:
     int currentBandCount = defaultBands;
     std::vector<float> bandFrequencies;
     
+    // Pre-allocated buffer for band level accumulation (real-time safe)
+    std::vector<float> bandLevelSums;
+
     // Metering
     std::atomic<float> carrierLevel { 0.0f };
     std::atomic<float> modulatorLevel { 0.0f };

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Single Delay Plugin Entry Point
+// HyperPrism Reimagined - Single Delay Plugin Entry Point
 //==============================================================================
 
 #include "SingleDelayProcessor.h"

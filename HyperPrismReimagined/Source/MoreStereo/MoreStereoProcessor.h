@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - More Stereo Processor
+// HyperPrism Reimagined - More Stereo Processor
 //==============================================================================
 
 #pragma once
@@ -88,6 +88,11 @@ private:
     juce::dsp::DelayLine<float> ambienceDelayLeft { 4800 };
     juce::dsp::DelayLine<float> ambienceDelayRight { 4800 };
     
+    // Pre-allocated processing buffers (real-time safe)
+    juce::AudioBuffer<float> bassBuffer;
+    juce::AudioBuffer<float> trebleBuffer;
+    juce::AudioBuffer<float> ambienceBuffer;
+
     // State variables
     double currentSampleRate = 44100.0;
     float previousCrossoverFreq = -1.0f;

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Phaser Processor
+// HyperPrism Reimagined - Phaser Processor
 //==============================================================================
 
 #pragma once
@@ -104,7 +104,9 @@ private:
     juce::SmoothedValue<float> mixSmoothed;
     
     double currentSampleRate = 44100.0;
-    
+
+    juce::AudioBuffer<float> dryBuffer;
+
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PhaserProcessor)

@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Flanger Processor
+// HyperPrism Reimagined - Flanger Processor
 //==============================================================================
 
 #pragma once
@@ -101,6 +101,8 @@ private:
     // Processing state
     double currentSampleRate = 44100.0;
     float previousFilterFreq = -1.0f;
-    
+
+    juce::AudioBuffer<float> dryBuffer;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FlangerProcessor)
 };

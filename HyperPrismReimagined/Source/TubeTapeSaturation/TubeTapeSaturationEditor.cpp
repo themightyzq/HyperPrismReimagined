@@ -163,7 +163,7 @@ void SaturationMeter::paint(juce::Graphics& g)
     displayArea.removeFromTop(20); // spacing for labels
     
     // Middle section - Harmonic content visualization
-    auto harmonicArea = displayArea.removeFromTop(displayArea.getHeight() * 0.5f);
+    auto harmonicArea = displayArea.removeFromTop(displayArea.getHeight() * 0.6f);
     
     // Draw harmonic bars
     if (!harmonicSpectrum.empty())
@@ -188,13 +188,6 @@ void SaturationMeter::paint(juce::Graphics& g)
         }
     }
     
-    // Harmonic content label
-    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
-    g.setFont(8.0f);
-    auto harmonicLabelY = harmonicArea.getBottom() + 2;
-    g.drawText("Harmonics", harmonicArea.withY(harmonicLabelY).withHeight(12), juce::Justification::centred);
-    
-    displayArea.removeFromTop(15); // spacing for label
     
     // Bottom section - Saturation type and drive display
     auto infoArea = displayArea;
@@ -223,7 +216,7 @@ void SaturationMeter::paint(juce::Graphics& g)
     
     auto typeArea = infoArea.removeFromTop(infoArea.getHeight() / 2);
     g.setColour(typeColor);
-    g.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 12.0f)));
+    g.setFont(juce::Font(juce::FontOptions(12.0f).withStyle("Bold")));
     g.drawText(typeText, typeArea, juce::Justification::centred);
     
     // Drive level bar
@@ -243,11 +236,6 @@ void SaturationMeter::paint(juce::Graphics& g)
     g.setColour(HyperPrismLookAndFeel::Colors::outlineVariant);
     g.drawRoundedRectangle(driveArea.reduced(0, 5), 2.0f, 1.0f);
     
-    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
-    g.setFont(8.0f);
-    g.drawText("Drive: " + juce::String(static_cast<int>(drive * 100)) + "%", 
-               driveArea.withY(driveArea.getBottom() + 2).withHeight(10), 
-               juce::Justification::centred);
 }
 
 void SaturationMeter::timerCallback()
@@ -316,18 +304,30 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
     xParameterIDs.add(TubeTapeSaturationProcessor::DRIVE_ID);
     yParameterIDs.add(TubeTapeSaturationProcessor::WARMTH_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined Tube/Tape Saturation", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("TUBE/TAPE SATURATION", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
     
     // Setup sliders with consistent style
-    setupSlider(driveSlider, driveLabel, "Drive", "");
-    setupSlider(warmthSlider, warmthLabel, "Warmth", "");
-    setupSlider(brightnessSlider, brightnessLabel, "Brightness", "");
-    setupSlider(outputLevelSlider, outputLevelLabel, "Output Level", " dB");
+    setupSlider(driveSlider, driveLabel, "Drive");
+    setupSlider(warmthSlider, warmthLabel, "Warmth");
+    setupSlider(brightnessSlider, brightnessLabel, "Brightness");
+    setupSlider(outputLevelSlider, outputLevelLabel, "Output");
+
+    // Color-code knobs by category
+    driveSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    warmthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    brightnessSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    outputLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set parameter ranges (example ranges - adjust based on processor)
     driveSlider.setRange(0.0, 100.0, 0.1);
@@ -349,12 +349,26 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
     brightnessLabel.onClick = [this]() { showParameterMenu(&brightnessLabel, TubeTapeSaturationProcessor::BRIGHTNESS_ID); };
     outputLevelLabel.onClick = [this]() { showParameterMenu(&outputLevelLabel, TubeTapeSaturationProcessor::OUTPUT_LEVEL_ID); };
     typeLabel.onClick = [this]() { showParameterMenu(&typeLabel, TubeTapeSaturationProcessor::TYPE_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    driveSlider.addMouseListener(this, true);
+    driveSlider.getProperties().set("xyParamID", TubeTapeSaturationProcessor::DRIVE_ID);
+    warmthSlider.addMouseListener(this, true);
+    warmthSlider.getProperties().set("xyParamID", TubeTapeSaturationProcessor::WARMTH_ID);
+    brightnessSlider.addMouseListener(this, true);
+    brightnessSlider.getProperties().set("xyParamID", TubeTapeSaturationProcessor::BRIGHTNESS_ID);
+    outputLevelSlider.addMouseListener(this, true);
+    outputLevelSlider.getProperties().set("xyParamID", TubeTapeSaturationProcessor::OUTPUT_LEVEL_ID);
+
     
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    // Bypass button
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -377,19 +391,16 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Drive / Warmth", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
         updateParametersFromXYPad(x, y);
     };
-    
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+
     // Add saturation meter
     addAndMakeVisible(saturationMeter);
-    saturationMeterLabel.setText("Saturation Analysis", juce::dontSendNotification);
-    saturationMeterLabel.setJustificationType(juce::Justification::centred);
-    saturationMeterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(saturationMeterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -401,7 +412,16 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
     brightnessSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     outputLevelSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    driveSlider.setTooltip("Amount of saturation — higher values create more distortion");
+    brightnessSlider.setTooltip("Tonal character of the saturation — higher is brighter");
+    warmthSlider.setTooltip("Balance between clean and saturated signal");
+    outputLevelSlider.setTooltip("Overall output volume after saturation");
+    bypassButton.setTooltip("Bypass the effect");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 TubeTapeSaturationEditor::~TubeTapeSaturationEditor()
@@ -411,141 +431,177 @@ TubeTapeSaturationEditor::~TubeTapeSaturationEditor()
 
 void TubeTapeSaturationEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(driveSlider.getX() - 2, driveSlider.getY() - 20, 120,
+                      "CHARACTER", HyperPrismLookAndFeel::Colors::dynamics);
+
+    paintColumnHeader(outputSectionX, outputSectionY,
+                      getWidth() - outputSectionX - 12,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void TubeTapeSaturationEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Optimized layout for 650x600 - single row with all 5 controls (4 sliders + 1 combobox)
-    auto sliderWidth = 75;
-    auto comboWidth = 75;
-    auto spacing = 12;
-    
-    // Single row with all 5 controls
-    auto controlsRow = bounds.removeFromTop(130);
-    auto totalControlsWidth = sliderWidth * 4 + comboWidth + spacing * 4;
-    auto controlsStartX = (bounds.getWidth() - totalControlsWidth) / 2;
-    controlsRow.removeFromLeft(controlsStartX);
-    
-    // All controls in one row: Drive, Warmth, Brightness, Output Level, Type
-    driveSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    driveLabel.setBounds(driveSlider.getX(), driveSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    warmthSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    warmthLabel.setBounds(warmthSlider.getX(), warmthSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    brightnessSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    brightnessLabel.setBounds(brightnessSlider.getX(), brightnessSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    outputLevelSlider.setBounds(controlsRow.removeFromLeft(sliderWidth).reduced(0, 15));
-    outputLevelLabel.setBounds(outputLevelSlider.getX(), outputLevelSlider.getBottom(), sliderWidth, 20);
-    controlsRow.removeFromLeft(spacing);
-    
-    // Type ComboBox at the end of the row
-    typeComboBox.setBounds(controlsRow.removeFromLeft(comboWidth).withHeight(25).withY(controlsRow.getY() + 40));
-    typeLabel.setBounds(typeComboBox.getX(), typeComboBox.getBottom(), comboWidth, 20);
-    
-    // Bottom section - XY Pad and Meter side by side (brought up)
-    bounds.removeFromTop(15);
-    
-    // Split remaining space horizontally for XY pad and meter
-    auto bottomArea = bounds;
-    auto panelHeight = 180; // Standard XY pad height
-    
-    // Calculate positioning to center both panels
-    auto xyPadWidth = 200;
-    auto meterSize = 180;
-    auto totalBottomWidth = xyPadWidth + 20 + meterSize; // XY pad + spacing + meter
-    auto bottomStartX = (bottomArea.getWidth() - totalBottomWidth) / 2;
-    
-    // XY Pad on left
-    auto xyPadBounds = bottomArea.withX(bottomArea.getX() + bottomStartX).withWidth(xyPadWidth).withHeight(panelHeight);
-    xyPad.setBounds(xyPadBounds);
-    
-    // Saturation meter on right (matching height)
-    auto meterBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(meterSize).withHeight(panelHeight);
-    saturationMeter.setBounds(meterBounds);
-    
-    // Align labels at the same Y position
-    auto labelY = xyPadBounds.getBottom() + 5;
-    xyPadLabel.setBounds(xyPad.getX(), labelY, xyPadWidth, 20);
-    saturationMeterLabel.setBounds(saturationMeter.getX(), labelY, meterSize, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // --- Type ComboBox spanning both columns above the knobs ---
+    auto typeRow = bounds.removeFromTop(30);
+    typeComboBox.setBounds(typeRow.getX(), typeRow.getY(), 200, 25);
+    typeLabel.setBounds(typeRow.getX() + 205, typeRow.getY() + 4, 50, 16);
+    bounds.removeFromTop(4);
+
+    // --- Left: Two parameter columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 80;
+    int vSpace = 107;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: CHARACTER -- Drive, Warmth, Brightness
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(driveSlider, driveLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(warmthSlider, warmthLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(brightnessSlider, brightnessLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // Column 2 is empty for this plugin (saturation type area)
+
+    // --- Right side: XY pad + output + meter ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Bottom right: Output knob + Saturation Meter
+    auto bottomRight = rightSide;
+    auto outputArea = bottomRight.removeFromLeft(140);
+    auto meterArea = bottomRight.reduced(4);
+
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+    centerKnob(outputLevelSlider, outputLevelLabel, outputArea.getX() + 20, 100, outY + outKnob / 2, outKnob);
+
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
+
+    // Meter
+    saturationMeter.setBounds(meterArea.reduced(4));
 }
 
 void TubeTapeSaturationEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void TubeTapeSaturationEditor::setupComboBox(juce::ComboBox& comboBox, ParameterLabel& label, 
                                  const juce::String& text)
 {
-    comboBox.setColour(juce::ComboBox::backgroundColourId, juce::Colours::darkgrey);
-    comboBox.setColour(juce::ComboBox::textColourId, juce::Colours::white);
-    comboBox.setColour(juce::ComboBox::arrowColourId, juce::Colours::lightgrey);
-    comboBox.setColour(juce::ComboBox::outlineColourId, juce::Colours::grey);
+    comboBox.setColour(juce::ComboBox::backgroundColourId, HyperPrismLookAndFeel::Colors::surfaceVariant);
+    comboBox.setColour(juce::ComboBox::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
+    comboBox.setColour(juce::ComboBox::arrowColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    comboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
     addAndMakeVisible(comboBox);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void TubeTapeSaturationEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    driveLabel.setColour(juce::Label::textColourId, neutralColor);
+    warmthLabel.setColour(juce::Label::textColourId, neutralColor);
+    brightnessLabel.setColour(juce::Label::textColourId, neutralColor);
+    outputLevelLabel.setColour(juce::Label::textColourId, neutralColor);
+    typeLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(driveLabel, TubeTapeSaturationProcessor::DRIVE_ID);
-    updateLabelColor(warmthLabel, TubeTapeSaturationProcessor::WARMTH_ID);
-    updateLabelColor(brightnessLabel, TubeTapeSaturationProcessor::BRIGHTNESS_ID);
-    updateLabelColor(outputLevelLabel, TubeTapeSaturationProcessor::OUTPUT_LEVEL_ID);
-    updateLabelColor(typeLabel, TubeTapeSaturationProcessor::TYPE_ID);
+
+    updateSliderXY(driveSlider, TubeTapeSaturationProcessor::DRIVE_ID);
+    updateSliderXY(warmthSlider, TubeTapeSaturationProcessor::WARMTH_ID);
+    updateSliderXY(brightnessSlider, TubeTapeSaturationProcessor::BRIGHTNESS_ID);
+    updateSliderXY(outputLevelSlider, TubeTapeSaturationProcessor::OUTPUT_LEVEL_ID);
+    repaint();
 }
 
 void TubeTapeSaturationEditor::updateXYPadFromParameters()
@@ -604,7 +660,18 @@ void TubeTapeSaturationEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void TubeTapeSaturationEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void TubeTapeSaturationEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void TubeTapeSaturationEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -624,7 +691,7 @@ void TubeTapeSaturationEditor::showParameterMenu(juce::Label* label, const juce:
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {
@@ -680,7 +747,7 @@ void TubeTapeSaturationEditor::updateXYPadLabel()
         if (paramID == TubeTapeSaturationProcessor::DRIVE_ID) return "Drive";
         if (paramID == TubeTapeSaturationProcessor::WARMTH_ID) return "Warmth";
         if (paramID == TubeTapeSaturationProcessor::BRIGHTNESS_ID) return "Brightness";
-        if (paramID == TubeTapeSaturationProcessor::OUTPUT_LEVEL_ID) return "Output Level";
+        if (paramID == TubeTapeSaturationProcessor::OUTPUT_LEVEL_ID) return "Output";
         if (paramID == TubeTapeSaturationProcessor::TYPE_ID) return "Type";
         return paramID;
     };

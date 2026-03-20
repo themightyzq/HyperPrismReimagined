@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Auto Pan Plugin Entry Point
+// HyperPrism Reimagined - Auto Pan Plugin Entry Point
 //==============================================================================
 
 #include "AutoPanProcessor.h"

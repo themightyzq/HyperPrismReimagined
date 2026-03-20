@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Quasi Stereo Processor
+// HyperPrism Reimagined - Quasi Stereo Processor
 //==============================================================================
 
 #pragma once

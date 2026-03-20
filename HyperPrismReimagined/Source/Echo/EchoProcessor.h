@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Echo Processor
+// HyperPrism Reimagined - Echo Processor
 // Simple digital delay with feedback control
 //==============================================================================
 

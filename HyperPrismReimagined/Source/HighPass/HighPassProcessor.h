@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - High-Pass Filter Processor
+// HyperPrism Reimagined - High-Pass Filter Processor
 //==============================================================================
 
 #pragma once
@@ -73,7 +73,9 @@ private:
     juce::SmoothedValue<float> mixSmoothed;
     
     double currentSampleRate = 44100.0;
-    
+
+    juce::AudioBuffer<float> dryBuffer;
+
     void updateFilter();
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

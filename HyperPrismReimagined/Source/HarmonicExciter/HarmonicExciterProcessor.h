@@ -40,6 +40,7 @@ public:
     juce::AudioParameterFloat* harmonicsParam;
     juce::AudioParameterFloat* mixParam;
     juce::AudioParameterChoice* typeParam;
+    juce::AudioParameterBool* bypassParamBool = nullptr;
 
     // Get current output level for metering
     float getCurrentOutputLevel() const { return outputLevel.load(); }
@@ -54,7 +55,11 @@ private:
     
     // Sample rate storage
     double currentSampleRate = 44100.0;
-    
+
+    // Pre-allocated buffers
+    juce::AudioBuffer<float> dryBuffer;
+    juce::AudioBuffer<float> highFreqBuffer;
+
     // Harmonic generation functions
     float generateWarmHarmonics(float input, float drive, float harmonics);
     float generateBrightHarmonics(float input, float drive, float harmonics);

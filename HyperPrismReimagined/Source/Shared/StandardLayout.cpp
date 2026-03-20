@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Standard Layout Helper Implementation
+// HyperPrism Reimagined - Standard Layout Helper Implementation
 //==============================================================================
 
 #include "StandardLayout.h"
@@ -21,7 +21,7 @@ namespace HyperPrismLayout
         
         // Calculate total grid size
         int totalWidth = (columns * controlWidth) + ((columns - 1) * spacing);
-        int totalHeight = (rows * controlHeight) + ((rows - 1) * Constants::rowSpacing);
+        int totalHeight = (rows * controlHeight) + ((rows - 1) * Constants::columnSpacing);
         
         // Center the grid in the available area
         int startX = area.getX() + (area.getWidth() - totalWidth) / 2;
@@ -38,7 +38,9 @@ namespace HyperPrismLayout
         auto area = headerArea;
         
         // Reserve space for buttons on the right
-        int buttonsWidth = static_cast<int>(buttons.size()) * (Constants::buttonWidth + Constants::buttonSpacing) - Constants::buttonSpacing;
+        int buttonWidth = 90;
+        int buttonSpacing = 10;
+        int buttonsWidth = static_cast<int>(buttons.size()) * (buttonWidth + buttonSpacing) - buttonSpacing;
         auto buttonArea = area.removeFromRight(buttonsWidth);
         
         // Title gets remaining space
@@ -47,12 +49,12 @@ namespace HyperPrismLayout
         // Position buttons from right to left
         for (int i = static_cast<int>(buttons.size()) - 1; i >= 0; --i)
         {
-            auto bounds = buttonArea.removeFromRight(Constants::buttonWidth);
-            bounds = bounds.withSizeKeepingCentre(Constants::buttonWidth, Constants::buttonHeight);
+            auto bounds = buttonArea.removeFromRight(buttonWidth);
+            bounds = bounds.withSizeKeepingCentre(buttonWidth, 32);
             buttons[i]->setBounds(bounds);
-            
-            if (i > 0) // Add spacing between buttons
-                buttonArea.removeFromRight(Constants::buttonSpacing);
+
+            if (i > 0)
+                buttonArea.removeFromRight(buttonSpacing);
         }
     }
     
@@ -63,7 +65,7 @@ namespace HyperPrismLayout
     {
         auto areaCopy = area;
         auto leftColumn = areaCopy.removeFromLeft(static_cast<int>(area.getWidth() * leftColumnRatio));
-        auto rightColumn = areaCopy.reduced(Constants::sectionSpacing / 2, 0);
+        auto rightColumn = areaCopy.reduced(Constants::columnSpacing / 2, 0);
         
         return {leftColumn, rightColumn};
     }
@@ -75,7 +77,7 @@ namespace HyperPrismLayout
     {
         auto areaCopy = area;
         auto topSection = areaCopy.removeFromTop(topSectionHeight);
-        auto remainingArea = areaCopy.reduced(0, Constants::sectionSpacing);
+        auto remainingArea = areaCopy.reduced(0, Constants::columnSpacing);
         
         auto [leftSection, rightSection] = createTwoColumnLayout(remainingArea);
         
@@ -89,8 +91,8 @@ namespace HyperPrismLayout
     {
         // Ensure the pad fits in the available area
  
-        int maxWidth = area.getWidth() - Constants::xyPadMargin * 2;
-        int maxHeight = area.getHeight() - Constants::xyPadMargin * 2;
+        int maxWidth = area.getWidth() - Constants::contentMargin * 2;
+        int maxHeight = area.getHeight() - Constants::contentMargin * 2;
         int actualWidth = juce::jmin(padWidth, maxWidth);
         int actualHeight = juce::jmin(padHeight, maxHeight);
         
@@ -101,11 +103,11 @@ namespace HyperPrismLayout
         const juce::Rectangle<int>& area,
         int meterHeight)
     {
-        int actualHeight = juce::jmin(meterHeight, area.getHeight() - Constants::meterMargin * 2);
+        int actualHeight = juce::jmin(meterHeight, area.getHeight() - Constants::contentMargin * 2);
         auto bounds = area.withHeight(actualHeight);
-        bounds = bounds.withPosition(area.getX(), area.getY() + Constants::meterMargin);
-        
-        return bounds.reduced(Constants::meterMargin, 0);
+        bounds = bounds.withPosition(area.getX(), area.getY() + Constants::contentMargin);
+
+        return bounds.reduced(Constants::contentMargin, 0);
     }
     
     void StandardPaint::paintBackground(juce::Graphics& g, const juce::Rectangle<int>& bounds)
@@ -119,7 +121,7 @@ namespace HyperPrismLayout
         g.fillAll();
         
         // Main surface
-        auto surfaceArea = bounds.reduced(Constants::windowMargin);
+        auto surfaceArea = bounds.reduced(Constants::contentMargin);
         g.setColour(HyperPrismLookAndFeel::Colors::surface);
         g.fillRoundedRectangle(surfaceArea.toFloat(), 8.0f);
         

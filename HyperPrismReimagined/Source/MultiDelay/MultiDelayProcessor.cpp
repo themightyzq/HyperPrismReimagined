@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Multi Delay Processor
+// HyperPrism Reimagined - Multi Delay Processor
 //==============================================================================
 
 #include "MultiDelayProcessor.h"
@@ -211,6 +211,8 @@ void MultiDelayProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     // Reset metering
     inputLevel.store(0.0f);
     outputLevel.store(0.0f);
+
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void MultiDelayProcessor::releaseResources()
@@ -261,7 +263,6 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
     inputLevel.store(inputRMS);
     
     // Create copies for dry signal
-    juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
     
     // Clear output buffer for wet signal accumulation

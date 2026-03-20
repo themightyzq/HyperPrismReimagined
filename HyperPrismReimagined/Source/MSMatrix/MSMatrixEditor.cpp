@@ -144,7 +144,7 @@ void MSMeter::paint(juce::Graphics& g)
     g.setColour(HyperPrismLookAndFeel::Colors::primary);
     g.fillEllipse(xPos - 8, yPos - 8, 16, 16);
     
-    g.setColour(juce::Colours::white);
+    g.setColour(HyperPrismLookAndFeel::Colors::onSurface);
     g.fillEllipse(xPos - 4, yPos - 4, 8, 8);
     
     // Labels
@@ -152,13 +152,6 @@ void MSMeter::paint(juce::Graphics& g)
     g.setFont(10.0f);
     g.drawText("M", centerX - 5, centerY - radius - 25, 10, 15, juce::Justification::centred);
     g.drawText("S", centerX + radius + 5, centerY - 7, 15, 15, juce::Justification::left);
-    
-    // Level values
-    g.setFont(9.0f);
-    g.setColour(HyperPrismLookAndFeel::Colors::primary);
-    auto valueArea = bounds.removeFromBottom(20).reduced(5, 0);
-    g.drawText("M: " + juce::String(midLevel, 2) + " S: " + juce::String(sideLevel, 2), 
-               valueArea, juce::Justification::centred);
 }
 
 void MSMeter::timerCallback()
@@ -190,66 +183,82 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
     xParameterIDs.add(MSMatrixProcessor::MID_LEVEL_ID);
     yParameterIDs.add(MSMatrixProcessor::SIDE_LEVEL_ID);
     
-    // Title (matching AutoPan style)
-    titleLabel.setText("HyperPrism Reimagined M+S Matrix", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(juce::FontOptions("Arial", "Bold", 24.0f)));
-    titleLabel.setColour(juce::Label::textColourId, juce::Colours::cyan);
+    // Title
+    titleLabel.setText("M/S MATRIX", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(16.0f).withStyle("Bold")));
+    titleLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(titleLabel);
+
+    brandLabel.setText("HyperPrism Reimagined", juce::dontSendNotification);
+    brandLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    brandLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    brandLabel.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(brandLabel);
     
     // Setup sliders with consistent style (4 sliders)
-    setupSlider(midLevelSlider, midLevelLabel, "Mid Level", " dB");
-    setupSlider(sideLevelSlider, sideLevelLabel, "Side Level", " dB");
-    setupSlider(stereoBalanceSlider, stereoBalanceLabel, "Stereo Balance", "");
-    setupSlider(outputLevelSlider, outputLevelLabel, "Output Level", " dB");
+    setupSlider(midLevelSlider, midLevelLabel, "Mid Level");
+    setupSlider(sideLevelSlider, sideLevelLabel, "Side Level");
+    setupSlider(stereoBalanceSlider, stereoBalanceLabel, "Stereo Balance");
+    setupSlider(outputLevelSlider, outputLevelLabel, "Output");
+
+    // Color-code knobs by category
+    midLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    sideLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    stereoBalanceSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+    outputLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set up right-click handlers for parameter assignment
     midLevelLabel.onClick = [this]() { showParameterMenu(&midLevelLabel, MSMatrixProcessor::MID_LEVEL_ID); };
     sideLevelLabel.onClick = [this]() { showParameterMenu(&sideLevelLabel, MSMatrixProcessor::SIDE_LEVEL_ID); };
     stereoBalanceLabel.onClick = [this]() { showParameterMenu(&stereoBalanceLabel, MSMatrixProcessor::STEREO_BALANCE_ID); };
     outputLevelLabel.onClick = [this]() { showParameterMenu(&outputLevelLabel, MSMatrixProcessor::OUTPUT_LEVEL_ID); };
+
+    // Register right-click on sliders for XY pad assignment
+    midLevelSlider.addMouseListener(this, true);
+    midLevelSlider.getProperties().set("xyParamID", MSMatrixProcessor::MID_LEVEL_ID);
+    sideLevelSlider.addMouseListener(this, true);
+    sideLevelSlider.getProperties().set("xyParamID", MSMatrixProcessor::SIDE_LEVEL_ID);
+    stereoBalanceSlider.addMouseListener(this, true);
+    stereoBalanceSlider.getProperties().set("xyParamID", MSMatrixProcessor::STEREO_BALANCE_ID);
+    outputLevelSlider.addMouseListener(this, true);
+    outputLevelSlider.getProperties().set("xyParamID", MSMatrixProcessor::OUTPUT_LEVEL_ID);
+
     
     // Matrix mode selector
-    matrixModeComboBox.addItem("L/R → M/S", 1);
-    matrixModeComboBox.addItem("M/S → L/R", 2);
+    matrixModeComboBox.addItem("L/R to M/S", 1);
+    matrixModeComboBox.addItem("M/S to L/R", 2);
     matrixModeComboBox.addItem("M/S Through", 3);
-    matrixModeComboBox.setColour(juce::ComboBox::backgroundColourId, juce::Colours::darkgrey);
-    matrixModeComboBox.setColour(juce::ComboBox::textColourId, juce::Colours::white);
-    matrixModeComboBox.setColour(juce::ComboBox::arrowColourId, juce::Colours::lightgrey);
-    matrixModeComboBox.setColour(juce::ComboBox::outlineColourId, juce::Colours::grey);
+    matrixModeComboBox.setColour(juce::ComboBox::backgroundColourId, HyperPrismLookAndFeel::Colors::surfaceVariant);
+    matrixModeComboBox.setColour(juce::ComboBox::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
+    matrixModeComboBox.setColour(juce::ComboBox::arrowColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    matrixModeComboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
     addAndMakeVisible(matrixModeComboBox);
     
     matrixModeLabel.setText("Matrix Mode", juce::dontSendNotification);
     matrixModeLabel.setJustificationType(juce::Justification::centred);
-    matrixModeLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    matrixModeLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(matrixModeLabel);
     
     // Solo buttons
     midSoloButton.setButtonText("Mid Solo");
-    midSoloButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    midSoloButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::cyan);
+    midSoloButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    midSoloButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     addAndMakeVisible(midSoloButton);
     
-    midSoloLabel.setText("Mid Solo", juce::dontSendNotification);
-    midSoloLabel.setJustificationType(juce::Justification::centred);
-    midSoloLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(midSoloLabel);
-    
     sideSoloButton.setButtonText("Side Solo");
-    sideSoloButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    sideSoloButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::cyan);
+    sideSoloButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    sideSoloButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     addAndMakeVisible(sideSoloButton);
     
-    sideSoloLabel.setText("Side Solo", juce::dontSendNotification);
-    sideSoloLabel.setJustificationType(juce::Justification::centred);
-    sideSoloLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(sideSoloLabel);
-    
     // Bypass button (top right like AutoPan)
-    bypassButton.setButtonText("BYPASS");
-    bypassButton.setColour(juce::ToggleButton::textColourId, juce::Colours::lightgrey);
-    bypassButton.setColour(juce::ToggleButton::tickColourId, juce::Colours::red);
-    bypassButton.setColour(juce::ToggleButton::tickDisabledColourId, juce::Colours::darkgrey);
+    // Bypass button
+    bypassButton.setButtonText("Bypass");
+    bypassButton.setClickingTogglesState(true);
+    bypassButton.setColour(juce::TextButton::buttonOnColourId,
+                            HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
+    bypassButton.setColour(juce::TextButton::textColourOnId,
+                            HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
     
     // Create attachments
@@ -276,7 +285,7 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
     xyPad.setAxisColors(xAssignmentColor, yAssignmentColor);
     xyPadLabel.setText("Mid Level / Side Level", juce::dontSendNotification);
     xyPadLabel.setJustificationType(juce::Justification::centred);
-    xyPadLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    xyPadLabel.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(xyPadLabel);
     
     xyPad.onValueChange = [this](float x, float y) {
@@ -285,10 +294,6 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
     
     // Add M/S meter
     addAndMakeVisible(msMeter);
-    msMeterLabel.setText("M/S Field", juce::dontSendNotification);
-    msMeterLabel.setJustificationType(juce::Justification::centred);
-    msMeterLabel.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
-    addAndMakeVisible(msMeterLabel);
     
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
@@ -300,7 +305,17 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
     stereoBalanceSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     outputLevelSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     
-    setSize(650, 600);
+    // Tooltips
+    midLevelSlider.setTooltip("Volume of the mid (center) signal");
+    sideLevelSlider.setTooltip("Volume of the side (stereo difference) signal");
+    stereoBalanceSlider.setTooltip("Overall stereo width -- 0% is mono, 200% is extra wide");
+    outputLevelSlider.setTooltip("Overall output volume after M/S processing");
+    bypassButton.setTooltip("Bypass the effect");
+    xyPad.setTooltip("Click and drag to control two parameters at once");
+
+    setSize(700, 550);
+    setResizable(true, true);
+    setResizeLimits(600, 520, 900, 750);
 }
 
 MSMatrixEditor::~MSMatrixEditor()
@@ -310,94 +325,119 @@ MSMatrixEditor::~MSMatrixEditor()
 
 void MSMatrixEditor::paint(juce::Graphics& g)
 {
-    // Dark background matching AutoPan
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
+
+    // Accent line
+    g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
+    g.fillRect(12, 4, getWidth() - 24, 2);
+
+    // Version
+    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setFont(juce::Font(juce::FontOptions(9.0f)));
+    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+               juce::Justification::centredRight);
+
+    // Column section headers
+    auto paintColumnHeader = [&](int x, int y, int width,
+                                  const juce::String& title, juce::Colour color)
+    {
+        g.setColour(color.withAlpha(0.7f));
+        g.setFont(juce::Font(juce::FontOptions(9.0f).withStyle("Bold")));
+        g.drawText(title, x, y, width, 14, juce::Justification::centredLeft);
+        g.setColour(HyperPrismLookAndFeel::Colors::outline.withAlpha(0.3f));
+        g.drawLine(static_cast<float>(x), static_cast<float>(y + 14),
+                   static_cast<float>(x + width), static_cast<float>(y + 14), 0.5f);
+    };
+
+    paintColumnHeader(midLevelSlider.getX() - 2, midLevelSlider.getY() - 20, 120,
+                      "MATRIX", HyperPrismLookAndFeel::Colors::dynamics);
+
+    // Output section header
+    paintColumnHeader(outputSectionX, outputSectionY,
+                      getWidth() - outputSectionX - 12,
+                      "OUTPUT", HyperPrismLookAndFeel::Colors::output);
 }
 
 void MSMatrixEditor::resized()
 {
     auto bounds = getLocalBounds();
-    
-    // Title
-    titleLabel.setBounds(bounds.removeFromTop(40));
-    
-    // Bypass button (top right)
-    bypassButton.setBounds(bounds.getWidth() - 100, 10, 80, 30);
-    
-    bounds.reduce(20, 10);
-    
-    // Complex layout: 4 sliders + 2 toggles + 1 dropdown
-    // Available height after title and margins: ~500px
-    
-    auto topRow = bounds.removeFromTop(140);
-    auto sliderWidth = 80;
-    auto spacing = 15;
-    
-    // Calculate total width needed for 4 sliders
-    auto totalSliderWidth = sliderWidth * 4 + spacing * 3;
-    auto startX = (bounds.getWidth() - totalSliderWidth) / 2;
-    topRow.removeFromLeft(startX);
-    
-    // Top row: Mid Level, Side Level, Stereo Balance, Output Level
-    midLevelSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    midLevelLabel.setBounds(midLevelSlider.getX(), midLevelSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    sideLevelSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    sideLevelLabel.setBounds(sideLevelSlider.getX(), sideLevelSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    stereoBalanceSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    stereoBalanceLabel.setBounds(stereoBalanceSlider.getX(), stereoBalanceSlider.getBottom(), sliderWidth, 20);
-    topRow.removeFromLeft(spacing);
-    
-    outputLevelSlider.setBounds(topRow.removeFromLeft(sliderWidth).reduced(0, 20));
-    outputLevelLabel.setBounds(outputLevelSlider.getX(), outputLevelSlider.getBottom(), sliderWidth, 20);
-    
-    bounds.removeFromTop(10);
-    
-    // Second row - Matrix mode dropdown and solo buttons
-    auto secondRow = bounds.removeFromTop(80);
-    
-    // Matrix mode in center
-    auto dropdownWidth = 150;
-    auto dropdownX = bounds.getX() + (bounds.getWidth() - dropdownWidth) / 2;
-    matrixModeComboBox.setBounds(dropdownX, secondRow.getY() + 30, dropdownWidth, 25);
-    matrixModeLabel.setBounds(dropdownX, secondRow.getY() + 5, dropdownWidth, 20);
-    
-    // Solo buttons on either side
-    auto buttonWidth = 80;
-    midSoloButton.setBounds(dropdownX - buttonWidth - 20, secondRow.getY() + 30, buttonWidth, 25);
-    midSoloLabel.setBounds(dropdownX - buttonWidth - 20, secondRow.getY() + 5, buttonWidth, 20);
-    
-    sideSoloButton.setBounds(dropdownX + dropdownWidth + 20, secondRow.getY() + 30, buttonWidth, 25);
-    sideSoloLabel.setBounds(dropdownX + dropdownWidth + 20, secondRow.getY() + 5, buttonWidth, 20);
-    
-    // Bottom section - XY Pad and Meter side by side (matching heights)
-    bounds.removeFromTop(10);
-    
-    // Split remaining space horizontally for XY pad and meter
-    auto bottomArea = bounds;
-    auto panelHeight = 180; // Standard XY pad height
-    
-    // Calculate positioning to center both panels
-    auto xyPadWidth = 200;
-    auto meterWidth = 150;
-    auto totalWidth = xyPadWidth + meterWidth + 20; // Plus spacing
-    auto startXBottom = (bottomArea.getWidth() - totalWidth) / 2;
-    
-    // XY Pad on left (200x180 standard)
-    auto xyPadBounds = bottomArea.withX(bottomArea.getX() + startXBottom).withWidth(xyPadWidth).withHeight(panelHeight);
-    xyPad.setBounds(xyPadBounds);
-    
-    // M/S Meter on right (matching height)
-    auto meterBounds = bottomArea.withX(xyPadBounds.getRight() + 20).withWidth(meterWidth).withHeight(panelHeight);
-    msMeter.setBounds(meterBounds);
-    
-    // Align labels at the same Y position
-    auto labelY = xyPadBounds.getBottom() + 5;
-    xyPadLabel.setBounds(xyPadBounds.getX(), labelY, xyPadWidth, 20);
-    msMeterLabel.setBounds(meterBounds.getX(), labelY, meterWidth, 20);
+
+    // === HEADER (72px) ===
+    auto header = bounds.removeFromTop(72);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
+    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+
+    // === FOOTER ===
+    bounds.removeFromBottom(20);
+
+    // === CONTENT ===
+    bounds.reduce(12, 4);
+
+    // Matrix mode combo above columns
+    auto modeRow = bounds.removeFromTop(30);
+    matrixModeLabel.setBounds(modeRow.getX(), modeRow.getY(), 80, 25);
+    matrixModeComboBox.setBounds(modeRow.getX() + 82, modeRow.getY(), 128, 25);
+    bounds.removeFromTop(6);
+
+    // --- Left: Two parameter columns (dynamic width) ---
+    int rightSideWidth = 312;
+    int columnsTotalWidth = bounds.getWidth() - rightSideWidth;
+    auto columnsArea = bounds.removeFromLeft(columnsTotalWidth);
+    int colWidth = (columnsArea.getWidth() - 10) / 2;
+    auto col1 = columnsArea.removeFromLeft(colWidth);
+    columnsArea.removeFromLeft(10);
+    auto col2 = columnsArea;
+
+    int knobDiam = 80;
+    int vSpace = 107;
+    int colTop = col1.getY() + 20;
+
+    auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
+                           int colX, int colW, int cy, int kd)
+    {
+        int kx = colX + (colW - kd) / 2;
+        int ky = cy - kd / 2;
+        slider.setBounds(kx, ky, kd, kd);
+        label.setBounds(colX, ky + kd + 1, colW, 16);
+    };
+
+    // Column 1: MATRIX -- Mid Level, Side Level, Stereo Balance
+    int y1 = colTop + knobDiam / 2;
+    centerKnob(midLevelSlider, midLevelLabel, col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(sideLevelSlider, sideLevelLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(stereoBalanceSlider, stereoBalanceLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
+
+    // Column 2: Solo buttons
+    midSoloButton.setBounds(col2.getX() + 5, y1 - 12, colWidth - 10, 22);
+    sideSoloButton.setBounds(col2.getX() + 5, y1 + vSpace - 12, colWidth - 10, 22);
+
+    // --- Right side: XY pad + output + meter ---
+    auto rightSide = bounds;
+    rightSide.removeFromLeft(12);
+
+    int outputHeight = 130;
+    int xyHeight = juce::jmax(200, rightSide.getHeight() - outputHeight - 22);
+    auto xyArea = rightSide.removeFromTop(xyHeight);
+    xyPad.setBounds(xyArea);
+    xyPadLabel.setBounds(xyArea.getX(), xyArea.getBottom() + 2, xyArea.getWidth(), 16);
+    rightSide.removeFromTop(20);
+
+    // Bottom right: Output knob + Meter
+    auto bottomRight = rightSide;
+    auto outputArea = bottomRight.removeFromLeft(140);
+    auto meterArea = bottomRight;
+
+    outputSectionX = outputArea.getX();
+    outputSectionY = outputArea.getY();
+
+    int outKnob = 58;
+    int outY = outputArea.getY() + 24;
+
+    centerKnob(outputLevelSlider, outputLevelLabel, outputArea.getX() + 20, 100, outY + outKnob / 2, outKnob);
+
+    // Meter
+    msMeter.setBounds(meterArea.reduced(4));
 }
 
 void MSMatrixEditor::setupControls()
@@ -411,49 +451,49 @@ void MSMatrixEditor::setupXYPad()
 }
 
 void MSMatrixEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 
-                               const juce::String& text, const juce::String& suffix)
+                               const juce::String& text)
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);
-    slider.setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::darkgrey);
-    slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::grey);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::cyan);
-    slider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::lightgrey);
-    slider.setColour(juce::Slider::thumbColourId, juce::Colours::white);
-    
-    if (!suffix.isEmpty())
-        slider.setTextValueSuffix(suffix);
-    
+    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
+        
     addAndMakeVisible(slider);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
-    label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     addAndMakeVisible(label);
 }
 
 void MSMatrixEditor::updateParameterColors()
 {
-    // Update label colors based on X/Y assignments
-    auto updateLabelColor = [this](ParameterLabel& label, const juce::String& paramID) {
-        bool isAssignedToX = xParameterIDs.contains(paramID);
-        bool isAssignedToY = yParameterIDs.contains(paramID);
-        
-        if (isAssignedToX && isAssignedToY)
-            label.setColour(juce::Label::textColourId, xAssignmentColor.interpolatedWith(yAssignmentColor, 0.5f));
-        else if (isAssignedToX)
-            label.setColour(juce::Label::textColourId, xAssignmentColor);
-        else if (isAssignedToY)
-            label.setColour(juce::Label::textColourId, yAssignmentColor);
+    auto neutralColor = HyperPrismLookAndFeel::Colors::onSurfaceVariant;
+    midLevelLabel.setColour(juce::Label::textColourId, neutralColor);
+    sideLevelLabel.setColour(juce::Label::textColourId, neutralColor);
+    stereoBalanceLabel.setColour(juce::Label::textColourId, neutralColor);
+    outputLevelLabel.setColour(juce::Label::textColourId, neutralColor);
+
+    // Set XY assignment properties on sliders for LookAndFeel badge drawing
+    auto updateSliderXY = [this](juce::Slider& slider, const juce::String& paramID)
+    {
+        if (xParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisX", true);
         else
-            label.setColour(juce::Label::textColourId, juce::Colours::lightgrey);
+            slider.getProperties().remove("xyAxisX");
+
+        if (yParameterIDs.contains(paramID))
+            slider.getProperties().set("xyAxisY", true);
+        else
+            slider.getProperties().remove("xyAxisY");
+
+        slider.repaint();
     };
-    
-    updateLabelColor(midLevelLabel, MSMatrixProcessor::MID_LEVEL_ID);
-    updateLabelColor(sideLevelLabel, MSMatrixProcessor::SIDE_LEVEL_ID);
-    updateLabelColor(stereoBalanceLabel, MSMatrixProcessor::STEREO_BALANCE_ID);
-    updateLabelColor(outputLevelLabel, MSMatrixProcessor::OUTPUT_LEVEL_ID);
+
+    updateSliderXY(midLevelSlider, MSMatrixProcessor::MID_LEVEL_ID);
+    updateSliderXY(sideLevelSlider, MSMatrixProcessor::SIDE_LEVEL_ID);
+    updateSliderXY(stereoBalanceSlider, MSMatrixProcessor::STEREO_BALANCE_ID);
+    updateSliderXY(outputLevelSlider, MSMatrixProcessor::OUTPUT_LEVEL_ID);
+    repaint();
 }
 
 void MSMatrixEditor::updateXYPadFromParameters()
@@ -518,7 +558,18 @@ void MSMatrixEditor::updateParametersFromXYPad(float x, float y)
     }
 }
 
-void MSMatrixEditor::showParameterMenu(juce::Label* label, const juce::String& parameterID)
+
+void MSMatrixEditor::mouseDown(const juce::MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        auto* source = event.eventComponent;
+        auto paramID = source->getProperties()["xyParamID"].toString();
+        if (paramID.isNotEmpty())
+            showParameterMenu(source, paramID);
+    }
+}
+void MSMatrixEditor::showParameterMenu(juce::Component* target, const juce::String& parameterID)
 {
     juce::PopupMenu menu;
     
@@ -538,7 +589,7 @@ void MSMatrixEditor::showParameterMenu(juce::Label* label, const juce::String& p
     
     // Show the menu
     menu.showMenuAsync(juce::PopupMenu::Options()
-        .withTargetComponent(label)
+        .withTargetComponent(target)
         .withMinimumWidth(150),
         [this, parameterID](int result)
         {
@@ -594,7 +645,7 @@ void MSMatrixEditor::updateXYPadLabel()
         if (paramID == MSMatrixProcessor::MID_LEVEL_ID) return "Mid Level";
         if (paramID == MSMatrixProcessor::SIDE_LEVEL_ID) return "Side Level";
         if (paramID == MSMatrixProcessor::STEREO_BALANCE_ID) return "Stereo Balance";
-        if (paramID == MSMatrixProcessor::OUTPUT_LEVEL_ID) return "Output Level";
+        if (paramID == MSMatrixProcessor::OUTPUT_LEVEL_ID) return "Output";
         return paramID;
     };
     

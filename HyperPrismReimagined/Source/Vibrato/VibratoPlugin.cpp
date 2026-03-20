@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Vibrato Plugin Entry Point
+// HyperPrism Reimagined - Vibrato Plugin Entry Point
 //==============================================================================
 
 #include "VibratoProcessor.h"

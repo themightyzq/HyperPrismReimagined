@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Tremolo Processor Implementation
+// HyperPrism Reimagined - Tremolo Processor Implementation
 //==============================================================================
 
 #include "TremoloProcessor.h"
@@ -121,6 +121,8 @@ void TremoloProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     // Set stereo phase offset for right channel
     float stereoPhase = *valueTreeState.getRawParameterValue(STEREO_PHASE_ID) / 360.0f;
     lfoRight.setPhase(stereoPhase);
+
+    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void TremoloProcessor::releaseResources()
@@ -173,7 +175,6 @@ void TremoloProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     const float stereoPhase = *valueTreeState.getRawParameterValue(STEREO_PHASE_ID) / 360.0f;
     
     // Store dry signal for mixing
-    juce::AudioBuffer<float> dryBuffer;
     dryBuffer.makeCopyOf(buffer);
     
     // Process each channel

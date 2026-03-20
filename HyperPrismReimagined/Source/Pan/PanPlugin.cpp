@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Pan Plugin Entry Point
+// HyperPrism Reimagined - Pan Plugin Entry Point
 //==============================================================================
 
 #include "PanProcessor.h"

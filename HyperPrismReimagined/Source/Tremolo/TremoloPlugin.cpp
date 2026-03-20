@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Tremolo Plugin Entry Point
+// HyperPrism Reimagined - Tremolo Plugin Entry Point
 //==============================================================================
 
 #include "TremoloProcessor.h"

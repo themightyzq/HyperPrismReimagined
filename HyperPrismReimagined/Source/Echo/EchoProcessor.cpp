@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Echo Processor Implementation
+// HyperPrism Reimagined - Echo Processor Implementation
 //==============================================================================
 
 #include "EchoProcessor.h"

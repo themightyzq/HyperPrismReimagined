@@ -1,5 +1,5 @@
 //==============================================================================
-// HyperPrism Revived - Modern X/Y Pad Component
+// HyperPrism Reimagined - Modern X/Y Pad Component
 // Replaces the original Blue Window X/Y control
 //==============================================================================
 
