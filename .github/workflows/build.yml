@@ -1,0 +1,148 @@
+name: Build All Platforms
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    name: macOS (Universal Binary)
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Configure
+      run: |
+        cd HyperPrismReimagined
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: |
+        cd HyperPrismReimagined
+        cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+
+    - name: Verify Universal Binary
+      run: |
+        echo "Checking architecture of built plugins:"
+        for vst in HyperPrismReimagined/build/*_artefacts/Release/VST3/*.vst3; do
+          if [ -d "$vst" ]; then
+            name=$(basename "$vst" .vst3)
+            binary="$vst/Contents/MacOS/$name"
+            if [ -f "$binary" ]; then
+              archs=$(lipo -info "$binary" 2>/dev/null | grep -o 'arm64\|x86_64' | tr '\n' ' ')
+              echo "  $name: $archs"
+            fi
+          fi
+        done
+
+    - name: Package
+      run: |
+        cd HyperPrismReimagined
+        mkdir -p dist
+        for vst in build/*_artefacts/Release/VST3/*.vst3; do
+          [ -d "$vst" ] && cp -R "$vst" dist/
+        done
+        cd dist
+        zip -r ../HyperPrism-Reimagined-macOS.zip *.vst3
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: HyperPrism-Reimagined-macOS
+        path: HyperPrismReimagined/HyperPrism-Reimagined-macOS.zip
+        if-no-files-found: error
+
+  build-windows:
+    name: Windows (x64)
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Configure
+      run: |
+        cd HyperPrismReimagined
+        cmake -B build -G "Visual Studio 17 2022" -A x64
+
+    - name: Build
+      run: |
+        cd HyperPrismReimagined
+        cmake --build build --config Release --parallel
+
+    - name: Package
+      shell: bash
+      run: |
+        cd HyperPrismReimagined
+        mkdir -p dist
+        for vst in build/*_artefacts/Release/VST3/*.vst3; do
+          [ -d "$vst" ] && cp -R "$vst" dist/
+        done
+        cd dist
+        7z a -tzip ../HyperPrism-Reimagined-Windows.zip *.vst3
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: HyperPrism-Reimagined-Windows
+        path: HyperPrismReimagined/HyperPrism-Reimagined-Windows.zip
+        if-no-files-found: error
+
+  build-linux:
+    name: Linux (x86_64)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          libasound2-dev \
+          libjack-jackd2-dev \
+          libfreetype6-dev \
+          libfontconfig1-dev \
+          libcurl4-openssl-dev \
+          libx11-dev \
+          libxext-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libgl1-mesa-dev \
+          libglu1-mesa-dev \
+          pkg-config
+
+    - name: Configure
+      run: |
+        cd HyperPrismReimagined
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: |
+        cd HyperPrismReimagined
+        cmake --build build --config Release -j$(nproc)
+
+    - name: Package
+      run: |
+        cd HyperPrismReimagined
+        mkdir -p dist
+        for vst in build/*_artefacts/Release/VST3/*.vst3; do
+          [ -d "$vst" ] && cp -R "$vst" dist/
+        done
+        cd dist
+        zip -r ../HyperPrism-Reimagined-Linux.zip *.vst3
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: HyperPrism-Reimagined-Linux
+        path: HyperPrismReimagined/HyperPrism-Reimagined-Linux.zip
+        if-no-files-found: error

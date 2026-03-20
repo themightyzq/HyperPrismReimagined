@@ -1,4 +1,9 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.22)
+
+# Universal Binary for macOS — MUST be set BEFORE project()
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "Build architectures for macOS")
+endif()
 
 project(HyperPrismReimagined VERSION 1.0.0)
 
