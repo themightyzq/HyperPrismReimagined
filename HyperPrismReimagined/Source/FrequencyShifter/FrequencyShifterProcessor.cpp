@@ -119,9 +119,13 @@ std::pair<float, float> FrequencyShifterProcessor::Oscillator::getNextSample()
     float sinValue = static_cast<float>(std::sin(phase));
     
     phase += phaseIncrement;
-    if (phase >= juce::MathConstants<double>::twoPi)
+    // Wrap both directions: phaseIncrement is negative for downward shifts, so
+    // the accumulator must wrap up as well as down or it runs unbounded.
+    while (phase >= juce::MathConstants<double>::twoPi)
         phase -= juce::MathConstants<double>::twoPi;
-    
+    while (phase < 0.0)
+        phase += juce::MathConstants<double>::twoPi;
+
     return {cosValue, sinValue};
 }
 
@@ -164,10 +168,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout FrequencyShifterProcessor::c
     parameters.push_back(std::make_unique<juce::AudioParameterBool>(
         BYPASS_ID, "Bypass", false));
 
-    // Frequency Shift (-5000 to +5000 Hz -- extended range for wider shifts)
+    // Frequency Shift (-5000 to +5000 Hz). Symmetric skew (0.5) concentrates
+    // resolution near 0 Hz -- the musical small-shift zone (slow drift/detune/
+    // phasing) gets most of the knob travel; the kHz extremes sit at the ends.
+    // Note: negative shifts move DOWN (additive), not a mirror of positive; the
+    // spectral fold-around-DC only appears at large negative shifts.
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
         FREQUENCY_SHIFT_ID, "Frequency Shift",
-        juce::NormalisableRange<float>(-5000.0f, 5000.0f, 1.0f), 0.0f,
+        juce::NormalisableRange<float>(-5000.0f, 5000.0f, 1.0f, 0.5f, true), 0.0f,
         juce::String(), juce::AudioProcessorParameter::genericParameter,
         [](float value, int) { return juce::String(value, 1) + " Hz"; }));
 

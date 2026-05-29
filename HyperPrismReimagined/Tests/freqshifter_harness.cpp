@@ -142,7 +142,9 @@ static void processFixed(std::vector<float>** io, int numCh, int N,
         for (int s = 0; s < n; ++s)
         {
             float c = (float)std::cos(phase), sn = (float)std::sin(phase);
-            phase += inc; if (phase >= kTwoPi) phase -= kTwoPi;   // once per sample
+            phase += inc;                                         // once per sample
+            while (phase >= kTwoPi) phase -= kTwoPi;
+            while (phase < 0.0)     phase += kTwoPi;              // wrap both directions
             for (int ch = 0; ch < numCh; ++ch)
             {
                 float in = (*io[ch])[start + s];
@@ -232,6 +234,48 @@ int main()
     printf("[A] Dry/wet comb (shift=0, mix=50%%; 0 dB = flat, good):\n");
     combTest("current (undelayed dry)", processBuggy, 256);
     combTest("fixed   (aligned dry)",   processFixed, 256);
+    printf("\n");
+
+    // ---- Metric D: shift DIRECTION (does -shift actually go DOWN?) ---------
+    // Input 6000 Hz (clear of DC/Nyquist for +/-200), 100%% wet.
+    // +200 should put energy at 6200 (up); -200 should put it at 5800 (down).
+    // If -200 lands at 6200 too, the shifter is mirroring (sign bug).
+    auto directionTest = [&](const char* name,
+        void(*fn)(std::vector<float>**,int,int,int,Window,Params,int), float shift)
+    {
+        std::vector<float> ch = sine(6000.0);
+        std::vector<float>* io[1] = { &ch };
+        fn(io, 1, N, 256, Window::Hann, { shift, 1.0f, fs }, block);
+        double up   = goertzel(ch.data(), N, skip, 6000.0 + 200.0, fs);
+        double down = goertzel(ch.data(), N, skip, 6000.0 - 200.0, fs);
+        printf("  %-26s up(6200)=%.1f dB  down(5800)=%.1f dB  -> %s\n",
+               name, dB(up), dB(down), dB(down) > dB(up) ? "DOWN" : "UP");
+    };
+    printf("[D] Shift direction (6000 Hz input, expect +200->UP, -200->DOWN):\n");
+    directionTest("fixed  shift +200", processFixed, +200.0f);
+    directionTest("fixed  shift -200", processFixed, -200.0f);
+    printf("\n");
+
+    // ---- Metric E: large negative shift -> DC fold-back -------------------
+    // -5000 shift: content above 5 kHz goes cleanly down; content BELOW 5 kHz
+    // would cross 0 Hz and folds back as a positive freq (mirror around DC) --
+    // this is inherent to any real-output (SSB) frequency shifter.
+    auto foldTest = [&](double inHz, float shift)
+    {
+        std::vector<float> ch = sine(inHz);
+        std::vector<float>* io[1] = { &ch };
+        processFixed(io, 1, N, 256, Window::Hann, { shift, 1.0f, fs }, block);
+        double ideal = inHz + shift;                 // where a complex shift would land
+        double folded = std::abs(ideal);             // real output folds |f| around DC
+        double e = goertzel(ch.data(), N, skip, folded, fs);
+        printf("  in=%.0f Hz shift=%+.0f  ideal=%.0f Hz  measured energy @ %.0f Hz = %.1f dB %s\n",
+               inHz, shift, ideal, folded, dB(e),
+               ideal < 0 ? "(folded around DC)" : "");
+    };
+    printf("[E] Large negative shift, DC fold-back (inherent to SSB shifting):\n");
+    foldTest(8000.0, -5000.0f);   // 3000 Hz, clean downshift
+    foldTest(1000.0, -5000.0f);   // -4000 -> folds to 4000 Hz (sounds like mirror)
+    foldTest(2000.0, -5000.0f);   // -3000 -> folds to 3000 Hz
     printf("\n");
 
     // ---- Metric B: stereo channel divergence ------------------------------
