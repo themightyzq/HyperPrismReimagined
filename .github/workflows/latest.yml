@@ -1,0 +1,156 @@
+name: Latest Build
+
+# Promotes the most recent main build to the rolling "latest" Release on the
+# repo page. Tag-based versioned releases are still handled by release.yml.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Only keep the newest run; cancel superseded ones so the published "latest"
+# always reflects the most recent main commit.
+concurrency:
+  group: latest-build
+  cancel-in-progress: true
+
+jobs:
+  build-macos:
+    name: macOS (Universal Binary)
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Build
+      run: |
+        cd HyperPrismReimagined
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+    - name: Package
+      run: |
+        cd HyperPrismReimagined
+        mkdir -p dist
+        for vst in build/*_artefacts/Release/VST3/*.vst3; do
+          [ -d "$vst" ] && cp -R "$vst" dist/
+        done
+        cd dist
+        zip -r ../HyperPrism-Reimagined-latest-macOS.zip *.vst3
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-latest
+        path: HyperPrismReimagined/HyperPrism-Reimagined-latest-macOS.zip
+
+  build-windows:
+    name: Windows (x64)
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Build
+      run: |
+        cd HyperPrismReimagined
+        cmake -B build -G "Visual Studio 17 2022" -A x64
+        cmake --build build --config Release --parallel
+    - name: Package
+      shell: bash
+      run: |
+        cd HyperPrismReimagined
+        mkdir -p dist
+        for vst in build/*_artefacts/Release/VST3/*.vst3; do
+          [ -d "$vst" ] && cp -R "$vst" dist/
+        done
+        cd dist
+        7z a -tzip ../HyperPrism-Reimagined-latest-Windows.zip *.vst3
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-latest
+        path: HyperPrismReimagined/HyperPrism-Reimagined-latest-Windows.zip
+
+  build-linux:
+    name: Linux (x86_64)
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential libasound2-dev libjack-jackd2-dev \
+          libfreetype6-dev libfontconfig1-dev libcurl4-openssl-dev \
+          libx11-dev libxext-dev libxrandr-dev libxinerama-dev \
+          libxcursor-dev libgl1-mesa-dev libglu1-mesa-dev pkg-config
+    - name: Build
+      run: |
+        cd HyperPrismReimagined
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release -j$(nproc)
+    - name: Package
+      run: |
+        cd HyperPrismReimagined
+        mkdir -p dist
+        for vst in build/*_artefacts/Release/VST3/*.vst3; do
+          [ -d "$vst" ] && cp -R "$vst" dist/
+        done
+        cd dist
+        zip -r ../HyperPrism-Reimagined-latest-Linux.zip *.vst3
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-latest
+        path: HyperPrismReimagined/HyperPrism-Reimagined-latest-Linux.zip
+
+  publish:
+    name: Publish Latest
+    needs: [build-macos, build-windows, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    - name: Update rolling "latest" Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: latest
+        name: HyperPrism Reimagined — Latest Build
+        # Promote this rolling build as the official "Latest" release on the page.
+        make_latest: true
+        prerelease: false
+        body: |
+          # HyperPrism Reimagined — Latest Build
+
+          Auto-published from the latest `main` commit
+          (`${{ github.sha }}`). 32 professional VST3 audio effect plugins.
+
+          > This rolling build always tracks the newest stable code on `main`.
+          > For pinned, versioned downloads see the tagged releases.
+
+          ## Downloads
+          | Platform | Architecture | Notes |
+          |----------|-------------|-------|
+          | **macOS** | Universal Binary (arm64 + x86_64) | Apple Silicon + Intel |
+          | **Windows** | x64 | Windows 10/11 |
+          | **Linux** | x86_64 | Ubuntu 20.04+, Fedora, Arch |
+
+          ## Installation
+          1. Download and extract the zip for your platform
+          2. Copy `.vst3` files to your VST3 plugin folder:
+             - **macOS**: `~/Library/Audio/Plug-Ins/VST3/`
+             - **Windows**: `C:\Program Files\Common Files\VST3\`
+             - **Linux**: `~/.vst3/`
+          3. Rescan plugins in your DAW
+
+          **macOS Gatekeeper**: these builds are not notarized — if macOS blocks
+          them, run `xattr -cr *.vst3` on the extracted plugins before installing.
+        files: |
+          artifacts/macos-latest/*.zip
+          artifacts/windows-latest/*.zip
+          artifacts/linux-latest/*.zip
