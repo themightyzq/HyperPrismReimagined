@@ -26,6 +26,17 @@
 - [x] COPY_PLUGIN_AFTER_BUILD enabled for auto-install
 - [x] Documentation: UI/UX best practices guide, updated README, CLAUDE.md
 
+## Bug Fixes & Enhancements (user-reported)
+
+- [x] **Frequency Shifter artifacting** — root-caused via offline FFT harness (`HyperPrismReimagined/Tests/freqshifter_harness.cpp`):
+  - Dry/wet path was delay-misaligned → comb filtering at mix < 100% (−22.6 dB notch → −3.0 dB after fix). Fixed by delay-compensating the dry path to match the analytic-path group delay (filterOrder/2).
+  - Single shared Hilbert FIR / delay line / oscillator phase across stereo channels → cross-channel contamination (−8.4 dB → −240 dB) and per-channel phase drift. Fixed with per-channel `std::array<HilbertTransform,2>` + per-channel dry delay, and a single oscillator advanced once per sample (sample-outer/channel-inner loop).
+  - Now reports latency via `setLatencySamples()` so the host can compensate.
+  - Opposite-sideband rejection measured at −74.8 dB (already inaudible) → filter order/window left unchanged on purpose.
+- [x] **Frequency ranges raised** — Ring Modulator carrier 8 kHz → 20 kHz (APVTS + editor setRange); Frequency Shifter coarse shift ±2000 Hz → ±5000 Hz. (Typing values into knobs already worked; the limit was the parameter range.)
+- [ ] **XY-pad custom axis bounds** (deferred) — let users constrain an axis to a sub-range (e.g. 500 Hz–3 kHz). New UI + remapping in updateParametersFromXYPad/updateXYPadFromParameters. Candidate for its own update.
+- [ ] **Ring Modulator anti-aliasing** (future) — square/saw carriers are not band-limited; high carrier freqs alias. Consider oversampling or BLEP if cleaner high-freq behavior is wanted.
+
 ## Remaining / Future Work
 
 ### High Priority

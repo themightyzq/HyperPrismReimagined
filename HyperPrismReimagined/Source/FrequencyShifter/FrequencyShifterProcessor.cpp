@@ -164,10 +164,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout FrequencyShifterProcessor::c
     parameters.push_back(std::make_unique<juce::AudioParameterBool>(
         BYPASS_ID, "Bypass", false));
 
-    // Frequency Shift (-2000 to +2000 Hz)
+    // Frequency Shift (-5000 to +5000 Hz -- extended range for wider shifts)
     parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
-        FREQUENCY_SHIFT_ID, "Frequency Shift", 
-        juce::NormalisableRange<float>(-2000.0f, 2000.0f, 1.0f), 0.0f,
+        FREQUENCY_SHIFT_ID, "Frequency Shift",
+        juce::NormalisableRange<float>(-5000.0f, 5000.0f, 1.0f), 0.0f,
         juce::String(), juce::AudioProcessorParameter::genericParameter,
         [](float value, int) { return juce::String(value, 1) + " Hz"; }));
 
@@ -198,10 +198,31 @@ juce::AudioProcessorValueTreeState::ParameterLayout FrequencyShifterProcessor::c
 //==============================================================================
 void FrequencyShifterProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    // Prepare DSP components with actual buffer size (fixes 512-sample artifact bug)
-    hilbertTransform.prepare(sampleRate, samplesPerBlock);
+    const int latency = HilbertTransform::getLatencySamples();
+
+    juce::dsp::ProcessSpec spec;
+    spec.sampleRate = sampleRate;
+    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
+    spec.numChannels = 1;
+
+    // Per-channel analytic-signal state (no cross-channel contamination) and a
+    // matching dry-path compensation delay so dry/wet stay time-aligned.
+    for (auto& h : hilbertTransforms)
+        h.prepare(sampleRate, samplesPerBlock);
+
+    for (auto& d : dryDelay)
+    {
+        d.prepare(spec);
+        d.setMaximumDelayInSamples(latency);
+        d.setDelay(static_cast<float>(latency));
+        d.reset();
+    }
+
     oscillator.prepare(sampleRate);
-    
+
+    // Report the analytic-path latency so the host can compensate.
+    setLatencySamples(latency);
+
     // Reset metering
     inputLevel.store(0.0f);
     outputLevel.store(0.0f);
@@ -209,7 +230,10 @@ void FrequencyShifterProcessor::prepareToPlay(double sampleRate, int samplesPerB
 
 void FrequencyShifterProcessor::releaseResources()
 {
-    hilbertTransform.reset();
+    for (auto& h : hilbertTransforms)
+        h.reset();
+    for (auto& d : dryDelay)
+        d.reset();
     oscillator.reset();
 }
 
@@ -259,44 +283,57 @@ void FrequencyShifterProcessor::processFrequencyShifting(juce::AudioBuffer<float
     
     float inputLevelSum = 0.0f;
     float outputLevelSum = 0.0f;
-    
-    for (int channel = 0; channel < numChannels; ++channel)
+
+    const int activeChannels = juce::jmin(numChannels, static_cast<int>(hilbertTransforms.size()));
+
+    // Sample-outer / channel-inner: the oscillator is advanced once per sample
+    // and the same cos/sin is applied to every channel, so all channels are
+    // shifted in lock-step (no per-channel phase drift). Each channel keeps its
+    // own Hilbert + delay state.
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        
-        for (int sample = 0; sample < numSamples; ++sample)
+        // Get oscillator values once for this time step
+        auto oscValues = oscillator.getNextSample();
+        const float cosShift = oscValues.first;
+        const float sinShift = oscValues.second;
+
+        for (int channel = 0; channel < activeChannels; ++channel)
         {
-            float input = channelData[sample];
+            auto* channelData = buffer.getWritePointer(channel);
+
+            const float input = channelData[sample];
             inputLevelSum += std::abs(input);
-            
-            // Get analytic signal (complex representation)
-            auto analyticSignal = hilbertTransform.processSample(input);
-            float real = analyticSignal.first;
-            float imaginary = analyticSignal.second;
-            
-            // Get oscillator values
-            auto oscValues = oscillator.getNextSample();
-            float cosShift = oscValues.first;
-            float sinShift = oscValues.second;
-            
+
+            // Get analytic signal (complex representation) from this channel's
+            // own Hilbert state.
+            auto analyticSignal = hilbertTransforms[static_cast<size_t>(channel)].processSample(input);
+            const float real = analyticSignal.first;
+            const float imaginary = analyticSignal.second;
+
+            // Delay-compensate the dry path so it aligns with the wet path
+            // (both delayed by the analytic-path group delay) -> no comb filtering.
+            dryDelay[static_cast<size_t>(channel)].pushSample(0, input);
+            const float dry = dryDelay[static_cast<size_t>(channel)].popSample(0);
+
             // Frequency shift using complex multiplication
             // (real + j*imag) * (cos + j*sin) = (real*cos - imag*sin) + j*(real*sin + imag*cos)
-            float shiftedReal = real * cosShift - imaginary * sinShift;
-            
-            // Mix dry and wet signals
-            float output = input * (1.0f - mix) + shiftedReal * mix;
-            
-            // Apply output level
+            const float shiftedReal = real * cosShift - imaginary * sinShift;
+
+            // Mix time-aligned dry and wet signals, then apply output level
+            float output = dry * (1.0f - mix) + shiftedReal * mix;
             output *= outputLevelGain;
-            
+
             channelData[sample] = output;
             outputLevelSum += std::abs(output);
         }
     }
-    
+
     // Update metering
-    inputLevel.store(inputLevelSum / (numSamples * numChannels));
-    outputLevel.store(outputLevelSum / (numSamples * numChannels));
+    if (activeChannels > 0)
+    {
+        inputLevel.store(inputLevelSum / (numSamples * activeChannels));
+        outputLevel.store(outputLevelSum / (numSamples * activeChannels));
+    }
 }
 
 //==============================================================================

@@ -67,10 +67,15 @@ private:
         
         void prepare(double sampleRate, int samplesPerBlock);
         void reset();
-        
+
         void processBlock(juce::AudioBuffer<float>& buffer);
         std::pair<float, float> processSample(float input); // Returns {real, imaginary}
-        
+
+        // Latency introduced by the analytic-signal path (FIR group delay +
+        // matching real-path delay line). The dry signal must be delayed by the
+        // same amount before mixing, and reported to the host.
+        static constexpr int getLatencySamples() { return filterOrder / 2; }
+
     private:
         static constexpr int filterOrder = 256;
         
@@ -113,8 +118,12 @@ private:
     std::atomic<float>* mixParam = nullptr;
     std::atomic<float>* outputLevelParam = nullptr;
     
-    // DSP components
-    HilbertTransform hilbertTransform;
+    // DSP components -- per-channel analytic-signal state so stereo channels
+    // never share filter/delay history. One oscillator drives all channels in
+    // lock-step (advanced once per sample). dryDelay compensates the dry path
+    // so it stays time-aligned with the wet (shifted) path when mixed.
+    std::array<HilbertTransform, 2> hilbertTransforms;
+    std::array<juce::dsp::DelayLine<float>, 2> dryDelay;
     Oscillator oscillator;
     
     // Metering

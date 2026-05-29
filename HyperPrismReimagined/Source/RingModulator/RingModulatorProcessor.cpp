@@ -18,11 +18,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout RingModulatorProcessor::crea
 {
     std::vector<std::unique_ptr<juce::RangedAudioParameter>> params;
 
-    // Carrier Frequency (1 Hz to 8000 Hz)
+    // Carrier Frequency (1 Hz to 20000 Hz -- extended ceiling for high-frequency
+    // ring modulation, e.g. metallic/inharmonic textures above 10 kHz)
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
         "carrier_freq",
         "Carrier Frequency",
-        juce::NormalisableRange<float>(1.0f, 8000.0f, 0.1f, 0.5f),
+        juce::NormalisableRange<float>(1.0f, 20000.0f, 0.1f, 0.5f),
         440.0f));
 
     // Modulator Frequency (0.1 Hz to 1000 Hz)
