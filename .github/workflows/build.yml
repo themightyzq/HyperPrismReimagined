@@ -1,148 +1,116 @@
-name: Build All Platforms
+name: Build
 
+# Reusable build: invoked by latest.yml / release.yml via workflow_call, and
+# runs directly on PRs to validate. Builds all 32 plugins on every platform
+# with compiler caching. Publishes nothing.
 on:
-  push:
-    branches: [ main ]
+  workflow_call:
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
+
+concurrency:
+  group: build-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-macos:
-    name: macOS (Universal Binary)
-    runs-on: macos-latest
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            name: macOS
+            variant: ccache
+          - os: ubuntu-latest
+            name: Linux
+            variant: ccache
+          - os: windows-latest
+            name: Windows
+            variant: sccache
     steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    - name: Configure
-      run: |
-        cd HyperPrismReimagined
-        cmake -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential libasound2-dev libjack-jackd2-dev \
+            libfreetype6-dev libfontconfig1-dev libcurl4-openssl-dev \
+            libx11-dev libxext-dev libxrandr-dev libxinerama-dev \
+            libxcursor-dev libgl1-mesa-dev libglu1-mesa-dev pkg-config
 
-    - name: Build
-      run: |
-        cd HyperPrismReimagined
-        cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+      - name: Set up MSVC environment (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Verify Universal Binary
-      run: |
-        echo "Checking architecture of built plugins:"
-        for vst in HyperPrismReimagined/build/*_artefacts/Release/VST3/*.vst3; do
-          if [ -d "$vst" ]; then
+      - name: Set up CMake + Ninja (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: lukka/get-cmake@latest
+
+      - name: Set up compiler cache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.name }}
+          variant: ${{ matrix.variant }}
+          max-size: 1500M
+
+      - name: Configure (macOS / Linux)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd HyperPrismReimagined
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Configure (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          cd HyperPrismReimagined
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache
+
+      - name: Build
+        run: |
+          cd HyperPrismReimagined
+          cmake --build build --parallel
+
+      - name: Verify Universal Binary (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          for vst in HyperPrismReimagined/build/*_artefacts/Release/VST3/*.vst3; do
+            [ -d "$vst" ] || continue
             name=$(basename "$vst" .vst3)
-            binary="$vst/Contents/MacOS/$name"
-            if [ -f "$binary" ]; then
-              archs=$(lipo -info "$binary" 2>/dev/null | grep -o 'arm64\|x86_64' | tr '\n' ' ')
-              echo "  $name: $archs"
-            fi
+            bin="$vst/Contents/MacOS/$name"
+            [ -f "$bin" ] && echo "  $name: $(lipo -info "$bin" 2>/dev/null | grep -o 'arm64\|x86_64' | tr '\n' ' ')"
+          done
+
+      - name: Package
+        shell: bash
+        run: |
+          cd HyperPrismReimagined
+          mkdir -p dist
+          for vst in build/*_artefacts/Release/VST3/*.vst3; do
+            [ -d "$vst" ] && cp -R "$vst" dist/
+          done
+          cd dist
+          if command -v zip >/dev/null 2>&1; then
+            zip -r "../HyperPrism-Reimagined-${{ matrix.name }}.zip" *.vst3
+          else
+            7z a -tzip "../HyperPrism-Reimagined-${{ matrix.name }}.zip" *.vst3
           fi
-        done
 
-    - name: Package
-      run: |
-        cd HyperPrismReimagined
-        mkdir -p dist
-        for vst in build/*_artefacts/Release/VST3/*.vst3; do
-          [ -d "$vst" ] && cp -R "$vst" dist/
-        done
-        cd dist
-        zip -r ../HyperPrism-Reimagined-macOS.zip *.vst3
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: HyperPrism-Reimagined-macOS
-        path: HyperPrismReimagined/HyperPrism-Reimagined-macOS.zip
-        if-no-files-found: error
-
-  build-windows:
-    name: Windows (x64)
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Configure
-      run: |
-        cd HyperPrismReimagined
-        cmake -B build -G "Visual Studio 17 2022" -A x64
-
-    - name: Build
-      run: |
-        cd HyperPrismReimagined
-        cmake --build build --config Release --parallel
-
-    - name: Package
-      shell: bash
-      run: |
-        cd HyperPrismReimagined
-        mkdir -p dist
-        for vst in build/*_artefacts/Release/VST3/*.vst3; do
-          [ -d "$vst" ] && cp -R "$vst" dist/
-        done
-        cd dist
-        7z a -tzip ../HyperPrism-Reimagined-Windows.zip *.vst3
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: HyperPrism-Reimagined-Windows
-        path: HyperPrismReimagined/HyperPrism-Reimagined-Windows.zip
-        if-no-files-found: error
-
-  build-linux:
-    name: Linux (x86_64)
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Install Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          libasound2-dev \
-          libjack-jackd2-dev \
-          libfreetype6-dev \
-          libfontconfig1-dev \
-          libcurl4-openssl-dev \
-          libx11-dev \
-          libxext-dev \
-          libxrandr-dev \
-          libxinerama-dev \
-          libxcursor-dev \
-          libgl1-mesa-dev \
-          libglu1-mesa-dev \
-          pkg-config
-
-    - name: Configure
-      run: |
-        cd HyperPrismReimagined
-        cmake -B build -DCMAKE_BUILD_TYPE=Release
-
-    - name: Build
-      run: |
-        cd HyperPrismReimagined
-        cmake --build build --config Release -j$(nproc)
-
-    - name: Package
-      run: |
-        cd HyperPrismReimagined
-        mkdir -p dist
-        for vst in build/*_artefacts/Release/VST3/*.vst3; do
-          [ -d "$vst" ] && cp -R "$vst" dist/
-        done
-        cd dist
-        zip -r ../HyperPrism-Reimagined-Linux.zip *.vst3
-
-    - name: Upload Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: HyperPrism-Reimagined-Linux
-        path: HyperPrismReimagined/HyperPrism-Reimagined-Linux.zip
-        if-no-files-found: error
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.name }}
+          path: HyperPrismReimagined/HyperPrism-Reimagined-${{ matrix.name }}.zip
+          if-no-files-found: error
