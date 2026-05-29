@@ -257,7 +257,7 @@ RingModulatorEditor::RingModulatorEditor(RingModulatorProcessor& p)
     mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set parameter ranges
-    carrierFreqSlider.setRange(1.0, 8000.0, 0.1);
+    carrierFreqSlider.setRange(1.0, 20000.0, 0.1);
     modulatorFreqSlider.setRange(0.1, 1000.0, 0.1);
     mixSlider.setRange(0.0, 100.0, 0.1);
     
