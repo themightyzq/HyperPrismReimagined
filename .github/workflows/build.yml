@@ -52,10 +52,21 @@ jobs:
             libx11-dev libxext-dev libxrandr-dev libxinerama-dev \
             libxcursor-dev libgl1-mesa-dev libglu1-mesa-dev pkg-config
 
-      # Compiler cache for macOS/Linux only. sccache+MSVC produced 0% hits on
-      # Windows (its separate-PDB debug-info format makes every object unique),
-      # so Windows builds uncached on the Visual Studio generator -- no
-      # regression (it was never cached before) and no extra setup actions.
+      # Windows builds with Ninja + the MSVC dev environment. The VS generator
+      # can't locate Visual Studio on the current windows-latest image, but
+      # msvc-dev-cmd puts cl.exe on PATH so Ninja finds it. No sccache: it gave
+      # 0% hits with MSVC (separate-PDB debug info makes every object unique),
+      # so Windows just builds uncached (~2h) -- no regression, it was never
+      # cached before.
+      - name: Set up MSVC environment (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Set up CMake + Ninja (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: lukka/get-cmake@latest
+
+      # Compiler cache for macOS/Linux only.
       - name: Set up compiler cache (macOS / Linux)
         if: matrix.os != 'windows-latest'
         uses: hendrikmuhs/ccache-action@v1.2
@@ -76,7 +87,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           cd HyperPrismReimagined
-          cmake -B build -G "Visual Studio 17 2022" -A x64
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
       # Makefile generators: bare `--parallel` (no number) means `make -j` with
       # NO job cap -> unbounded g++ processes -> OOM on Linux / thrash on macOS.
@@ -87,12 +98,13 @@ jobs:
           cd HyperPrismReimagined
           cmake --build build --parallel "$(getconf _NPROCESSORS_ONLN)"
 
-      # Visual Studio (MSBuild) generator is multi-config; select Release here.
+      # Ninja is single-config (build type set at configure) and parallelises
+      # to core count by default.
       - name: Build (Windows)
         if: matrix.os == 'windows-latest'
         run: |
           cd HyperPrismReimagined
-          cmake --build build --config Release --parallel
+          cmake --build build --parallel
 
       - name: Verify Universal Binary (macOS)
         if: matrix.os == 'macos-latest'
