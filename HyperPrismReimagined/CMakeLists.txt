@@ -76,15 +76,18 @@ endfunction()
 # HyperPrism Delay Plugin
 juce_add_plugin(HyperPrismDelay
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hdly
-    BUNDLE_ID "com.RevivalProject.HyperPrismDelay"
+    BUNDLE_ID "com.zqsfx.hyperprism.delay"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Delay"
     VST3_CATEGORIES "Fx" "Delay"
@@ -115,15 +118,18 @@ configure_hyperprism_plugin(HyperPrismDelay)
 # HyperPrism Reverb Plugin
 juce_add_plugin(HyperPrismReverb
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hrvb
-    BUNDLE_ID "com.RevivalProject.HyperPrismReverb"
+    BUNDLE_ID "com.zqsfx.hyperprism.reverb"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Reverb"
     VST3_CATEGORIES "Fx" "Reverb"
@@ -145,15 +151,18 @@ configure_hyperprism_plugin(HyperPrismReverb)
 # HyperPrism Chorus Plugin
 juce_add_plugin(HyperPrismChorus
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hchr
-    BUNDLE_ID "com.RevivalProject.HyperPrismChorus"
+    BUNDLE_ID "com.zqsfx.hyperprism.chorus"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Chorus"
     VST3_CATEGORIES "Fx" "Modulation"
@@ -175,15 +184,18 @@ configure_hyperprism_plugin(HyperPrismChorus)
 # HyperPrism Flanger Plugin
 juce_add_plugin(HyperPrismFlanger
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hflg
-    BUNDLE_ID "com.RevivalProject.HyperPrismFlanger"
+    BUNDLE_ID "com.zqsfx.hyperprism.flanger"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Flanger"
     VST3_CATEGORIES "Fx" "Modulation"
@@ -205,15 +217,18 @@ configure_hyperprism_plugin(HyperPrismFlanger)
 # HyperPrism High-Pass Filter Plugin
 juce_add_plugin(HyperPrismHighPass
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hhpf
-    BUNDLE_ID "com.RevivalProject.HyperPrismHighPass"
+    BUNDLE_ID "com.zqsfx.hyperprism.highpass"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined High-Pass Filter"
     VST3_CATEGORIES "Fx" "Filter"
@@ -235,15 +250,18 @@ configure_hyperprism_plugin(HyperPrismHighPass)
 # HyperPrism Low-Pass Filter Plugin
 juce_add_plugin(HyperPrismLowPass
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hlpf
-    BUNDLE_ID "com.RevivalProject.HyperPrismLowPass"
+    BUNDLE_ID "com.zqsfx.hyperprism.lowpass"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Low-Pass Filter"
     VST3_CATEGORIES "Fx" "Filter"
@@ -265,15 +283,18 @@ configure_hyperprism_plugin(HyperPrismLowPass)
 # HyperPrism Band-Pass Filter Plugin
 juce_add_plugin(HyperPrismBandPass
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hbpf
-    BUNDLE_ID "com.RevivalProject.HyperPrismBandPass"
+    BUNDLE_ID "com.zqsfx.hyperprism.bandpass"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Band-Pass Filter"
     VST3_CATEGORIES "Fx" "Filter"
@@ -295,15 +316,18 @@ configure_hyperprism_plugin(HyperPrismBandPass)
 # HyperPrism Band-Reject (Notch) Filter Plugin
 juce_add_plugin(HyperPrismBandReject
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hbrf
-    BUNDLE_ID "com.RevivalProject.HyperPrismBandReject"
+    BUNDLE_ID "com.zqsfx.hyperprism.bandreject"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Band-Reject Filter"
     VST3_CATEGORIES "Fx" "Filter"
@@ -325,15 +349,18 @@ configure_hyperprism_plugin(HyperPrismBandReject)
 # HyperPrism Tremolo Plugin
 juce_add_plugin(HyperPrismTremolo
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Htrm
-    BUNDLE_ID "com.RevivalProject.HyperPrismTremolo"
+    BUNDLE_ID "com.zqsfx.hyperprism.tremolo"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Tremolo"
     VST3_CATEGORIES "Fx" "Modulation"
@@ -355,15 +382,18 @@ configure_hyperprism_plugin(HyperPrismTremolo)
 # HyperPrism Vibrato Plugin
 juce_add_plugin(HyperPrismVibrato
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hvib
-    BUNDLE_ID "com.RevivalProject.HyperPrismVibrato"
+    BUNDLE_ID "com.zqsfx.hyperprism.vibrato"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Vibrato"
     VST3_CATEGORIES "Fx" "Modulation"
@@ -385,15 +415,18 @@ configure_hyperprism_plugin(HyperPrismVibrato)
 # HyperPrism Phaser Plugin
 juce_add_plugin(HyperPrismPhaser
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hphs
-    BUNDLE_ID "com.RevivalProject.HyperPrismPhaser"
+    BUNDLE_ID "com.zqsfx.hyperprism.phaser"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Phaser"
     VST3_CATEGORIES "Fx" "Modulation"
@@ -415,15 +448,18 @@ configure_hyperprism_plugin(HyperPrismPhaser)
 # HyperPrism Noise Gate Plugin
 juce_add_plugin(HyperPrismNoiseGate
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hngt
-    BUNDLE_ID "com.RevivalProject.HyperPrismNoiseGate"
+    BUNDLE_ID "com.zqsfx.hyperprism.noisegate"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Noise Gate"
     VST3_CATEGORIES "Fx" "Dynamics"
@@ -445,15 +481,18 @@ configure_hyperprism_plugin(HyperPrismNoiseGate)
 # HyperPrism Compressor Plugin
 juce_add_plugin(HyperPrismCompressor
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hcmp
-    BUNDLE_ID "com.RevivalProject.HyperPrismCompressor"
+    BUNDLE_ID "com.zqsfx.hyperprism.compressor"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Compressor"
     VST3_CATEGORIES "Fx" "Dynamics"
@@ -475,15 +514,18 @@ configure_hyperprism_plugin(HyperPrismCompressor)
 # HyperPrism Limiter Plugin
 juce_add_plugin(HyperPrismLimiter
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hlmt
-    BUNDLE_ID "com.RevivalProject.HyperPrismLimiter"
+    BUNDLE_ID "com.zqsfx.hyperprism.limiter"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Limiter"
     VST3_CATEGORIES "Fx" "Dynamics" "Limiter"
@@ -505,15 +547,18 @@ configure_hyperprism_plugin(HyperPrismLimiter)
 # HyperPrism Tube/Tape Saturation Plugin
 juce_add_plugin(HyperPrismTubeTapeSaturation
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hsat
-    BUNDLE_ID "com.RevivalProject.HyperPrismTubeTapeSaturation"
+    BUNDLE_ID "com.zqsfx.hyperprism.tubetapesaturation"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Tube-Tape Saturation"
     VST3_CATEGORIES "Fx" "Distortion" "Saturation"
@@ -535,15 +580,18 @@ configure_hyperprism_plugin(HyperPrismTubeTapeSaturation)
 # HyperPrism Harmonic Exciter Plugin
 juce_add_plugin(HyperPrismHarmonicExciter
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hhex
-    BUNDLE_ID "com.RevivalProject.HyperPrismHarmonicExciter"
+    BUNDLE_ID "com.zqsfx.hyperprism.harmonicexciter"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Harmonic Exciter"
     VST3_CATEGORIES "Fx" "Distortion"
@@ -565,15 +613,18 @@ configure_hyperprism_plugin(HyperPrismHarmonicExciter)
 # HyperPrism Bass Maximiser Plugin
 juce_add_plugin(HyperPrismBassMaximiser
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hbmx
-    BUNDLE_ID "com.RevivalProject.HyperPrismBassMaximiser"
+    BUNDLE_ID "com.zqsfx.hyperprism.bassmaximiser"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Bass Maximiser"
     VST3_CATEGORIES "Fx" "Distortion"
@@ -596,15 +647,18 @@ configure_hyperprism_plugin(HyperPrismBassMaximiser)
 # HyperPrism Single Delay Plugin
 juce_add_plugin(HyperPrismSingleDelay
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hsdl
-    BUNDLE_ID "com.RevivalProject.HyperPrismSingleDelay"
+    BUNDLE_ID "com.zqsfx.hyperprism.singledelay"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Single Delay"
     VST3_CATEGORIES "Fx" "Delay"
@@ -626,15 +680,18 @@ configure_hyperprism_plugin(HyperPrismSingleDelay)
 # HyperPrism Multi Delay Plugin
 juce_add_plugin(HyperPrismMultiDelay
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hmdl
-    BUNDLE_ID "com.RevivalProject.HyperPrismMultiDelay"
+    BUNDLE_ID "com.zqsfx.hyperprism.multidelay"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Multi Delay"
     VST3_CATEGORIES "Fx" "Delay"
@@ -656,15 +713,18 @@ configure_hyperprism_plugin(HyperPrismMultiDelay)
 # HyperPrism Pan Plugin
 juce_add_plugin(HyperPrismPan
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hpan
-    BUNDLE_ID "com.RevivalProject.HyperPrismPan"
+    BUNDLE_ID "com.zqsfx.hyperprism.pan"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Pan"
     VST3_CATEGORIES "Fx" "Spatial"
@@ -686,15 +746,18 @@ configure_hyperprism_plugin(HyperPrismPan)
 # HyperPrism Auto Pan Plugin
 juce_add_plugin(HyperPrismAutoPan
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hapn
-    BUNDLE_ID "com.RevivalProject.HyperPrismAutoPan"
+    BUNDLE_ID "com.zqsfx.hyperprism.autopan"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Auto Pan"
     VST3_CATEGORIES "Fx" "Spatial" "Modulation"
@@ -716,15 +779,18 @@ configure_hyperprism_plugin(HyperPrismAutoPan)
 # HyperPrism Quasi Stereo Plugin
 juce_add_plugin(HyperPrismQuasiStereo
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hqst
-    BUNDLE_ID "com.RevivalProject.HyperPrismQuasiStereo"
+    BUNDLE_ID "com.zqsfx.hyperprism.quasistereo"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Quasi Stereo"
     VST3_CATEGORIES "Fx" "Spatial"
@@ -746,15 +812,18 @@ configure_hyperprism_plugin(HyperPrismQuasiStereo)
 # HyperPrism More Stereo Plugin
 juce_add_plugin(HyperPrismMoreStereo
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hmst
-    BUNDLE_ID "com.RevivalProject.HyperPrismMoreStereo"
+    BUNDLE_ID "com.zqsfx.hyperprism.morestereo"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined More Stereo"
     VST3_CATEGORIES "Fx" "Spatial"
@@ -776,15 +845,18 @@ configure_hyperprism_plugin(HyperPrismMoreStereo)
 # HyperPrism M+S Matrix Plugin
 juce_add_plugin(HyperPrismMSMatrix
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hmsm
-    BUNDLE_ID "com.RevivalProject.HyperPrismMSMatrix"
+    BUNDLE_ID "com.zqsfx.hyperprism.msmatrix"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined M+S Matrix"
     VST3_CATEGORIES "Fx" "Spatial"
@@ -806,15 +878,18 @@ configure_hyperprism_plugin(HyperPrismMSMatrix)
 # HyperPrism Stereo Dynamics Plugin
 juce_add_plugin(HyperPrismStereoDynamics
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hsdy
-    BUNDLE_ID "com.RevivalProject.HyperPrismStereoDynamics"
+    BUNDLE_ID "com.zqsfx.hyperprism.stereodynamics"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Stereo Dynamics"
     VST3_CATEGORIES "Fx" "Dynamics" "Spatial"
@@ -836,15 +911,18 @@ configure_hyperprism_plugin(HyperPrismStereoDynamics)
 # HyperPrism Frequency Shifter Plugin
 juce_add_plugin(HyperPrismFrequencyShifter
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hfrs
-    BUNDLE_ID "com.RevivalProject.HyperPrismFrequencyShifter"
+    BUNDLE_ID "com.zqsfx.hyperprism.frequencyshifter"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Frequency Shifter"
     VST3_CATEGORIES "Fx" "Pitch Shift" "Modulation"
@@ -866,15 +944,18 @@ configure_hyperprism_plugin(HyperPrismFrequencyShifter)
 # HyperPrism Vocoder Plugin
 juce_add_plugin(HyperPrismVocoder
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hvoc
-    BUNDLE_ID "com.RevivalProject.HyperPrismVocoder"
+    BUNDLE_ID "com.zqsfx.hyperprism.vocoder"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Vocoder"
     VST3_CATEGORIES "Fx" "Modulation"
@@ -896,15 +977,18 @@ configure_hyperprism_plugin(HyperPrismVocoder)
 # HyperPrism Pitch Changer Plugin
 juce_add_plugin(HyperPrismPitchChanger
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hpch
-    BUNDLE_ID "com.RevivalProject.HyperPrismPitchChanger"
+    BUNDLE_ID "com.zqsfx.hyperprism.pitchchanger"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Pitch Changer"
     VST3_CATEGORIES "Fx" "Pitch Shift"
@@ -926,15 +1010,18 @@ configure_hyperprism_plugin(HyperPrismPitchChanger)
 # HyperPrism Sonic Decimator Plugin
 juce_add_plugin(HyperPrismSonicDecimator
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hsdc
-    BUNDLE_ID "com.RevivalProject.HyperPrismSonicDecimator"
+    BUNDLE_ID "com.zqsfx.hyperprism.sonicdecimator"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Sonic Decimator"
     VST3_CATEGORIES "Fx" "Distortion"
@@ -956,15 +1043,18 @@ configure_hyperprism_plugin(HyperPrismSonicDecimator)
 # HyperPrism Ring Modulator Plugin
 juce_add_plugin(HyperPrismRingModulator
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hrmd
-    BUNDLE_ID "com.RevivalProject.HyperPrismRingModulator"
+    BUNDLE_ID "com.zqsfx.hyperprism.ringmodulator"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Ring Modulator"
     VST3_CATEGORIES "Fx" "Modulation"
@@ -986,15 +1076,18 @@ configure_hyperprism_plugin(HyperPrismRingModulator)
 # HyperPrism HyperPhaser Plugin
 juce_add_plugin(HyperPrismHyperPhaser
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hhph
-    BUNDLE_ID "com.RevivalProject.HyperPrismHyperPhaser"
+    BUNDLE_ID "com.zqsfx.hyperprism.hyperphaser"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined HyperPhaser"
     VST3_CATEGORIES "Fx" "Modulation"
@@ -1016,15 +1109,18 @@ configure_hyperprism_plugin(HyperPrismHyperPhaser)
 # HyperPrism Echo Plugin
 juce_add_plugin(HyperPrismEcho
     COMPANY_NAME "ZQ SFX"
+    COMPANY_WEBSITE "https://www.zq-sfx.com"
+    COMPANY_EMAIL "connect@zq-sfx.com"
+    COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
     EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD TRUE
-    PLUGIN_MANUFACTURER_CODE ZQFX
+    PLUGIN_MANUFACTURER_CODE ZQSF
     PLUGIN_CODE Hech
-    BUNDLE_ID "com.RevivalProject.HyperPrismEcho"
+    BUNDLE_ID "com.zqsfx.hyperprism.echo"
     FORMATS ${PLUGIN_FORMATS}
     PRODUCT_NAME "HyperPrism Reimagined Echo"
     VST3_CATEGORIES "Fx" "Delay"
