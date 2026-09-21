@@ -11,6 +11,30 @@
 XYPad::XYPad()
 {
     setRepaintsOnMouseActivity(true);
+    setWantsKeyboardFocus(true);
+    setHasFocusOutline(true);
+    setTitle("X/Y Control Pad");
+    setDescription("Use the arrow keys to adjust the assigned X and Y parameters.");
+}
+
+bool XYPad::keyPressed(const juce::KeyPress& key)
+{
+    const float step = key.getModifiers().isShiftDown() ? 0.01f : 0.05f;
+    float newX = xValue;
+    float newY = yValue;
+
+    if (key.isKeyCode(juce::KeyPress::leftKey))       newX = juce::jlimit(0.0f, 1.0f, xValue - step);
+    else if (key.isKeyCode(juce::KeyPress::rightKey)) newX = juce::jlimit(0.0f, 1.0f, xValue + step);
+    else if (key.isKeyCode(juce::KeyPress::upKey))    newY = juce::jlimit(0.0f, 1.0f, yValue + step);
+    else if (key.isKeyCode(juce::KeyPress::downKey))  newY = juce::jlimit(0.0f, 1.0f, yValue - step);
+    else                                              return false;
+
+    xValue = newX;
+    yValue = newY;
+    if (onValueChange)
+        onValueChange(xValue, yValue);
+    repaint();
+    return true;
 }
 
 void XYPad::paint(juce::Graphics& g)
@@ -34,6 +58,7 @@ void XYPad::paint(juce::Graphics& g)
     // Border
     g.setColour(HyperPrismLookAndFeel::Colors::outline);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
+
     
     // Crosshair position
     float xPos = xValue * bounds.getWidth();
@@ -229,7 +254,7 @@ FlangerEditor::FlangerEditor(FlangerProcessor& p)
     lowCutSlider.setTooltip("Remove low frequencies from the flanged signal");
     highCutSlider.setTooltip("Remove high frequencies from the flanged signal");
     bypassButton.setTooltip("Bypass the effect");
-    xyPad.setTooltip("Click and drag to control two parameters at once");
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
 
     setSize(700, 550);
     setResizable(true, true);
@@ -250,7 +275,7 @@ void FlangerEditor::paint(juce::Graphics& g)
     g.fillRect(12, 4, getWidth() - 24, 2);
 
     // Version
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
     g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
                juce::Justification::centredRight);
@@ -321,7 +346,7 @@ void FlangerEditor::resized()
     centerKnob(feedbackSlider, feedbackLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
     centerKnob(phaseSlider, phaseLabel, col1.getX(), colWidth, y1 + vSpace * 3, knobDiam);
 
-    // Column 2: CHARACTER — Delay; TONE — Low Cut, High Cut (3 knobs)
+    // Column 2: TONE — Delay, Low Cut, High Cut (3 knobs, all amber/frequency)
     centerKnob(delaySlider, delayLabel, col2.getX(), colWidth, y1, knobDiam);
     centerKnob(lowCutSlider, lowCutLabel, col2.getX(), colWidth, y1 + vSpace, knobDiam);
     centerKnob(highCutSlider, highCutLabel, col2.getX(), colWidth, y1 + vSpace * 2, knobDiam);
@@ -366,6 +391,10 @@ void FlangerEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
     slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
 
     addAndMakeVisible(slider);
+    slider.setTitle(text);
+    slider.setWantsKeyboardFocus(true);
+    slider.setHasFocusOutline(true);
+    slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);

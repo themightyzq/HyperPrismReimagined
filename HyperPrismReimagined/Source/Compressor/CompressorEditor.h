@@ -36,6 +36,7 @@ public:
     void paint(juce::Graphics& g) override;
     void mouseDown(const juce::MouseEvent& event) override;
     void mouseDrag(const juce::MouseEvent& event) override;
+    bool keyPressed(const juce::KeyPress& key) override;
     
     std::function<void(float, float)> onValueChange;
     

@@ -20,7 +20,6 @@ public:
         static const juce::Colour surfaceVariant;      // Control backgrounds
         static const juce::Colour primary;             // Main cyan accent
         static const juce::Colour primaryVariant;      // Darker cyan
-        static const juce::Colour secondary;           // Purple accent
         static const juce::Colour onSurface;           // Main text
         static const juce::Colour onSurfaceVariant;    // Secondary text
         static const juce::Colour outline;             // Borders
@@ -63,6 +62,9 @@ public:
 
     juce::Label* createSliderTextBox(juce::Slider& slider) override;
 
+    // Keyboard focus indicator (accent ring around the focused control)
+    std::unique_ptr<juce::FocusOutline> createFocusOutlineForComponent(juce::Component& component) override;
+
     // Window and Panel Drawing
     void fillTextEditorBackground(juce::Graphics& g, int width, int height,
                                  juce::TextEditor& textEditor) override;
@@ -77,8 +79,7 @@ public:
 
 private:
     void setupFonts();
-    
-    juce::Font titleFont;
+
     juce::Font bodyFont;
     juce::Font captionFont;
     

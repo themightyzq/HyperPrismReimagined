@@ -39,6 +39,7 @@ public:
     void paint(juce::Graphics& g) override;
     void mouseDown(const juce::MouseEvent& event) override;
     void mouseDrag(const juce::MouseEvent& event) override;
+    bool keyPressed(const juce::KeyPress& key) override;
     
     void setValues(float x, float y);
     void setAxisColors(const juce::Colour& xColor, const juce::Colour& yColor);
@@ -76,8 +77,7 @@ private:
     float modulatorLevel = 0.0f;
     float outputLevel = 0.0f;
     int bandCount = 8;
-    float carrierFreq = 440.0f;
-    
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VocoderMeter)
 };
 

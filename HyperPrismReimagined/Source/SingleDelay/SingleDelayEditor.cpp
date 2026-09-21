@@ -11,6 +11,30 @@
 XYPad::XYPad()
 {
     setRepaintsOnMouseActivity(true);
+    setWantsKeyboardFocus(true);
+    setHasFocusOutline(true);
+    setTitle("X/Y Control Pad");
+    setDescription("Use the arrow keys to adjust the assigned X and Y parameters.");
+}
+
+bool XYPad::keyPressed(const juce::KeyPress& key)
+{
+    const float step = key.getModifiers().isShiftDown() ? 0.01f : 0.05f;
+    float newX = xValue;
+    float newY = yValue;
+
+    if (key.isKeyCode(juce::KeyPress::leftKey))       newX = juce::jlimit(0.0f, 1.0f, xValue - step);
+    else if (key.isKeyCode(juce::KeyPress::rightKey)) newX = juce::jlimit(0.0f, 1.0f, xValue + step);
+    else if (key.isKeyCode(juce::KeyPress::upKey))    newY = juce::jlimit(0.0f, 1.0f, yValue + step);
+    else if (key.isKeyCode(juce::KeyPress::downKey))  newY = juce::jlimit(0.0f, 1.0f, yValue - step);
+    else                                              return false;
+
+    xValue = newX;
+    yValue = newY;
+    if (onValueChange)
+        onValueChange(xValue, yValue);
+    repaint();
+    return true;
 }
 
 void XYPad::paint(juce::Graphics& g)
@@ -34,6 +58,7 @@ void XYPad::paint(juce::Graphics& g)
     // Border
     g.setColour(HyperPrismLookAndFeel::Colors::outline);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
+
     
     // Crosshair position
     float xPos = xValue * bounds.getWidth();
@@ -338,7 +363,7 @@ SingleDelayEditor::SingleDelayEditor(SingleDelayProcessor& p)
     lowCutSlider.setTooltip("Remove low frequencies from the delayed signal");
     highCutSlider.setTooltip("Remove high frequencies from the delayed signal");
     wetDryMixSlider.setTooltip("Balance between dry and delayed signal");
-    stereoSpreadSlider.setTooltip("Overall output volume");
+    stereoSpreadSlider.setTooltip("Widens the delayed signal across the stereo field");
     bypassButton.setTooltip("Bypass the effect");
 
     setSize(700, 550);
@@ -360,7 +385,7 @@ void SingleDelayEditor::paint(juce::Graphics& g)
     g.fillRect(12, 4, getWidth() - 24, 2);
 
     // Version
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
     g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70), juce::Justification::centredRight);
 
@@ -469,6 +494,10 @@ void SingleDelayEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
     slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
         
     addAndMakeVisible(slider);
+    slider.setTitle(text);
+    slider.setWantsKeyboardFocus(true);
+    slider.setHasFocusOutline(true);
+    slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);

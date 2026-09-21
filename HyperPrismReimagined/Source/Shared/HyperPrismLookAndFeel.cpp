@@ -10,7 +10,6 @@ const juce::Colour HyperPrismLookAndFeel::Colors::surface             = juce::Co
 const juce::Colour HyperPrismLookAndFeel::Colors::surfaceVariant      = juce::Colour(0xff21262d);  // Control backgrounds
 const juce::Colour HyperPrismLookAndFeel::Colors::primary             = juce::Colour(0xff00d9ff);  // Cyan accent
 const juce::Colour HyperPrismLookAndFeel::Colors::primaryVariant      = juce::Colour(0xff0099cc);  // Darker cyan
-const juce::Colour HyperPrismLookAndFeel::Colors::secondary           = juce::Colour(0xff6f42c1);  // Purple accent
 const juce::Colour HyperPrismLookAndFeel::Colors::onSurface           = juce::Colour(0xfff0f6fc);  // Main text
 const juce::Colour HyperPrismLookAndFeel::Colors::onSurfaceVariant    = juce::Colour(0xff8b949e);  // Secondary text
 const juce::Colour HyperPrismLookAndFeel::Colors::outline             = juce::Colour(0xff30363d);  // Borders
@@ -66,8 +65,7 @@ HyperPrismLookAndFeel::HyperPrismLookAndFeel()
 
 void HyperPrismLookAndFeel::setupFonts()
 {
-    // Use system fonts for now - can be customized with embedded fonts later
-    titleFont = juce::Font(juce::FontOptions("Arial", "Bold", 24.0f));
+    // Use system fonts (generic FontOptions so the platform default renders natively)
     bodyFont = juce::Font(juce::FontOptions(14.0f));
     captionFont = juce::Font(juce::FontOptions(12.0f));
 }
@@ -260,9 +258,18 @@ void HyperPrismLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButt
                 shouldDrawButtonAsHighlighted,
                 shouldDrawButtonAsDown);
     
+    // Keyboard focus ring (accessibility) around the tick box
+    if (button.hasKeyboardFocus(false))
+    {
+        g.setColour(Colors::primary.withAlpha(0.9f));
+        auto focusBounds = juce::Rectangle<float>(4.0f, ((float) button.getHeight() - tickWidth) * 0.5f,
+                                                  tickWidth, tickWidth).expanded(2.5f);
+        g.drawRoundedRectangle(focusBounds, 4.0f, 1.5f);
+    }
+
     g.setColour(button.findColour(juce::ToggleButton::textColourId));
     g.setFont(fontSize);
-    
+
     if (! button.isEnabled())
         g.setOpacity(0.5f);
     
@@ -339,6 +346,26 @@ void HyperPrismLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& 
         g.drawFittedText(button.getButtonText(),
                          leftIndent, yIndent, textWidth, button.getHeight() - yIndent * 2,
                          juce::Justification::centred, 2);
+}
+
+std::unique_ptr<juce::FocusOutline> HyperPrismLookAndFeel::createFocusOutlineForComponent(juce::Component&)
+{
+    struct RingProperties final : public juce::FocusOutline::OutlineWindowProperties
+    {
+        juce::Rectangle<int> getOutlineBounds(juce::Component& c) override
+        {
+            return c.getScreenBounds().expanded(3);
+        }
+
+        void drawOutline(juce::Graphics& g, int width, int height) override
+        {
+            auto bounds = juce::Rectangle<float>((float) width, (float) height).reduced(2.0f);
+            g.setColour(Colors::primary.withAlpha(0.9f));
+            g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
+        }
+    };
+
+    return std::make_unique<juce::FocusOutline>(std::make_unique<RingProperties>());
 }
 
 juce::Label* HyperPrismLookAndFeel::createSliderTextBox(juce::Slider& slider)

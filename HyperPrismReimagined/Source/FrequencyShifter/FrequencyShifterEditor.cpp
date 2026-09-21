@@ -11,6 +11,30 @@
 XYPad::XYPad()
 {
     setRepaintsOnMouseActivity(true);
+    setWantsKeyboardFocus(true);
+    setHasFocusOutline(true);
+    setTitle("X/Y Control Pad");
+    setDescription("Use the arrow keys to adjust the assigned X and Y parameters.");
+}
+
+bool XYPad::keyPressed(const juce::KeyPress& key)
+{
+    const float step = key.getModifiers().isShiftDown() ? 0.01f : 0.05f;
+    float newX = xValue;
+    float newY = yValue;
+
+    if (key.isKeyCode(juce::KeyPress::leftKey))       newX = juce::jlimit(0.0f, 1.0f, xValue - step);
+    else if (key.isKeyCode(juce::KeyPress::rightKey)) newX = juce::jlimit(0.0f, 1.0f, xValue + step);
+    else if (key.isKeyCode(juce::KeyPress::upKey))    newY = juce::jlimit(0.0f, 1.0f, yValue + step);
+    else if (key.isKeyCode(juce::KeyPress::downKey))  newY = juce::jlimit(0.0f, 1.0f, yValue - step);
+    else                                              return false;
+
+    xValue = newX;
+    yValue = newY;
+    if (onValueChange)
+        onValueChange(xValue, yValue);
+    repaint();
+    return true;
 }
 
 void XYPad::paint(juce::Graphics& g)
@@ -34,6 +58,7 @@ void XYPad::paint(juce::Graphics& g)
     // Border
     g.setColour(HyperPrismLookAndFeel::Colors::outline);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
+
     
     // Crosshair position
     float xPos = xValue * bounds.getWidth();
@@ -300,7 +325,7 @@ FrequencyShifterEditor::FrequencyShifterEditor(FrequencyShifterProcessor& p)
     mixSlider.setTooltip("Balance between dry and shifted signal");
     outputLevelSlider.setTooltip("Overall output volume after processing");
     bypassButton.setTooltip("Bypass the effect");
-    xyPad.setTooltip("Click and drag to control two parameters at once");
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
 
     setSize(700, 550);
     setResizable(true, true);
@@ -317,7 +342,7 @@ void FrequencyShifterEditor::paint(juce::Graphics& g)
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
     g.fillRect(12, 4, getWidth() - 24, 2);
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
     g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
                juce::Justification::centredRight);
@@ -426,6 +451,10 @@ void FrequencyShifterEditor::setupSlider(juce::Slider& slider, ParameterLabel& l
     slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
         
     addAndMakeVisible(slider);
+    slider.setTitle(text);
+    slider.setWantsKeyboardFocus(true);
+    slider.setHasFocusOutline(true);
+    slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);

@@ -102,10 +102,6 @@ target_sources(HyperPrismDelay
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Delay/DelayProcessor.cpp
         Source/Delay/DelayProcessor.h
         Source/Delay/DelayEditor.cpp
@@ -137,10 +133,6 @@ target_sources(HyperPrismReverb
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Reverb/ReverbProcessor.cpp
         Source/Reverb/ReverbProcessor.h
         Source/Reverb/ReverbEditor.cpp
@@ -171,10 +163,6 @@ target_sources(HyperPrismChorus
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Chorus/ChorusProcessor.cpp
         Source/Chorus/ChorusProcessor.h
         Source/Chorus/ChorusEditor.cpp
@@ -205,10 +193,6 @@ target_sources(HyperPrismFlanger
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Flanger/FlangerProcessor.cpp
         Source/Flanger/FlangerProcessor.h
         Source/Flanger/FlangerEditor.cpp
@@ -239,10 +223,6 @@ target_sources(HyperPrismHighPass
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/HighPass/HighPassProcessor.cpp
         Source/HighPass/HighPassProcessor.h
         Source/HighPass/HighPassEditor.cpp
@@ -273,10 +253,6 @@ target_sources(HyperPrismLowPass
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/LowPass/LowPassProcessor.cpp
         Source/LowPass/LowPassProcessor.h
         Source/LowPass/LowPassEditor.cpp
@@ -307,10 +283,6 @@ target_sources(HyperPrismBandPass
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/BandPass/BandPassProcessor.cpp
         Source/BandPass/BandPassProcessor.h
         Source/BandPass/BandPassEditor.cpp
@@ -341,10 +313,6 @@ target_sources(HyperPrismBandReject
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/BandReject/BandRejectProcessor.cpp
         Source/BandReject/BandRejectProcessor.h
         Source/BandReject/BandRejectEditor.cpp
@@ -375,10 +343,6 @@ target_sources(HyperPrismTremolo
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Tremolo/TremoloProcessor.cpp
         Source/Tremolo/TremoloProcessor.h
         Source/Tremolo/TremoloEditor.cpp
@@ -409,10 +373,6 @@ target_sources(HyperPrismVibrato
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Vibrato/VibratoProcessor.cpp
         Source/Vibrato/VibratoProcessor.h
         Source/Vibrato/VibratoEditor.cpp
@@ -443,10 +403,6 @@ target_sources(HyperPrismPhaser
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Phaser/PhaserProcessor.cpp
         Source/Phaser/PhaserProcessor.h
         Source/Phaser/PhaserEditor.cpp
@@ -477,10 +433,6 @@ target_sources(HyperPrismNoiseGate
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/NoiseGate/NoiseGateProcessor.cpp
         Source/NoiseGate/NoiseGateProcessor.h
         Source/NoiseGate/NoiseGateEditor.cpp
@@ -511,10 +463,6 @@ target_sources(HyperPrismCompressor
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Compressor/CompressorProcessor.cpp
         Source/Compressor/CompressorProcessor.h
         Source/Compressor/CompressorEditor.cpp
@@ -545,10 +493,6 @@ target_sources(HyperPrismLimiter
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Limiter/LimiterProcessor.cpp
         Source/Limiter/LimiterProcessor.h
         Source/Limiter/LimiterEditor.cpp
@@ -579,10 +523,6 @@ target_sources(HyperPrismTubeTapeSaturation
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/TubeTapeSaturation/TubeTapeSaturationProcessor.cpp
         Source/TubeTapeSaturation/TubeTapeSaturationProcessor.h
         Source/TubeTapeSaturation/TubeTapeSaturationEditor.cpp
@@ -613,10 +553,6 @@ target_sources(HyperPrismHarmonicExciter
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/HarmonicExciter/HarmonicExciterProcessor.cpp
         Source/HarmonicExciter/HarmonicExciterProcessor.h
         Source/HarmonicExciter/HarmonicExciterEditor.cpp
@@ -647,10 +583,6 @@ target_sources(HyperPrismBassMaximiser
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/BassMaximiser/BassMaximiserProcessor.cpp
         Source/BassMaximiser/BassMaximiserProcessor.h
         Source/BassMaximiser/BassMaximiserEditor.cpp
@@ -682,10 +614,6 @@ target_sources(HyperPrismSingleDelay
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/SingleDelay/SingleDelayProcessor.cpp
         Source/SingleDelay/SingleDelayProcessor.h
         Source/SingleDelay/SingleDelayEditor.cpp
@@ -716,10 +644,6 @@ target_sources(HyperPrismMultiDelay
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/MultiDelay/MultiDelayProcessor.cpp
         Source/MultiDelay/MultiDelayProcessor.h
         Source/MultiDelay/MultiDelayEditor.cpp
@@ -750,10 +674,6 @@ target_sources(HyperPrismPan
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Pan/PanProcessor.cpp
         Source/Pan/PanProcessor.h
         Source/Pan/PanEditor.cpp
@@ -784,10 +704,6 @@ target_sources(HyperPrismAutoPan
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/AutoPan/AutoPanProcessor.cpp
         Source/AutoPan/AutoPanProcessor.h
         Source/AutoPan/AutoPanEditor.cpp
@@ -818,10 +734,6 @@ target_sources(HyperPrismQuasiStereo
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/QuasiStereo/QuasiStereoProcessor.cpp
         Source/QuasiStereo/QuasiStereoProcessor.h
         Source/QuasiStereo/QuasiStereoEditor.cpp
@@ -852,10 +764,6 @@ target_sources(HyperPrismMoreStereo
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/MoreStereo/MoreStereoProcessor.cpp
         Source/MoreStereo/MoreStereoProcessor.h
         Source/MoreStereo/MoreStereoEditor.cpp
@@ -886,10 +794,6 @@ target_sources(HyperPrismMSMatrix
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/MSMatrix/MSMatrixProcessor.cpp
         Source/MSMatrix/MSMatrixProcessor.h
         Source/MSMatrix/MSMatrixEditor.cpp
@@ -920,10 +824,6 @@ target_sources(HyperPrismStereoDynamics
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/StereoDynamics/StereoDynamicsProcessor.cpp
         Source/StereoDynamics/StereoDynamicsProcessor.h
         Source/StereoDynamics/StereoDynamicsEditor.cpp
@@ -954,10 +854,6 @@ target_sources(HyperPrismFrequencyShifter
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/FrequencyShifter/FrequencyShifterProcessor.cpp
         Source/FrequencyShifter/FrequencyShifterProcessor.h
         Source/FrequencyShifter/FrequencyShifterEditor.cpp
@@ -988,10 +884,6 @@ target_sources(HyperPrismVocoder
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Vocoder/VocoderProcessor.cpp
         Source/Vocoder/VocoderProcessor.h
         Source/Vocoder/VocoderEditor.cpp
@@ -1022,10 +914,6 @@ target_sources(HyperPrismPitchChanger
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/PitchChanger/PitchChangerProcessor.cpp
         Source/PitchChanger/PitchChangerProcessor.h
         Source/PitchChanger/PitchChangerEditor.cpp
@@ -1056,10 +944,6 @@ target_sources(HyperPrismSonicDecimator
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/SonicDecimator/SonicDecimatorProcessor.cpp
         Source/SonicDecimator/SonicDecimatorProcessor.h
         Source/SonicDecimator/SonicDecimatorEditor.cpp
@@ -1090,10 +974,6 @@ target_sources(HyperPrismRingModulator
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/RingModulator/RingModulatorProcessor.cpp
         Source/RingModulator/RingModulatorProcessor.h
         Source/RingModulator/RingModulatorEditor.cpp
@@ -1124,10 +1004,6 @@ target_sources(HyperPrismHyperPhaser
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/HyperPhaser/HyperPhaserProcessor.cpp
         Source/HyperPhaser/HyperPhaserProcessor.h
         Source/HyperPhaser/HyperPhaserEditor.cpp
@@ -1158,10 +1034,6 @@ target_sources(HyperPrismEcho
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
-        Source/Shared/XYPadComponent.cpp
-        Source/Shared/XYPadComponent.h
-        Source/Shared/StandardLayout.cpp
-        Source/Shared/StandardLayout.h
         Source/Echo/EchoProcessor.cpp
         Source/Echo/EchoProcessor.h
         Source/Echo/EchoEditor.cpp

@@ -11,6 +11,30 @@
 XYPad::XYPad()
 {
     setRepaintsOnMouseActivity(true);
+    setWantsKeyboardFocus(true);
+    setHasFocusOutline(true);
+    setTitle("X/Y Control Pad");
+    setDescription("Use the arrow keys to adjust the assigned X and Y parameters.");
+}
+
+bool XYPad::keyPressed(const juce::KeyPress& key)
+{
+    const float step = key.getModifiers().isShiftDown() ? 0.01f : 0.05f;
+    float newX = xValue;
+    float newY = yValue;
+
+    if (key.isKeyCode(juce::KeyPress::leftKey))       newX = juce::jlimit(0.0f, 1.0f, xValue - step);
+    else if (key.isKeyCode(juce::KeyPress::rightKey)) newX = juce::jlimit(0.0f, 1.0f, xValue + step);
+    else if (key.isKeyCode(juce::KeyPress::upKey))    newY = juce::jlimit(0.0f, 1.0f, yValue + step);
+    else if (key.isKeyCode(juce::KeyPress::downKey))  newY = juce::jlimit(0.0f, 1.0f, yValue - step);
+    else                                              return false;
+
+    xValue = newX;
+    yValue = newY;
+    if (onValueChange)
+        onValueChange(xValue, yValue);
+    repaint();
+    return true;
 }
 
 void XYPad::paint(juce::Graphics& g)
@@ -34,6 +58,7 @@ void XYPad::paint(juce::Graphics& g)
     // Border
     g.setColour(HyperPrismLookAndFeel::Colors::outline);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
+
     
     // Crosshair position
     float xPos = xValue * bounds.getWidth();
@@ -281,7 +306,7 @@ LimiterEditor::LimiterEditor(LimiterProcessor& p)
     lookaheadSlider.setTooltip("Look ahead time to catch transients before they clip");
     inputGainSlider.setTooltip("Boost input signal to drive the limiter harder");
     bypassButton.setTooltip("Bypass the effect");
-    xyPad.setTooltip("Click and drag to control two parameters at once");
+    xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
 
     setSize(700, 550);
     setResizable(true, true);
@@ -298,7 +323,7 @@ void LimiterEditor::paint(juce::Graphics& g)
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
     g.fillRect(12, 4, getWidth() - 24, 2);
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
     g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
                juce::Justification::centredRight);
@@ -316,7 +341,7 @@ void LimiterEditor::paint(juce::Graphics& g)
     paintColumnHeader(ceilingSlider.getX() - 2, ceilingSlider.getY() - 20, 200,
                       "DYNAMICS", HyperPrismLookAndFeel::Colors::dynamics);
     paintColumnHeader(outputSectionX, outputSectionY, 140,
-                      "METER", HyperPrismLookAndFeel::Colors::dynamics);
+                      "METER", HyperPrismLookAndFeel::Colors::output);
 }
 
 void LimiterEditor::resized()
@@ -364,8 +389,9 @@ void LimiterEditor::resized()
     centerKnob(lookaheadSlider, lookaheadLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
     centerKnob(inputGainSlider, inputGainLabel, col1.getX(), colWidth, y1 + vSpace * 3, knobDiam);
 
-    // Soft Clip toggle below knobs in column
-    int toggleY = y1 + vSpace * 3 + knobDiam / 2 + 36;
+    // Soft Clip toggle below knobs in column — clamped so it never overflows the
+    // content area into the footer at the minimum (520px) window height.
+    int toggleY = juce::jmin(y1 + vSpace * 3 + knobDiam / 2 + 36, col1.getBottom() - 25);
     softClipButton.setBounds(col1.getX(), toggleY, colWidth, 25);
 
     // --- Right side: XY pad + meter ---
@@ -407,6 +433,10 @@ void LimiterEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
     slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
 
     addAndMakeVisible(slider);
+    slider.setTitle(text);
+    slider.setWantsKeyboardFocus(true);
+    slider.setHasFocusOutline(true);
+    slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);

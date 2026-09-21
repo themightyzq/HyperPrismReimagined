@@ -11,6 +11,30 @@
 XYPad::XYPad()
 {
     setRepaintsOnMouseActivity(true);
+    setWantsKeyboardFocus(true);
+    setHasFocusOutline(true);
+    setTitle("X/Y Control Pad");
+    setDescription("Use the arrow keys to adjust the assigned X and Y parameters.");
+}
+
+bool XYPad::keyPressed(const juce::KeyPress& key)
+{
+    const float step = key.getModifiers().isShiftDown() ? 0.01f : 0.05f;
+    float newX = xValue;
+    float newY = yValue;
+
+    if (key.isKeyCode(juce::KeyPress::leftKey))       newX = juce::jlimit(0.0f, 1.0f, xValue - step);
+    else if (key.isKeyCode(juce::KeyPress::rightKey)) newX = juce::jlimit(0.0f, 1.0f, xValue + step);
+    else if (key.isKeyCode(juce::KeyPress::upKey))    newY = juce::jlimit(0.0f, 1.0f, yValue + step);
+    else if (key.isKeyCode(juce::KeyPress::downKey))  newY = juce::jlimit(0.0f, 1.0f, yValue - step);
+    else                                              return false;
+
+    xValue = newX;
+    yValue = newY;
+    if (onValueChange)
+        onValueChange(xValue, yValue);
+    repaint();
+    return true;
 }
 
 void XYPad::paint(juce::Graphics& g)
@@ -34,6 +58,7 @@ void XYPad::paint(juce::Graphics& g)
     // Border
     g.setColour(HyperPrismLookAndFeel::Colors::outline);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
+
     
     // Crosshair position
     float xPos = xValue * bounds.getWidth();
@@ -127,7 +152,7 @@ void RingModulatorMeter::paint(juce::Graphics& g)
     
     // Carrier waveform (top)
     auto carrierArea = displayArea.removeFromTop(waveformHeight);
-    auto carrierWaveArea = carrierArea.withTrimmedLeft(60); // Leave space for label
+    auto carrierWaveArea = carrierArea.withTrimmedLeft(66); // Leave space for label ("Modulator")
     g.setColour(HyperPrismLookAndFeel::Colors::success);
     juce::Path carrierPath;
     for (size_t i = 0; i < carrierWaveform.size(); ++i)
@@ -145,13 +170,13 @@ void RingModulatorMeter::paint(juce::Graphics& g)
     // Label (draw in reserved space)
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(10.0f);
-    g.drawText("Carrier", carrierArea.withWidth(55), juce::Justification::centredLeft);
+    g.drawText("Carrier", carrierArea.withWidth(62), juce::Justification::centredLeft);
     
     displayArea.removeFromTop(5.0f);
     
     // Modulator waveform (middle)
     auto modulatorArea = displayArea.removeFromTop(waveformHeight);
-    auto modulatorWaveArea = modulatorArea.withTrimmedLeft(60); // Leave space for label
+    auto modulatorWaveArea = modulatorArea.withTrimmedLeft(66); // Leave space for label ("Modulator")
     g.setColour(HyperPrismLookAndFeel::Colors::warning);
     juce::Path modulatorPath;
     for (size_t i = 0; i < modulatorWaveform.size(); ++i)
@@ -169,13 +194,13 @@ void RingModulatorMeter::paint(juce::Graphics& g)
     // Label (draw in reserved space)
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(10.0f);
-    g.drawText("Modulator", modulatorArea.withWidth(55), juce::Justification::centredLeft);
+    g.drawText("Modulator", modulatorArea.withWidth(62), juce::Justification::centredLeft);
     
     displayArea.removeFromTop(5.0f);
     
     // Output waveform (bottom)
     auto outputArea = displayArea.removeFromTop(waveformHeight);
-    auto outputWaveArea = outputArea.withTrimmedLeft(60); // Leave space for label
+    auto outputWaveArea = outputArea.withTrimmedLeft(66); // Leave space for label ("Modulator")
     g.setColour(HyperPrismLookAndFeel::Colors::primary);
     juce::Path outputPath;
     for (size_t i = 0; i < outputWaveform.size(); ++i)
@@ -193,31 +218,42 @@ void RingModulatorMeter::paint(juce::Graphics& g)
     // Label (draw in reserved space)
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(10.0f);
-    g.drawText("Output", outputArea.withWidth(55), juce::Justification::centredLeft);
+    g.drawText("Output", outputArea.withWidth(62), juce::Justification::centredLeft);
 }
 
 void RingModulatorMeter::timerCallback()
 {
-    // Generate sample waveforms for visualization
-    // In a real implementation, these would come from the processor
-    
-    float carrierFreq = 0.02f; // Normalized frequency for display
-    float modulatorFreq = 0.005f;
-    
-    for (size_t i = 0; i < carrierWaveform.size(); ++i)
+    // Drive the visualization from the actual parameters so it reflects the user's
+    // settings: carrier/modulator frequency map to the number of displayed cycles,
+    // and Mix scales the ring-modulated output amplitude.
+    auto& apvts = processor.getAPVTS();
+    auto getParam = [&apvts](const char* id, float fallback)
     {
-        float phase = (i / float(carrierWaveform.size())) * juce::MathConstants<float>::twoPi;
-        
-        // Carrier (higher frequency)
-        carrierWaveform[i] = std::sin(phase * 10.0f);
-        
-        // Modulator (lower frequency)
-        modulatorWaveform[i] = std::sin(phase * 2.0f);
-        
-        // Ring modulated output (product)
-        outputWaveform[i] = carrierWaveform[i] * modulatorWaveform[i];
+        if (auto* p = apvts.getRawParameterValue(id))
+            return p->load();
+        return fallback;
+    };
+
+    const float carrierHz   = getParam("carrier_freq", 440.0f);
+    const float modulatorHz = getParam("modulator_freq", 5.0f);
+    float mix = getParam("mix", 100.0f);
+    if (mix > 1.0f) mix *= 0.01f; // normalize if stored as a percentage
+
+    const float carrierCycles   = juce::jlimit(1.0f, 16.0f, carrierHz / 60.0f);
+    const float modulatorCycles = juce::jlimit(0.5f, 8.0f, modulatorHz / 60.0f);
+
+    const size_t count = carrierWaveform.size();
+    for (size_t i = 0; i < count; ++i)
+    {
+        const float t = count > 1 ? i / float(count - 1) : 0.0f;
+        const float c = std::sin(t * juce::MathConstants<float>::twoPi * carrierCycles);
+        const float m = std::sin(t * juce::MathConstants<float>::twoPi * modulatorCycles);
+
+        carrierWaveform[i]   = c;
+        modulatorWaveform[i] = m;
+        outputWaveform[i]    = juce::jlimit(-1.0f, 1.0f, c * m * mix);
     }
-    
+
     repaint();
 }
 
@@ -363,7 +399,7 @@ void RingModulatorEditor::paint(juce::Graphics& g)
     g.fillAll(HyperPrismLookAndFeel::Colors::background);
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
     g.fillRect(12, 4, getWidth() - 24, 2);
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
     g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
                juce::Justification::centredRight);
@@ -467,6 +503,10 @@ void RingModulatorEditor::setupSlider(juce::Slider& slider, ParameterLabel& labe
     slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
         
     addAndMakeVisible(slider);
+    slider.setTitle(text);
+    slider.setWantsKeyboardFocus(true);
+    slider.setHasFocusOutline(true);
+    slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
