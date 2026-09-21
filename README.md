@@ -146,7 +146,13 @@ See `JUCE_VST3_BEST_PRACTICES.md` for full signing and notarization workflow.
 
 ## License
 
-Copyright 2025-2026 ZQ SFX
+Copyright (c) 2025-2026 ZQ SFX.
+
+Licensed under the GNU General Public License v3.0 or later (GPL-3.0-or-later). See
+[LICENSE](LICENSE). Built with [JUCE](https://juce.com), used under its AGPLv3 option, which
+GPL-3.0 is compatible with.
+
+Releases before 2026-09-21 were offered under CC BY-NC 4.0; that grant stands for those copies.
 
 ## Credits
 
