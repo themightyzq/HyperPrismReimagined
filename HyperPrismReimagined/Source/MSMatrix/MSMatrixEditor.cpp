@@ -227,12 +227,13 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
     setupSlider(stereoBalanceSlider, stereoBalanceLabel, "Stereo Balance");
     setupSlider(outputLevelSlider, outputLevelLabel, "Output");
 
-    // Color-code knobs by category
-    midLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    sideLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    stereoBalanceSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    outputLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
-    
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
+
     // Set up right-click handlers for parameter assignment
     midLevelLabel.onClick = [this]() { showParameterMenu(&midLevelLabel, MSMatrixProcessor::MID_LEVEL_ID); };
     sideLevelLabel.onClick = [this]() { showParameterMenu(&sideLevelLabel, MSMatrixProcessor::SIDE_LEVEL_ID); };
@@ -259,6 +260,8 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
     matrixModeComboBox.setColour(juce::ComboBox::arrowColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     matrixModeComboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
     addAndMakeVisible(matrixModeComboBox);
+    matrixModeComboBox.setTitle("Matrix Mode");
+    matrixModeComboBox.setDescription("Matrix Mode");
     
     matrixModeLabel.setText("Matrix Mode", juce::dontSendNotification);
     matrixModeLabel.setJustificationType(juce::Justification::centred);
@@ -270,21 +273,30 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
     midSoloButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     midSoloButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     addAndMakeVisible(midSoloButton);
+    midSoloButton.setTitle("Mid Solo");
+    midSoloButton.setDescription("Solo the mid (sum) channel");
     
     sideSoloButton.setButtonText("Side Solo");
     sideSoloButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     sideSoloButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     addAndMakeVisible(sideSoloButton);
+    sideSoloButton.setTitle("Side Solo");
+    sideSoloButton.setDescription("Solo the side (difference) channel");
     
     // Bypass button (top right like AutoPan)
     // Bypass button
     bypassButton.setButtonText("Bypass");
+    bypassButton.setTitle("Bypass");
     bypassButton.setClickingTogglesState(true);
     bypassButton.setColour(juce::TextButton::buttonOnColourId,
                             HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
     bypassButton.setColour(juce::TextButton::textColourOnId,
                             HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // Create attachments
     auto& vts = audioProcessor.getValueTreeState();
@@ -332,12 +344,17 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
     
     // Tooltips
     midLevelSlider.setTooltip("Volume of the mid (center) signal");
+    midLevelSlider.setDescription("Volume of the mid (center) signal");
     sideLevelSlider.setTooltip("Volume of the side (stereo difference) signal");
+    sideLevelSlider.setDescription("Volume of the side (stereo difference) signal");
     stereoBalanceSlider.setTooltip("Overall stereo width -- 0% is mono, 200% is extra wide");
+    stereoBalanceSlider.setDescription("Overall stereo width -- 0% is mono, 200% is extra wide");
     outputLevelSlider.setTooltip("Overall output volume after M/S processing");
+    outputLevelSlider.setDescription("Overall output volume after M/S processing");
     bypassButton.setTooltip("Bypass the effect");
+    bypassButton.setDescription("Bypass the effect");
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -348,9 +365,21 @@ MSMatrixEditor::~MSMatrixEditor()
     setLookAndFeel(nullptr);
 }
 
+void MSMatrixEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void MSMatrixEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
 
     // Accent line
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
@@ -389,9 +418,11 @@ void MSMatrixEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // === FOOTER ===
     bounds.removeFromBottom(20);
@@ -480,7 +511,6 @@ void MSMatrixEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
         
     addAndMakeVisible(slider);
     slider.setTitle(text);

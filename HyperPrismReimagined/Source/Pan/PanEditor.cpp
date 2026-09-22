@@ -257,13 +257,16 @@ PanEditor::PanEditor(PanProcessor& p)
     
     // Setup sliders with consistent style (4 sliders + 1 dropdown = 5 parameters)
     setupSlider(panPositionSlider, panPositionLabel, "Pan Position");
-    panPositionSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
     setupSlider(widthSlider, widthLabel, "Width");
-    widthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
     setupSlider(balanceSlider, balanceLabel, "Balance");
-    balanceSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
     setupSlider(outputLevelSlider, outputLevelLabel, "Output");
-    outputLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
+
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
     
     // Set parameter ranges
     panPositionSlider.setRange(-1.0, 1.0, 0.01);
@@ -281,6 +284,8 @@ PanEditor::PanEditor(PanProcessor& p)
     panLawComboBox.setColour(juce::ComboBox::arrowColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     panLawComboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
     addAndMakeVisible(panLawComboBox);
+    panLawComboBox.setTitle("Pan Law");
+    panLawComboBox.setDescription("Pan Law");
     
     panLawLabel.setText("Pan Law", juce::dontSendNotification);
     panLawLabel.setJustificationType(juce::Justification::centred);
@@ -306,8 +311,13 @@ PanEditor::PanEditor(PanProcessor& p)
     
     // Bypass button (top right)
     bypassButton.setButtonText("BYPASS");
+    bypassButton.setTitle("BYPASS");
     bypassButton.setClickingTogglesState(true);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // Create attachments
     auto& vts = audioProcessor.getValueTreeState();
@@ -336,7 +346,7 @@ PanEditor::PanEditor(PanProcessor& p)
         updateParametersFromXYPad(x, y);
     };
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     // Add pan meter
     addAndMakeVisible(panMeter);
     
@@ -352,11 +362,15 @@ PanEditor::PanEditor(PanProcessor& p)
     
     // Tooltips
     panPositionSlider.setTooltip("Stereo position — left to right");
+    panPositionSlider.setDescription("Stereo position — left to right");
     widthSlider.setTooltip("Stereo width of the signal");
+    widthSlider.setDescription("Stereo width of the signal");
     balanceSlider.setTooltip("Panning law curve — affects how volume changes");
+    balanceSlider.setDescription("Panning law curve — affects how volume changes");
     outputLevelSlider.setTooltip("Overall output volume");
+    outputLevelSlider.setDescription("Overall output volume");
     bypassButton.setTooltip("Bypass the effect");
-
+    bypassButton.setDescription("Bypass the effect");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -367,9 +381,21 @@ PanEditor::~PanEditor()
     setLookAndFeel(nullptr);
 }
 
+void PanEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void PanEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
 
     // Accent line
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
@@ -410,9 +436,11 @@ void PanEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // === FOOTER ===
     bounds.removeFromBottom(20);
@@ -487,7 +515,6 @@ void PanEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
 
     addAndMakeVisible(slider);
     slider.setTitle(text);

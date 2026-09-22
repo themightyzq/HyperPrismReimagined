@@ -210,17 +210,18 @@ NoiseGateEditor::NoiseGateEditor(NoiseGateProcessor& p)
     
     // Setup sliders with consistent style (6 parameters)
     setupSlider(thresholdSlider, thresholdLabel, "Threshold");
-    thresholdSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
     setupSlider(attackSlider, attackLabel, "Attack");
-    attackSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
     setupSlider(holdSlider, holdLabel, "Hold");
-    holdSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
     setupSlider(releaseSlider, releaseLabel, "Release");
-    releaseSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
     setupSlider(rangeSlider, rangeLabel, "Range");
-    rangeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
     setupSlider(lookaheadSlider, lookaheadLabel, "Lookahead");
-    lookaheadSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
+
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
     
     // Set parameter ranges (no AudioProcessorValueTreeState, so manual setup)
     thresholdSlider.setRange(-60.0, 0.0, 0.1);
@@ -287,8 +288,13 @@ NoiseGateEditor::NoiseGateEditor(NoiseGateProcessor& p)
     
     // Bypass button (top right)
     bypassButton.setButtonText("BYPASS");
+    bypassButton.setTitle("BYPASS");
     bypassButton.setClickingTogglesState(true);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // No bypass parameter in this processor, so we'll leave it unconnected
     
@@ -304,7 +310,7 @@ NoiseGateEditor::NoiseGateEditor(NoiseGateProcessor& p)
         updateParametersFromXYPad(x, y);
     };
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     // Add gate LED
     addAndMakeVisible(gateLED);
     gateLEDLabel.setText("Gate Status", juce::dontSendNotification);
@@ -326,13 +332,19 @@ NoiseGateEditor::NoiseGateEditor(NoiseGateProcessor& p)
     
     // Tooltips
     thresholdSlider.setTooltip("Signal level below which the gate closes and mutes audio");
+    thresholdSlider.setDescription("Signal level below which the gate closes and mutes audio");
     attackSlider.setTooltip("How quickly the gate opens when signal exceeds threshold");
+    attackSlider.setDescription("How quickly the gate opens when signal exceeds threshold");
     holdSlider.setTooltip("Minimum time the gate stays open after signal drops");
+    holdSlider.setDescription("Minimum time the gate stays open after signal drops");
     releaseSlider.setTooltip("How quickly the gate closes after hold time expires");
+    releaseSlider.setDescription("How quickly the gate closes after hold time expires");
     rangeSlider.setTooltip("How much the signal is attenuated when the gate is closed");
+    rangeSlider.setDescription("How much the signal is attenuated when the gate is closed");
     lookaheadSlider.setTooltip("Look ahead time for smoother gate operation");
+    lookaheadSlider.setDescription("Look ahead time for smoother gate operation");
     bypassButton.setTooltip("Bypass the effect");
-
+    bypassButton.setDescription("Bypass the effect");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -343,9 +355,21 @@ NoiseGateEditor::~NoiseGateEditor()
     setLookAndFeel(nullptr);
 }
 
+void NoiseGateEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void NoiseGateEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
 
     // Accent line
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
@@ -381,9 +405,11 @@ void NoiseGateEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // === FOOTER ===
     bounds.removeFromBottom(20);
@@ -452,7 +478,6 @@ void NoiseGateEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
 
     addAndMakeVisible(slider);
     slider.setTitle(text);

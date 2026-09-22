@@ -146,12 +146,13 @@ LowPassEditor::LowPassEditor(LowPassProcessor& p)
     setupSlider(gainSlider, gainLabel, "Gain");
     setupSlider(mixSlider, mixLabel, "Mix");
 
-    // Color-code knobs by category
-    frequencySlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
-    resonanceSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
-    gainSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
-    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
-    
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
+
     // Set up right-click handlers for parameter assignment
     frequencyLabel.onClick = [this]() { showParameterMenu(&frequencyLabel, LowPassProcessor::FREQUENCY_ID); };
     resonanceLabel.onClick = [this]() { showParameterMenu(&resonanceLabel, LowPassProcessor::RESONANCE_ID); };
@@ -171,12 +172,17 @@ LowPassEditor::LowPassEditor(LowPassProcessor& p)
     
     // Bypass button (top right like AutoPan)
     bypassButton.setButtonText("Bypass");
+    bypassButton.setTitle("Bypass");
     bypassButton.setClickingTogglesState(true);
     bypassButton.setColour(juce::TextButton::buttonOnColourId,
                             HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
     bypassButton.setColour(juce::TextButton::textColourOnId,
                             HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // Create attachments
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
@@ -214,12 +220,17 @@ LowPassEditor::LowPassEditor(LowPassProcessor& p)
     
     // Tooltips
     frequencySlider.setTooltip("Frequency above which audio is attenuated");
+    frequencySlider.setDescription("Frequency above which audio is attenuated");
     resonanceSlider.setTooltip("Emphasis at the cutoff frequency -- adds a peak");
+    resonanceSlider.setDescription("Emphasis at the cutoff frequency -- adds a peak");
     gainSlider.setTooltip("Overall output volume");
+    gainSlider.setDescription("Overall output volume");
     mixSlider.setTooltip("Balance between dry and filtered signal");
+    mixSlider.setDescription("Balance between dry and filtered signal");
     bypassButton.setTooltip("Bypass the effect");
+    bypassButton.setDescription("Bypass the effect");
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -230,9 +241,21 @@ LowPassEditor::~LowPassEditor()
     setLookAndFeel(nullptr);
 }
 
+void LowPassEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void LowPassEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
     g.fillRect(12, 4, getWidth() - 24, 2);
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
@@ -262,9 +285,11 @@ void LowPassEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // === FOOTER ===
     bounds.removeFromBottom(20);
@@ -336,7 +361,6 @@ void LowPassEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
 
     addAndMakeVisible(slider);
     slider.setTitle(text);

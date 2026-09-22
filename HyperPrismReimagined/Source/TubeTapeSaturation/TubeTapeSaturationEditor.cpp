@@ -348,12 +348,13 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
     setupSlider(brightnessSlider, brightnessLabel, "Brightness");
     setupSlider(outputLevelSlider, outputLevelLabel, "Output");
 
-    // Color-code knobs by category
-    driveSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    warmthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    brightnessSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    outputLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
-    
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
+
     // Set parameter ranges (example ranges - adjust based on processor)
     driveSlider.setRange(0.0, 100.0, 0.1);
     warmthSlider.setRange(0.0, 100.0, 0.1);
@@ -389,12 +390,17 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
     // Bypass button (top right like AutoPan)
     // Bypass button
     bypassButton.setButtonText("Bypass");
+    bypassButton.setTitle("Bypass");
     bypassButton.setClickingTogglesState(true);
     bypassButton.setColour(juce::TextButton::buttonOnColourId,
                             HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
     bypassButton.setColour(juce::TextButton::textColourOnId,
                             HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // Create attachments
     auto& apvts = audioProcessor.getValueTreeState();
@@ -423,7 +429,7 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
         updateParametersFromXYPad(x, y);
     };
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     // Add saturation meter
     addAndMakeVisible(saturationMeter);
     
@@ -439,11 +445,15 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
     
     // Tooltips
     driveSlider.setTooltip("Amount of saturation — higher values create more distortion");
+    driveSlider.setDescription("Amount of saturation — higher values create more distortion");
     brightnessSlider.setTooltip("Tonal character of the saturation — higher is brighter");
+    brightnessSlider.setDescription("Tonal character of the saturation — higher is brighter");
     warmthSlider.setTooltip("Balance between clean and saturated signal");
+    warmthSlider.setDescription("Balance between clean and saturated signal");
     outputLevelSlider.setTooltip("Overall output volume after saturation");
+    outputLevelSlider.setDescription("Overall output volume after saturation");
     bypassButton.setTooltip("Bypass the effect");
-
+    bypassButton.setDescription("Bypass the effect");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -454,9 +464,21 @@ TubeTapeSaturationEditor::~TubeTapeSaturationEditor()
     setLookAndFeel(nullptr);
 }
 
+void TubeTapeSaturationEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void TubeTapeSaturationEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
 
     // Accent line
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
@@ -494,9 +516,11 @@ void TubeTapeSaturationEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // === FOOTER ===
     bounds.removeFromBottom(20);
@@ -572,7 +596,6 @@ void TubeTapeSaturationEditor::setupSlider(juce::Slider& slider, ParameterLabel&
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
@@ -593,6 +616,8 @@ void TubeTapeSaturationEditor::setupComboBox(juce::ComboBox& comboBox, Parameter
     comboBox.setColour(juce::ComboBox::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     comboBox.setColour(juce::ComboBox::arrowColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     comboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
+    comboBox.setTitle(text);
+    comboBox.setDescription(text);
     addAndMakeVisible(comboBox);
     
     label.setText(text, juce::dontSendNotification);

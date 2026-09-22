@@ -197,7 +197,7 @@ void StereoDynamicsMeter::paint(juce::Graphics& g)
                                                sideMeterArea.getBottom() - levelHeight, 
                                                sideMeterArea.getWidth(), 
                                                levelHeight);
-        g.setColour(juce::Colour(200, 100, 255)); // Purple for side signal
+        g.setColour(HyperPrismLookAndFeel::Colors::modulation); // Purple for side signal (was a raw literal)
         g.fillRoundedRectangle(levelRect, 2.0f);
     }
     
@@ -317,15 +317,13 @@ StereoDynamicsEditor::StereoDynamicsEditor(StereoDynamicsProcessor& p)
     setupSlider(releaseTimeSlider, releaseTimeLabel, "Release");
     setupSlider(outputLevelSlider, outputLevelLabel, "Output");
 
-    // Color-code knobs by category
-    midThresholdSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    midRatioSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    sideThresholdSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    sideRatioSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    attackTimeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
-    releaseTimeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
-    outputLevelSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
-    
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
+
     // Set parameter ranges (example ranges - adjust based on processor)
     midThresholdSlider.setRange(-60.0, 0.0, 0.1);
     midRatioSlider.setRange(1.0, 20.0, 0.1);
@@ -364,12 +362,17 @@ StereoDynamicsEditor::StereoDynamicsEditor(StereoDynamicsProcessor& p)
     // Bypass button (top right like AutoPan)
     // Bypass button
     bypassButton.setButtonText("Bypass");
+    bypassButton.setTitle("Bypass");
     bypassButton.setClickingTogglesState(true);
     bypassButton.setColour(juce::TextButton::buttonOnColourId,
                             HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
     bypassButton.setColour(juce::TextButton::textColourOnId,
                             HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // Create attachments
     auto& apvts = audioProcessor.getValueTreeState();
@@ -402,7 +405,7 @@ StereoDynamicsEditor::StereoDynamicsEditor(StereoDynamicsProcessor& p)
         updateParametersFromXYPad(x, y);
     };
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     // Add stereo dynamics meter
     addAndMakeVisible(stereoDynamicsMeter);
     
@@ -421,14 +424,21 @@ StereoDynamicsEditor::StereoDynamicsEditor(StereoDynamicsProcessor& p)
     
     // Tooltips
     midThresholdSlider.setTooltip("Compression threshold for the mid (center) channel");
+    midThresholdSlider.setDescription("Compression threshold for the mid (center) channel");
     midRatioSlider.setTooltip("Compression ratio for the mid channel");
+    midRatioSlider.setDescription("Compression ratio for the mid channel");
     sideThresholdSlider.setTooltip("Compression threshold for the side (stereo) channel");
+    sideThresholdSlider.setDescription("Compression threshold for the side (stereo) channel");
     sideRatioSlider.setTooltip("Compression ratio for the side channel");
+    sideRatioSlider.setDescription("Compression ratio for the side channel");
     attackTimeSlider.setTooltip("How quickly compression responds to loud signals");
+    attackTimeSlider.setDescription("How quickly compression responds to loud signals");
     releaseTimeSlider.setTooltip("How quickly compression releases after signal drops");
+    releaseTimeSlider.setDescription("How quickly compression releases after signal drops");
     outputLevelSlider.setTooltip("Overall output volume");
+    outputLevelSlider.setDescription("Overall output volume");
     bypassButton.setTooltip("Bypass the effect");
-
+    bypassButton.setDescription("Bypass the effect");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -439,9 +449,21 @@ StereoDynamicsEditor::~StereoDynamicsEditor()
     setLookAndFeel(nullptr);
 }
 
+void StereoDynamicsEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void StereoDynamicsEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
 
     // Accent line
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
@@ -481,9 +503,11 @@ void StereoDynamicsEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // === FOOTER ===
     bounds.removeFromBottom(20);
@@ -561,7 +585,6 @@ void StereoDynamicsEditor::setupSlider(juce::Slider& slider, ParameterLabel& lab
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
         
     addAndMakeVisible(slider);
     slider.setTitle(text);

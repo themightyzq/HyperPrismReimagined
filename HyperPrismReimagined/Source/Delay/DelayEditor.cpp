@@ -148,13 +148,14 @@ DelayEditor::DelayEditor(DelayProcessor& p)
     setupSlider(highCutSlider, highCutLabel, "High Cut");
     setupSlider(stereoOffsetSlider, stereoOffsetLabel, "Stereo Offset");
 
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
+
     // Color-code knobs by parameter category
-    delayTimeSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
-    feedbackSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
-    lowCutSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
-    highCutSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::frequency);
-    stereoOffsetSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
-    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set up right-click handlers for parameter assignment
     mixLabel.onClick = [this]() { showParameterMenu(&mixLabel, DelayProcessor::MIX_ID); };
@@ -184,15 +185,22 @@ DelayEditor::DelayEditor(DelayProcessor& p)
     tempoSyncButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     tempoSyncButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     addAndMakeVisible(tempoSyncButton);
+    tempoSyncButton.setTitle("Tempo Sync");
+    tempoSyncButton.setDescription("Sync delay time to host tempo");
     
     // Bypass button (top right like AutoPan)
     bypassButton.setButtonText("Bypass");
+    bypassButton.setTitle("Bypass");
     bypassButton.setClickingTogglesState(true);
     bypassButton.setColour(juce::TextButton::buttonOnColourId,
                             HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
     bypassButton.setColour(juce::TextButton::textColourOnId,
                             HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // Create attachments
     auto& apvts = audioProcessor.getValueTreeState();
@@ -239,14 +247,21 @@ DelayEditor::DelayEditor(DelayProcessor& p)
     
     // Tooltips
     delayTimeSlider.setTooltip("Time between the original signal and the delayed repeat");
+    delayTimeSlider.setDescription("Time between the original signal and the delayed repeat");
     feedbackSlider.setTooltip("Amount of delayed signal fed back to create multiple repeats");
+    feedbackSlider.setDescription("Amount of delayed signal fed back to create multiple repeats");
     lowCutSlider.setTooltip("Remove low frequencies from the delayed signal");
+    lowCutSlider.setDescription("Remove low frequencies from the delayed signal");
     highCutSlider.setTooltip("Remove high frequencies from the delayed signal");
+    highCutSlider.setDescription("Remove high frequencies from the delayed signal");
     stereoOffsetSlider.setTooltip("Time difference between left and right delay for stereo width");
+    stereoOffsetSlider.setDescription("Time difference between left and right delay for stereo width");
     mixSlider.setTooltip("Balance between dry and delayed signal");
+    mixSlider.setDescription("Balance between dry and delayed signal");
     bypassButton.setTooltip("Bypass the effect");
+    bypassButton.setDescription("Bypass the effect");
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -257,9 +272,21 @@ DelayEditor::~DelayEditor()
     setLookAndFeel(nullptr);
 }
 
+void DelayEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void DelayEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
 
     // Accent line
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
@@ -298,9 +325,11 @@ void DelayEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // Tempo Sync toggle (top left)
     tempoSyncButton.setBounds(12, 8, 100, 24);
@@ -381,7 +410,6 @@ void DelayEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
         
     addAndMakeVisible(slider);
     slider.setTitle(text);

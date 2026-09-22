@@ -288,11 +288,14 @@ TremoloEditor::TremoloEditor(TremoloProcessor& p)
     setupSlider(stereoPhaseSlider, stereoPhaseLabel, "Stereo Phase");
     setupSlider(mixSlider, mixLabel, "Mix");
 
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
+
     // Color-code knobs by parameter category
-    rateSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
-    depthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
-    stereoPhaseSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
-    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set parameter ranges (example ranges - adjust based on processor)
     rateSlider.setRange(0.1, 20.0, 0.1);
@@ -328,12 +331,17 @@ TremoloEditor::TremoloEditor(TremoloProcessor& p)
     
     // Bypass button (top right like AutoPan)
     bypassButton.setButtonText("Bypass");
+    bypassButton.setTitle("Bypass");
     bypassButton.setClickingTogglesState(true);
     bypassButton.setColour(juce::TextButton::buttonOnColourId,
                             HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
     bypassButton.setColour(juce::TextButton::textColourOnId,
                             HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // Create attachments
     auto& apvts = audioProcessor.getValueTreeState();
@@ -362,7 +370,7 @@ TremoloEditor::TremoloEditor(TremoloProcessor& p)
         updateParametersFromXYPad(x, y);
     };
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     // Add tremolo meter
     addAndMakeVisible(tremoloMeter);
     
@@ -378,12 +386,17 @@ TremoloEditor::TremoloEditor(TremoloProcessor& p)
     
     // Tooltips
     rateSlider.setTooltip("Speed of the volume modulation");
+    rateSlider.setDescription("Speed of the volume modulation");
     depthSlider.setTooltip("Intensity of the volume change");
+    depthSlider.setDescription("Intensity of the volume change");
     stereoPhaseSlider.setTooltip("Phase offset between left and right for stereo tremolo");
+    stereoPhaseSlider.setDescription("Phase offset between left and right for stereo tremolo");
     waveformBox.setTooltip("Shape of the modulation waveform");
+    waveformBox.setDescription("Shape of the modulation waveform");
     mixSlider.setTooltip("Balance between dry and tremolo signal");
+    mixSlider.setDescription("Balance between dry and tremolo signal");
     bypassButton.setTooltip("Bypass the effect");
-
+    bypassButton.setDescription("Bypass the effect");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -394,9 +407,21 @@ TremoloEditor::~TremoloEditor()
     setLookAndFeel(nullptr);
 }
 
+void TremoloEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void TremoloEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
     g.fillRect(12, 4, getWidth() - 24, 2);
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
@@ -426,9 +451,11 @@ void TremoloEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // === FOOTER ===
     bounds.removeFromBottom(20);
@@ -499,7 +526,6 @@ void TremoloEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
@@ -520,6 +546,8 @@ void TremoloEditor::setupComboBox(juce::ComboBox& comboBox, ParameterLabel& labe
     comboBox.setColour(juce::ComboBox::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
     comboBox.setColour(juce::ComboBox::arrowColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     comboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
+    comboBox.setTitle(text);
+    comboBox.setDescription(text);
     addAndMakeVisible(comboBox);
     
     label.setText(text, juce::dontSendNotification);

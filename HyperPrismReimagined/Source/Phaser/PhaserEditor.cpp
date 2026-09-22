@@ -147,12 +147,14 @@ PhaserEditor::PhaserEditor(PhaserProcessor& p)
     setupSlider(stagesSlider, stagesLabel, "Stages");
     setupSlider(mixSlider, mixLabel, "Mix");
 
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
+
     // Color-code knobs by parameter category
-    rateSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
-    depthSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
-    stagesSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
-    feedbackSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::modulation);
-    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
     
     // Set up right-click handlers for parameter assignment
     rateLabel.onClick = [this]() { showParameterMenu(&rateLabel, PhaserProcessor::RATE_ID); };
@@ -176,12 +178,17 @@ PhaserEditor::PhaserEditor(PhaserProcessor& p)
     
     // Bypass button (top right like AutoPan)
     bypassButton.setButtonText("Bypass");
+    bypassButton.setTitle("Bypass");
     bypassButton.setClickingTogglesState(true);
     bypassButton.setColour(juce::TextButton::buttonOnColourId,
                             HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
     bypassButton.setColour(juce::TextButton::textColourOnId,
                             HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // Create attachments
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
@@ -209,7 +216,7 @@ PhaserEditor::PhaserEditor(PhaserProcessor& p)
         updateParametersFromXYPad(x, y);
     };
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     // Update XY pad position based on current parameters
     updateXYPadFromParameters();
     updateParameterColors();
@@ -223,12 +230,17 @@ PhaserEditor::PhaserEditor(PhaserProcessor& p)
     
     // Tooltips
     rateSlider.setTooltip("Speed of the phaser sweep");
+    rateSlider.setDescription("Speed of the phaser sweep");
     depthSlider.setTooltip("Intensity of the phaser modulation");
+    depthSlider.setDescription("Intensity of the phaser modulation");
     feedbackSlider.setTooltip("Resonance — creates a more pronounced swept sound");
+    feedbackSlider.setDescription("Resonance — creates a more pronounced swept sound");
     stagesSlider.setTooltip("Number of allpass stages — more stages means deeper phasing");
+    stagesSlider.setDescription("Number of allpass stages — more stages means deeper phasing");
     mixSlider.setTooltip("Balance between dry and phased signal");
+    mixSlider.setDescription("Balance between dry and phased signal");
     bypassButton.setTooltip("Bypass the effect");
-
+    bypassButton.setDescription("Bypass the effect");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -239,9 +251,21 @@ PhaserEditor::~PhaserEditor()
     setLookAndFeel(nullptr);
 }
 
+void PhaserEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void PhaserEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
 
     // Accent line
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
@@ -283,9 +307,11 @@ void PhaserEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // === FOOTER ===
     bounds.removeFromBottom(20);
@@ -364,7 +390,6 @@ void PhaserEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
         
     addAndMakeVisible(slider);
     slider.setTitle(text);

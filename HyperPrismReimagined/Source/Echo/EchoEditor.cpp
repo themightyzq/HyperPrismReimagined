@@ -143,11 +143,15 @@ EchoEditor::EchoEditor(EchoProcessor& p)
     
     // Setup sliders with consistent style (3 parameters in single row)
     setupSlider(delaySlider, delayLabel, "Delay");
-    delaySlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
     setupSlider(feedbackSlider, feedbackLabel, "Feedback");
-    feedbackSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::timing);
     setupSlider(mixSlider, mixLabel, "Mix");
-    mixSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
+
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
     
     // Set up right-click handlers for parameter assignment
     delayLabel.onClick = [this]() { showParameterMenu(&delayLabel, EchoProcessor::DELAY_ID); };
@@ -165,8 +169,13 @@ EchoEditor::EchoEditor(EchoProcessor& p)
     
     // Bypass button (top right)
     bypassButton.setButtonText("BYPASS");
+    bypassButton.setTitle("BYPASS");
     bypassButton.setClickingTogglesState(true);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // Create attachments
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
@@ -201,11 +210,15 @@ EchoEditor::EchoEditor(EchoProcessor& p)
     
     // Tooltips
     delaySlider.setTooltip("Time between echoes in milliseconds");
+    delaySlider.setDescription("Time between echoes in milliseconds");
     feedbackSlider.setTooltip("Number of echo repeats -- higher values create longer trails");
+    feedbackSlider.setDescription("Number of echo repeats -- higher values create longer trails");
     mixSlider.setTooltip("Balance between dry signal and echo");
+    mixSlider.setDescription("Balance between dry signal and echo");
     bypassButton.setTooltip("Bypass the effect");
+    bypassButton.setDescription("Bypass the effect");
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -216,9 +229,21 @@ EchoEditor::~EchoEditor()
     setLookAndFeel(nullptr);
 }
 
+void EchoEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void EchoEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
 
     // Accent line
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
@@ -256,9 +281,11 @@ void EchoEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // === FOOTER ===
     bounds.removeFromBottom(20);
@@ -329,7 +356,6 @@ void EchoEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
 
     addAndMakeVisible(slider);
     slider.setTitle(text);

@@ -6,8 +6,10 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <zqsfx_ui/zqsfx_ui.h>
 #include "CompressorProcessor.h"
 #include "../Shared/HyperPrismLookAndFeel.h"
+#include "../Shared/HyperPrismAbout.h"
 
 //==============================================================================
 // Clickable parameter label for X/Y assignment
@@ -46,8 +48,11 @@ public:
 private:
     float xValue = 0.5f;
     float yValue = 0.5f;
-    juce::Colour xAxisColor = juce::Colours::cyan;
-    juce::Colour yAxisColor = juce::Colours::yellow;
+    // Defaults only (immediately overwritten by setAxisColors() from the editor's own
+    // xAssignmentColor/yAssignmentColor below) -- kept as house tokens too so nothing here
+    // reads as a stray colour literal.
+    juce::Colour xAxisColor = HyperPrismLookAndFeel::Colors::dynamics;
+    juce::Colour yAxisColor = HyperPrismLookAndFeel::Colors::frequency;
     
     void updatePosition(const juce::MouseEvent& event);
     
@@ -78,15 +83,19 @@ public:
     ~CompressorEditor() override;
 
     void paint(juce::Graphics&) override;
+    void paintOverChildren(juce::Graphics&) override;
     void resized() override;
     void mouseDown(const juce::MouseEvent& event) override;
 
 private:
     CompressorProcessor& audioProcessor;
-    
+
     // Look and Feel
     HyperPrismLookAndFeel customLookAndFeel;
-    
+
+    // ZQ SFX company mark + About box trigger (style guide section 5)
+    zqsfx::ui::LogoMark logo { JucePlugin_Name };
+
     // Sliders
     juce::Slider thresholdSlider;
     juce::Slider ratioSlider;
@@ -132,8 +141,11 @@ private:
     juce::StringArray yParameterIDs;
     
     // Assignment colors
-    const juce::Colour xAssignmentColor = juce::Colour(0, 150, 255);
-    const juce::Colour yAssignmentColor = juce::Colour(255, 220, 0);
+    // Point the XY pad's two axis colours at house group colours (style guide section 3) rather
+    // than an arbitrary blue/yellow: X -> dynamics (sky), Y -> frequency (yellow), independent
+    // of whichever parameter is currently assigned to that axis.
+    const juce::Colour xAssignmentColor = HyperPrismLookAndFeel::Colors::dynamics;
+    const juce::Colour yAssignmentColor = HyperPrismLookAndFeel::Colors::frequency;
     
     void setupSlider(juce::Slider& slider, juce::Label& label, const juce::String& text);
     void updateParameterColors();

@@ -14,6 +14,17 @@ option(JUCE_ENABLE_MODULE_SOURCE_GROUPS "Enable Module Source Groups" ON)
 # Adding the JUCE subfolder
 add_subdirectory(JUCE)
 
+# The ZQ SFX house UI (tokens, LookAndFeel, bound controls, embedded OFL fonts). Must come AFTER
+# JUCE (its CMakeLists detects the juce::juce_gui_basics target add_subdirectory(JUCE) above
+# just created and skips fetching its own copy). Pinned by tag: bump deliberately, then re-run
+# the hyperprism_ui_snapshot_* tools and compare before/after.
+include(FetchContent)
+FetchContent_Declare(zqsfx_ui
+    GIT_REPOSITORY https://github.com/themightyzq/zqsfx_ui.git
+    GIT_TAG v0.2.1
+    GIT_SHALLOW TRUE)
+FetchContent_MakeAvailable(zqsfx_ui)
+
 # Define plugin formats to build (VST3 only - no AU)
 if(APPLE)
     set(PLUGIN_FORMATS VST3 Standalone)
@@ -66,6 +77,7 @@ function(configure_hyperprism_plugin target_name)
             juce::juce_graphics
             juce::juce_gui_basics
             juce::juce_gui_extra
+            zqsfx::ui
         PUBLIC
             juce::juce_recommended_config_flags
             juce::juce_recommended_lto_flags
@@ -1140,3 +1152,34 @@ target_sources(HyperPrismEcho
 configure_hyperprism_plugin(HyperPrismEcho)
 
 # All 32 HyperPrism plugins are now implemented!
+
+# ---- UI snapshot tool (headless before/after render gate for the zqsfx_ui house-UI migration;
+# see tools/ui_snapshot/main.cpp and docs/ui_migration_report.md). Piloted for three plugins:
+# Compressor (XY pad + dynamics), Chorus (modulation), BandPass (frequency). See
+# tools/ui_snapshot/main.cpp's header comment for why this is one function per plugin rather
+# than a single "hyperprism_ui_snapshot" binary.
+function(add_hyperprism_ui_snapshot plugin_target effect_dir processor_header processor_class)
+    set(snapshot_target "hyperprism_ui_snapshot_${plugin_target}")
+    juce_add_console_app(${snapshot_target} PRODUCT_NAME "${snapshot_target}")
+    target_sources(${snapshot_target} PRIVATE tools/ui_snapshot/main.cpp)
+    target_compile_definitions(${snapshot_target} PRIVATE
+        "HP_SNAPSHOT_PROCESSOR_HEADER=\"${processor_header}\""
+        "HP_SNAPSHOT_PROCESSOR_CLASS=${processor_class}")
+    # juce_generate_juce_header(${plugin_target})'s generated JuceHeader.h is only added to the
+    # plugin target's OWN include path as PRIVATE (see JUCEUtils.cmake), so it does not
+    # propagate through target_link_libraries; added back explicitly here (the LFlOw migration's
+    # "JUCE_GENERATED_SOURCES_DIRECTORY propagation trick", see its docs/ui_migration_report.md).
+    target_include_directories(${snapshot_target} PRIVATE
+        Source/${effect_dir}
+        Source/Shared
+        $<TARGET_PROPERTY:${plugin_target},JUCE_GENERATED_SOURCES_DIRECTORY>)
+    target_link_libraries(${snapshot_target} PRIVATE
+        ${plugin_target}
+        zqsfx::ui
+        juce::juce_audio_utils
+        juce::juce_dsp)
+endfunction()
+
+add_hyperprism_ui_snapshot(HyperPrismCompressor Compressor CompressorProcessor.h CompressorProcessor)
+add_hyperprism_ui_snapshot(HyperPrismChorus     Chorus     ChorusProcessor.h     ChorusProcessor)
+add_hyperprism_ui_snapshot(HyperPrismBandPass   BandPass   BandPassProcessor.h   BandPassProcessor)

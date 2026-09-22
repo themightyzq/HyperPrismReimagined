@@ -147,13 +147,13 @@ BassMaximiserEditor::BassMaximiserEditor(BassMaximiserProcessor& p)
     setupSlider(tightnessSlider, tightnessLabel, "Tightness");
     setupSlider(outputGainSlider, outputGainLabel, "Output");
 
-    // Color-code knobs by category
-    frequencySlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    boostSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    harmonicsSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    tightnessSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::dynamics);
-    outputGainSlider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::output);
-    
+    // NOTE: the pre-migration per-slider rotarySliderFillColourId "arc colour by category"
+    // set calls were removed here: the house zqsfx::ui::LookAndFeel::drawRotarySlider
+    // (filmstrip knobs) consults no per-control colour ID at all, so they had become dead
+    // code. The group colour they used to paint survives through the still-live, still-
+    // coloured column headers (paintColumnHeader() in paint() below), which every knob in
+    // that column already matched by design.
+
     // Set up right-click handlers for parameter assignment
     frequencyLabel.onClick = [this]() { showParameterMenu(&frequencyLabel, FREQUENCY_ID); };
     boostLabel.onClick = [this]() { showParameterMenu(&boostLabel, BOOST_ID); };
@@ -179,16 +179,23 @@ BassMaximiserEditor::BassMaximiserEditor(BassMaximiserProcessor& p)
     phaseInvertButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     phaseInvertButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     addAndMakeVisible(phaseInvertButton);
+    phaseInvertButton.setTitle("Phase Invert");
+    phaseInvertButton.setDescription("Invert the output signal phase");
     
     // Bypass button (top right like AutoPan)
     // Bypass button
     bypassButton.setButtonText("Bypass");
+    bypassButton.setTitle("Bypass");
     bypassButton.setClickingTogglesState(true);
     bypassButton.setColour(juce::TextButton::buttonOnColourId,
                             HyperPrismLookAndFeel::Colors::error.withAlpha(0.6f));
     bypassButton.setColour(juce::TextButton::textColourOnId,
                             HyperPrismLookAndFeel::Colors::onSurface);
     addAndMakeVisible(bypassButton);
+
+    // ZQ SFX company mark (far right of the header) -- also the About-box trigger.
+    addAndMakeVisible(logo);
+    logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
     // Create attachments
     auto& apvts = audioProcessor.getValueTreeState();
@@ -232,13 +239,19 @@ BassMaximiserEditor::BassMaximiserEditor(BassMaximiserProcessor& p)
     
     // Tooltips
     frequencySlider.setTooltip("Crossover frequency -- bass below this point is boosted");
+    frequencySlider.setDescription("Crossover frequency -- bass below this point is boosted");
     boostSlider.setTooltip("Amount of bass boost in decibels");
+    boostSlider.setDescription("Amount of bass boost in decibels");
     harmonicsSlider.setTooltip("Adds harmonic overtones to make bass audible on small speakers");
+    harmonicsSlider.setDescription("Adds harmonic overtones to make bass audible on small speakers");
     tightnessSlider.setTooltip("Compresses the bass to keep it controlled and punchy");
+    tightnessSlider.setDescription("Compresses the bass to keep it controlled and punchy");
     outputGainSlider.setTooltip("Overall output volume after processing");
+    outputGainSlider.setDescription("Overall output volume after processing");
     bypassButton.setTooltip("Bypass the effect");
+    bypassButton.setDescription("Bypass the effect");
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
-
+    xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
@@ -249,9 +262,21 @@ BassMaximiserEditor::~BassMaximiserEditor()
     setLookAndFeel(nullptr);
 }
 
+void BassMaximiserEditor::paintOverChildren(juce::Graphics& g)
+{
+    // Redraws the "which knobs feed the XY pad" badge (see HyperPrismLookAndFeel.h)
+    // that the pre-migration drawRotarySlider used to draw inline; the house filmstrip
+    // drawRotarySlider consults no per-slider property, so this now lives here instead.
+    HyperPrismLookAndFeel::paintXYAssignmentBadges(g, *this);
+}
+
 void BassMaximiserEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(HyperPrismLookAndFeel::Colors::background);
+    auto chassisBounds = getLocalBounds().toFloat();
+
+    g.setGradientFill(zqsfx::ui::gradients::chassis(chassisBounds));
+
+    g.fillRect(chassisBounds);
 
     // Accent line
     g.setColour(HyperPrismLookAndFeel::Colors::primary.withAlpha(0.4f));
@@ -292,9 +317,11 @@ void BassMaximiserEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
-    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 112, 20);
-    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 112, 16);
-    bypassButton.setBounds(header.getRight() - 90, 36, 80, 26);
+    titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
+    brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
+    // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
+    logo.setBounds(header.getRight() - 28, 8, 24, 24);
+    bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
     // === FOOTER ===
     bounds.removeFromBottom(20);
@@ -373,7 +400,6 @@ void BassMaximiserEditor::setupSlider(juce::Slider& slider, ParameterLabel& labe
 {
     slider.setSliderStyle(juce::Slider::RotaryVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 20);
-    slider.setColour(juce::Slider::rotarySliderFillColourId, HyperPrismLookAndFeel::Colors::primary);
         
     addAndMakeVisible(slider);
     slider.setTitle(text);

@@ -6,8 +6,10 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <zqsfx_ui/zqsfx_ui.h>
 #include "HarmonicExciterProcessor.h"
 #include "../Shared/HyperPrismLookAndFeel.h"
+#include "../Shared/HyperPrismAbout.h"
 
 //==============================================================================
 // Clickable parameter label for X/Y assignment
@@ -51,8 +53,8 @@ private:
     
     float xValue = 0.5f;
     float yValue = 0.5f;
-    juce::Colour xAxisColor = juce::Colour(0, 150, 255);   // Blue
-    juce::Colour yAxisColor = juce::Colour(255, 220, 0);    // Yellow
+    juce::Colour xAxisColor = HyperPrismLookAndFeel::Colors::dynamics;   // was blue literal
+    juce::Colour yAxisColor = HyperPrismLookAndFeel::Colors::frequency;    // was yellow literal
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(XYPad)
 };
@@ -67,6 +69,8 @@ public:
     ~HarmonicExciterEditor() override;
 
     void paint(juce::Graphics&) override;
+
+    void paintOverChildren(juce::Graphics&) override;
     void resized() override;
     void mouseDown(const juce::MouseEvent& event) override;
 
@@ -91,6 +95,9 @@ private:
     
     HarmonicExciterProcessor& audioProcessor;
     HyperPrismLookAndFeel customLookAndFeel;
+
+    // ZQ SFX company mark + About box trigger (style guide section 5)
+    zqsfx::ui::LogoMark logo { JucePlugin_Name };
     
     // Title
     juce::Label titleLabel;
@@ -125,8 +132,8 @@ private:
     juce::StringArray yParameterIDs;
     
     // Color coding for assignments
-    const juce::Colour xAssignmentColor = juce::Colour(0, 150, 255);   // Blue
-    const juce::Colour yAssignmentColor = juce::Colour(255, 220, 0);   // Yellow
+    const juce::Colour xAssignmentColor = HyperPrismLookAndFeel::Colors::dynamics;   // was blue literal
+    const juce::Colour yAssignmentColor = HyperPrismLookAndFeel::Colors::frequency;   // was yellow literal
 
     int outputSectionX = 0;
     int outputSectionY = 0;
