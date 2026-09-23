@@ -1,4 +1,4 @@
-// hyperprism_stereo_null_check_<PluginTarget>: feeds an identical mono signal to both
+// hp_stereo_null_<Effect>: feeds an identical mono signal to both
 // channels of the plugin at a strong setting and asserts the two outputs are identical.
 // Catches per-channel DSP state that is shared between channels (SonicDecimator had one
 // decimator and one bit crusher processed channel by channel until 2026-09-23). Built per

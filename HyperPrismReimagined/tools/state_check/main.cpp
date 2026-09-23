@@ -1,4 +1,4 @@
-// hyperprism_state_check_<PluginTarget>: proves that a session saved by the plugin's
+// hp_state_<Effect>: proves that a session saved by the plugin's
 // pre-APVTS getStateInformation (2026-09-23 migration of HarmonicExciter and NoiseGate)
 // restores identically through the new setStateInformation, and that the new format
 // round-trips into a fresh instance. Built per plugin by add_hyperprism_state_check() in

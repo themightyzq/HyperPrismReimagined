@@ -1,4 +1,4 @@
-// hyperprism_preset_roundtrip_<PluginTarget>: proves hp::PresetManager (Source/Shared/
+// hp_preset_<Effect>: proves hp::PresetManager (Source/Shared/
 // PresetManager.h) really round-trips real parameter values through a user preset file on
 // disk, and that a preset name saved via saveUser() survives an ordinary
 // getStateInformation()/setStateInformation() round trip -- the way a host restores a saved

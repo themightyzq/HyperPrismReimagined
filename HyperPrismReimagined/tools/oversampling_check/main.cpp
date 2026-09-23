@@ -1,4 +1,4 @@
-// hyperprism_oversampling_check_<PluginTarget>: proves that the plugin's nonlinear stage
+// hp_oversampling_<Effect>: proves that the plugin's nonlinear stage
 // (saturation waveshaper / harmonic generator / bit-rate quantiser) is running through its
 // 4x juce::dsp::Oversampling wrapper, and that the reported latency is block-size invariant
 // at 44.1/48/96 kHz. Meant to be built per plugin the same way tools/state_check/main.cpp

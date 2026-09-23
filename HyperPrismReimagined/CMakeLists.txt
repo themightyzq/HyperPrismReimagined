@@ -1550,7 +1550,8 @@ add_hyperprism_ui_snapshot(HyperPrismBandPass   BandPass   BandPassProcessor.h  
 # tests. Same link pattern as add_hyperprism_ui_snapshot().
 enable_testing()
 function(add_hyperprism_state_check plugin_target effect_dir processor_header processor_class flag)
-    set(check_target "hyperprism_state_check_${plugin_target}")
+    string(REPLACE "HyperPrism" "" effect_short "${plugin_target}")
+    set(check_target "hp_state_${effect_short}")   # short: Windows MAX_PATH on the generated .rc path
     juce_add_console_app(${check_target} PRODUCT_NAME "${check_target}")
     target_sources(${check_target} PRIVATE tools/state_check/main.cpp)
     target_compile_definitions(${check_target} PRIVATE
@@ -1578,7 +1579,8 @@ add_hyperprism_state_check(HyperPrismNoiseGate       NoiseGate       NoiseGatePr
 # extra apvts_kind argument is "member" for a plugin whose APVTS is a public `apvts` member
 # (Compressor) or "accessor" for one exposing `getValueTreeState()` (Chorus, BandPass).
 function(add_hyperprism_preset_roundtrip plugin_target effect_dir processor_header processor_class apvts_kind param_a param_b)
-    set(check_target "hyperprism_preset_roundtrip_${plugin_target}")
+    string(REPLACE "HyperPrism" "" effect_short "${plugin_target}")
+    set(check_target "hp_preset_${effect_short}")  # short: Windows MAX_PATH on the generated .rc path
     if(apvts_kind STREQUAL "member")
         set(apvts_is_member 1)
     else()
@@ -1619,7 +1621,9 @@ add_hyperprism_preset_roundtrip(HyperPrismBandPass   BandPass   BandPassProcesso
 # SonicDecimator per-channel state fix, 2026-09-23) and the oversampling alias/latency check
 # (tools/oversampling_check/main.cpp). Same link pattern as add_hyperprism_state_check().
 function(add_hyperprism_console_check kind plugin_target effect_dir processor_header processor_class flag)
-    set(check_target "hyperprism_${kind}_${plugin_target}")
+    string(REPLACE "HyperPrism" "" effect_short "${plugin_target}")
+    string(REPLACE "_check" "" kind_short "${kind}")
+    set(check_target "hp_${kind_short}_${effect_short}")  # short: Windows MAX_PATH on the generated .rc path
     juce_add_console_app(${check_target} PRODUCT_NAME "${check_target}")
     target_sources(${check_target} PRIVATE tools/${kind}/main.cpp)
     target_compile_definitions(${check_target} PRIVATE
