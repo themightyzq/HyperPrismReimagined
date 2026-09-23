@@ -1,160 +1,103 @@
 # HyperPrism Reimagined
 
-A complete recreation of the classic Arboretum HyperPrism audio effect suite from the 1990s, rebuilt as 32 professional VST3 plugins using the JUCE framework.
+HyperPrism Reimagined is a suite of 32 audio effect plugins that recreate the 1990s Arboretum
+HyperPrism suite: dynamics, modulation, filters, delay and reverb, stereo and spatial tools,
+pitch and frequency effects, and distortion and enhancement. It ships as VST3, AU, and
+Standalone on macOS (a universal binary covering Apple Silicon and Intel), and VST3 and
+Standalone on Windows and Linux. Every plugin shares the same layout: parameter knobs, an XY
+pad you can assign any two parameters to, and a tooltip on every control. Built with JUCE. The
+original HyperPrism concept is by Arboretum Systems.
 
-## Overview
+## Install
 
-HyperPrism Reimagined brings legendary effects into the modern era with:
+Download the current release from
+https://github.com/themightyzq/HyperPrismReimagined/releases:
+`HyperPrism-Reimagined-macOS.zip`, `HyperPrism-Reimagined-Windows.zip`, or
+`HyperPrism-Reimagined-Linux.zip`.
 
-- **32 high-quality audio effect plugins** covering dynamics, modulation, filters, delays, spatial processing, and more
-- **VST3 format** — compatible with all major DAWs (Logic Pro 10.7+, REAPER, Ableton, Cubase, etc.)
-- **Universal Binary** on macOS (Apple Silicon + Intel)
-- **Consistent design system** — vertical column layout, XY pad interaction, semantic color coding
-- **Full automation support** with right-click XY pad parameter assignment
-- **Accessible** — tooltips on every control, WCAG AA contrast compliance
+These release builds are VST3 only. AU support was added to the source on 2026-09-22 and is
+not in a release yet. If you need AU, for example to use HyperPrism in Logic Pro, build from
+source (below) until the next release.
 
-## Plugin Suite
+The binaries are unsigned. On macOS, right-click the plugin and choose Open the first time,
+since Gatekeeper blocks a plain double-click.
 
-### Dynamics (4 plugins)
-- **Compressor** — Threshold/ratio/knee compressor with makeup gain and parallel mix
-- **Limiter** — Brick-wall limiter with ceiling, lookahead, and soft clip mode
-- **Noise Gate** — Gate with threshold, attack, hold, release, range, and lookahead
-- **Stereo Dynamics** — Independent mid/side compression with separate threshold and ratio
+## Use
 
-### Modulation (7 plugins)
-- **Chorus** — Multi-voice chorus with rate, depth, delay, feedback, and tone controls
-- **Flanger** — Classic flanger with rate, depth, feedback, delay, phase, and tone shaping
-- **Phaser** — Multi-stage phaser with rate, depth, feedback, and variable stages
-- **HyperPhaser** — Extended phaser with base frequency sweep, bandwidth, and feedback
-- **Tremolo** — Amplitude modulation with rate, depth, stereo phase, and waveform selection
-- **Vibrato** — Pitch modulation with rate, depth, delay, and feedback
-- **AutoPan** — Automatic stereo panning with rate, depth, phase, and waveform control
+Load any of the 32 plugins as an effect on a track in your DAW. Every plugin has the same
+controls: knobs for its parameters, and an XY pad on the right. Right-click the XY pad to
+assign any two parameters to its X and Y axes, then drag the pad to control both at once.
+Hover any control to see a tooltip describing it.
 
-### Filters (4 plugins)
-- **High-Pass Filter** — Resonant high-pass with frequency, resonance, and gain
-- **Low-Pass Filter** — Resonant low-pass with frequency, resonance, and gain
-- **Band-Pass Filter** — Variable-width band-pass with center frequency, bandwidth, and gain
-- **Band-Reject Filter** — Notch/band-reject with center frequency, Q, and gain
+Logic Pro hosts Audio Unit plugins only. Use the AU build there once one is available (see
+Install above). Pro Tools is not supported: it requires AAX, which is not built.
 
-### Delay & Reverb (5 plugins)
-- **Delay** — Stereo delay with feedback, tone shaping, stereo offset, and tempo sync
-- **Single Delay** — Simple delay with feedback, stereo spread, and high/low cut filters
-- **Echo** — Classic echo with delay time and feedback
-- **Multi Delay** — 4-tap delay with per-tap time, level, pan, and feedback (tab-based UI)
-- **Reverb** — Algorithmic reverb with room size, damping, pre-delay, width, and tone
+## The 32 plugins
 
-### Stereo & Spatial (5 plugins)
-- **Pan** — Stereo panner with position, width, balance, and pan law selection
-- **Quasi Stereo** — Mono-to-stereo widening with delay, frequency shift, and phase manipulation
-- **More Stereo** — Stereo enhancement with width, bass mono, crossover, and ambience
-- **M+S Matrix** — Mid/side encoding/decoding with level control, balance, and solo
-- **Stereo Dynamics** — (listed under Dynamics)
+### Dynamics
+- Compressor: threshold/ratio/knee compressor with makeup gain and parallel mix
+- Limiter: brick-wall limiter with ceiling, lookahead, and soft clip mode
+- Noise Gate: gate with threshold, attack, hold, release, range, and lookahead
+- Stereo Dynamics: independent mid/side compression with separate threshold and ratio
 
-### Pitch & Frequency (4 plugins)
-- **Pitch Changer** — Pitch shifting with semitone/cent control and formant preservation
-- **Frequency Shifter** — Linear frequency shifting with fine control
-- **Ring Modulator** — Ring modulation with carrier/modulator frequency and waveform selection
-- **Vocoder** — Multi-band vocoder with carrier frequency, band count, and envelope control
+### Modulation
+- Chorus: multi-voice chorus with rate, depth, delay, feedback, and tone controls
+- Flanger: classic flanger with rate, depth, feedback, delay, phase, and tone shaping
+- Phaser: multi-stage phaser with rate, depth, feedback, and variable stages
+- HyperPhaser: extended phaser with base frequency sweep, bandwidth, and feedback
+- Tremolo: amplitude modulation with rate, depth, stereo phase, and waveform selection
+- Vibrato: pitch modulation with rate, depth, delay, and feedback
+- AutoPan: automatic stereo panning with rate, depth, phase, and waveform control
 
-### Distortion & Enhancement (4 plugins)
-- **Tube/Tape Saturation** — Analog-style saturation with drive, warmth, and brightness
-- **Harmonic Exciter** — Harmonic generation with drive, frequency, harmonics, and type selection
-- **Sonic Decimator** — Bit crusher with bit depth, sample rate reduction, anti-alias, and dither
-- **Bass Maximiser** — Low-end enhancement with frequency, boost, harmonics, and tightness
+### Filters
+- High-Pass Filter: resonant high-pass with frequency, resonance, and gain
+- Low-Pass Filter: resonant low-pass with frequency, resonance, and gain
+- Band-Pass Filter: variable-width band-pass with center frequency, bandwidth, and gain
+- Band-Reject Filter: notch/band-reject with center frequency, Q, and gain
 
-## Architecture
+### Delay and Reverb
+- Delay: stereo delay with feedback, tone shaping, stereo offset, and tempo sync
+- Single Delay: simple delay with feedback, stereo spread, and high/low cut filters
+- Echo: classic echo with delay time and feedback
+- Multi Delay: 4-tap delay with per-tap time, level, pan, and feedback, tab-based UI
+- Reverb: algorithmic reverb with room size, damping, pre-delay, width, and tone
 
-### UI Design System
+### Stereo and Spatial
+- Pan: stereo panner with position, width, balance, and pan law selection
+- Quasi Stereo: mono-to-stereo widening with delay, frequency shift, and phase manipulation
+- More Stereo: stereo enhancement with width, bass mono, crossover, and ambience
+- M+S Matrix: mid/side encoding and decoding with level control, balance, and solo
 
-Every plugin uses a vertical column layout with a fixed-width XY pad on the right:
+### Pitch and Frequency
+- Pitch Changer: pitch shifting with semitone/cent control and formant preservation
+- Frequency Shifter: linear frequency shifting with fine control
+- Ring Modulator: ring modulation with carrier/modulator frequency and waveform selection
+- Vocoder: multi-band vocoder with carrier frequency, band count, and envelope control
 
-```
-┌──────────────────────┬──────────────────────────────┐
-│  COLUMN 1  │ COL 2   │                              │
-│  ○ Knob    │ ○ Knob  │        XY PAD (300px)        │
-│  ○ Knob    │ ○ Knob  │                              │
-│  ○ Knob    │         ├──────────┬───────────────────┤
-│            │         │ OUTPUT   │      METER        │
-│            │         │ ○ Mix    │                   │
-└────────────┴─────────┴──────────┴───────────────────┘
-```
+### Distortion and Enhancement
+- Tube/Tape Saturation: analog-style saturation with drive, warmth, and brightness
+- Harmonic Exciter: harmonic generation with drive, frequency, harmonics, and type selection
+- Sonic Decimator: bit crusher with bit depth, sample rate reduction, anti-alias, and dither
+- Bass Maximiser: low-end enhancement with frequency, boost, harmonics, and tightness
 
-- **Semantic color system** — 5 colors (cyan/purple/pink/amber/green) mapped to parameter categories, with all knobs in a column matching the column header color
-- **XY Pad** — 2D control surface with right-click parameter assignment (blue X-axis, yellow Y-axis)
-- **Unified output section** — consistent knob sizes and meter placement across all plugins
-- **10px vertical gaps** between knobs for comfortable visual separation
+## Build from source
 
-### Plugin Architecture
-
-Each plugin follows JUCE's standard pattern:
-- **Processor** (`*Processor.cpp/h`) — DSP, parameter management via APVTS
-- **Editor** (`*Editor.cpp/h`) — GUI with vertical column layout
-- **Plugin** (`*Plugin.cpp`) — Factory entry point
-
-### Shared Components
-- `HyperPrismLookAndFeel` — Custom dark theme with semantic color system
-- `StandardLayout` — Layout constants and helpers
-- `XYPadComponent` — Interactive 2D parameter control pad
-
-## Building from Source
-
-### Requirements
-- macOS 12+ (Universal Binary: Apple Silicon + Intel)
-- CMake 3.22+
-- C++17 compiler (Xcode 14+ recommended)
-- Git (for JUCE submodule)
-
-### Build Commands
+Requirements: CMake 3.22 or newer, a C++17 compiler (Xcode command-line tools on macOS), and
+Git for the JUCE submodule.
 
 ```bash
-# Clone with submodules
 git clone --recursive https://github.com/themightyzq/HyperPrismReimagined.git
 cd HyperPrismReimagined/HyperPrismReimagined
-
-# Clean Universal Binary build
-rm -rf build
 cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+cmake --build build --config Release -j 8
 ```
 
-`CMAKE_OSX_ARCHITECTURES` is set in CMakeLists.txt before `project()` per best practices. `COPY_PLUGIN_AFTER_BUILD TRUE` auto-installs plugins to `~/Library/Audio/Plug-Ins/VST3/`.
+The macOS build produces a universal binary (Apple Silicon and Intel) and installs plugins to
+`~/Library/Audio/Plug-Ins/VST3/` and `~/Library/Audio/Plug-Ins/Components/` automatically.
 
-### Code Signing & Notarization
+## Licence
 
-```bash
-codesign --force --deep --options runtime --timestamp \
-    --sign "Developer ID Application: Your Name (TEAM_ID)" plugin.vst3
-```
+GPL-3.0-or-later. Built with JUCE. Releases before 2026-09-21 were offered under CC BY-NC 4.0;
+that licence still applies to those copies.
 
-See `JUCE_VST3_BEST_PRACTICES.md` for full signing and notarization workflow.
-
-## Testing
-
-- **Primary DAW:** REAPER (excellent VST3 support, detailed plugin info)
-- **Validation:** `pluginval --validate plugin.vst3 --strictness-level 10`
-- **Architecture:** `file plugin.vst3/Contents/MacOS/PluginName` (verify Universal Binary)
-- **Signature:** `codesign -v plugin.vst3`
-
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| `CLAUDE.md` | AI operations manual for code changes |
-| `JUCE_VST3_BEST_PRACTICES.md` | Build system, host compatibility, signing |
-| `JUCE_VST3_UI_UX_BEST_PRACTICES.md` | UI design system, layout rules, color system |
-| `CHANGELOG.md` | Version history |
-
-## License
-
-Copyright (c) 2025-2026 ZQ SFX.
-
-Licensed under the GNU General Public License v3.0 or later (GPL-3.0-or-later). See
-[LICENSE](LICENSE). Built with [JUCE](https://juce.com), used under its AGPLv3 option, which
-GPL-3.0 is compatible with.
-
-Releases before 2026-09-21 were offered under CC BY-NC 4.0; that grant stands for those copies.
-
-## Credits
-
-Original HyperPrism concept by Arboretum Systems (1990s).
-Modern recreation by ZQ SFX using the JUCE framework.
+ZQ SFX, https://www.zq-sfx.com, connect@zq-sfx.com.

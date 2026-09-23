@@ -25,9 +25,9 @@ FetchContent_Declare(zqsfx_ui
     GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(zqsfx_ui)
 
-# Define plugin formats to build (VST3 only - no AU)
+# Define plugin formats to build (VST3 + AU on macOS; Logic Pro hosts AU, not VST3)
 if(APPLE)
-    set(PLUGIN_FORMATS VST3 Standalone)
+    set(PLUGIN_FORMATS VST3 AU Standalone)
 elseif(WIN32)
     set(PLUGIN_FORMATS VST3 Standalone)
 else()
@@ -92,6 +92,7 @@ juce_add_plugin(HyperPrismDelay
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -134,6 +135,7 @@ juce_add_plugin(HyperPrismReverb
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -167,6 +169,7 @@ juce_add_plugin(HyperPrismChorus
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -200,6 +203,7 @@ juce_add_plugin(HyperPrismFlanger
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -233,6 +237,7 @@ juce_add_plugin(HyperPrismHighPass
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -266,6 +271,7 @@ juce_add_plugin(HyperPrismLowPass
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -299,6 +305,7 @@ juce_add_plugin(HyperPrismBandPass
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -332,6 +339,7 @@ juce_add_plugin(HyperPrismBandReject
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -365,6 +373,7 @@ juce_add_plugin(HyperPrismTremolo
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -398,6 +407,7 @@ juce_add_plugin(HyperPrismVibrato
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -431,6 +441,7 @@ juce_add_plugin(HyperPrismPhaser
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -464,6 +475,7 @@ juce_add_plugin(HyperPrismNoiseGate
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -497,6 +509,7 @@ juce_add_plugin(HyperPrismCompressor
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -530,6 +543,7 @@ juce_add_plugin(HyperPrismLimiter
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -563,6 +577,7 @@ juce_add_plugin(HyperPrismTubeTapeSaturation
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -596,6 +611,7 @@ juce_add_plugin(HyperPrismHarmonicExciter
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -629,6 +645,7 @@ juce_add_plugin(HyperPrismBassMaximiser
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -663,6 +680,7 @@ juce_add_plugin(HyperPrismSingleDelay
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -696,6 +714,7 @@ juce_add_plugin(HyperPrismMultiDelay
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -729,6 +748,7 @@ juce_add_plugin(HyperPrismPan
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -762,6 +782,7 @@ juce_add_plugin(HyperPrismAutoPan
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -795,6 +816,7 @@ juce_add_plugin(HyperPrismQuasiStereo
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -828,6 +850,7 @@ juce_add_plugin(HyperPrismMoreStereo
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -861,6 +884,7 @@ juce_add_plugin(HyperPrismMSMatrix
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -894,6 +918,7 @@ juce_add_plugin(HyperPrismStereoDynamics
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -927,6 +952,7 @@ juce_add_plugin(HyperPrismFrequencyShifter
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -960,6 +986,7 @@ juce_add_plugin(HyperPrismVocoder
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -993,6 +1020,7 @@ juce_add_plugin(HyperPrismPitchChanger
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -1026,6 +1054,7 @@ juce_add_plugin(HyperPrismSonicDecimator
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -1059,6 +1088,7 @@ juce_add_plugin(HyperPrismRingModulator
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -1092,6 +1122,7 @@ juce_add_plugin(HyperPrismHyperPhaser
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
@@ -1125,6 +1156,7 @@ juce_add_plugin(HyperPrismEcho
     COMPANY_EMAIL "connect@zq-sfx.com"
     COMPANY_COPYRIGHT "Copyright (c) 2026 ZQ SFX"
     IS_SYNTH FALSE
+    AU_MAIN_TYPE               "kAudioUnitType_Effect"
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE

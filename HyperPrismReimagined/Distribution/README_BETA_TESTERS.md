@@ -1,153 +1,77 @@
-# HyperPrism Reimagined - Beta Test Distribution
+# Installing and testing HyperPrism Reimagined
 
-Thank you for testing HyperPrism Reimagined! This document contains installation instructions and important information for beta testers.
+HyperPrism Reimagined is a suite of 32 audio effect plugins recreating the 1990s Arboretum
+HyperPrism suite. This document covers installing the current release and where to send
+feedback. The public release is a rolling `latest` build; there is no separate beta build.
 
-## Version 1.0.0 Beta
-
-### What's Included
-- 32 professional audio effect VST3 plugins
-- Unified 650x600 interface across all plugins
-- XY Pad control on applicable effects
-- Real-time visual feedback and metering
-
-## Installation Instructions
+## Install
 
 ### macOS
 
-#### Option 1: Installer Package (Recommended)
-1. Double-click `HyperPrism_Reimagined_v1.0_Mac_Installer.pkg`
-2. Follow the installation wizard
-3. Plugins will be installed to `/Library/Audio/Plug-Ins/VST3/`
-4. Restart your DAW and rescan plugins
+1. Download `HyperPrism-Reimagined-macOS.zip` from
+   https://github.com/themightyzq/HyperPrismReimagined/releases and unzip it.
+2. Copy the `.vst3` bundles to `~/Library/Audio/Plug-Ins/VST3/` (just for you) or
+   `/Library/Audio/Plug-Ins/VST3/` (all users).
+3. The plugins are unsigned. If macOS blocks them, right-click each plugin and choose Open,
+   then click Open again in the dialog. This is only needed once per plugin.
+4. Restart your DAW and rescan plugins.
 
-#### Option 2: Manual Installation
-1. Extract `HyperPrism_Reimagined_v1.0_Mac.zip`
-2. Copy all `.vst3` bundles to `/Library/Audio/Plug-Ins/VST3/`
-3. If you see a security warning:
-   - Right-click the plugin and select "Open"
-   - Click "Open" in the dialog
-   - This only needs to be done once per plugin
+AU is not in this release yet; it was added to the source after the last build. To use
+HyperPrism in Logic Pro or another AU-only host today, build the AU target from source.
 
 ### Windows
 
-#### Option 1: Installer (Recommended)
-1. Run `HyperPrism_Reimagined_v1.0_Setup.exe`
-2. Follow the installation wizard
-3. Choose full or custom installation
-4. Plugins will be installed to `C:\Program Files\Common Files\VST3\`
-5. Restart your DAW and rescan plugins
+1. Download `HyperPrism-Reimagined-Windows.zip` from the releases page above and unzip it.
+2. Copy the `.vst3` folders to `C:\Program Files\Common Files\VST3\`. This may need
+   administrator privileges.
+3. Restart your DAW and rescan plugins.
 
-#### Option 2: Manual Installation
-1. Extract `HyperPrism_Reimagined_v1.0_Windows.zip`
-2. Copy all `.vst3` folders to `C:\Program Files\Common Files\VST3\`
-3. You may need administrator privileges
+### Linux
 
-## DAW-Specific Notes
+1. Download `HyperPrism-Reimagined-Linux.zip` from the releases page above and unzip it.
+2. Copy the `.vst3` bundles to `~/.vst3/`.
+3. Restart your DAW and rescan plugins.
 
-### Logic Pro
-- Requires Logic Pro 10.7 or later for VST3 support
-- Rescan: Logic Pro → Settings → Plug-in Manager → Reset & Rescan
+## DAW-specific notes
 
-### Ableton Live
-- Rescan: Preferences → Plug-ins → Rescan
-- Look under "HyperPrism Reimagined" manufacturer
+- Logic Pro: does not host VST3. It needs the AU build, which is not in this release yet;
+  build it from source (see Install above).
+- Ableton Live: Preferences > Plug-ins > Rescan. Look under the ZQ SFX manufacturer, not
+  "HyperPrism Reimagined".
+- Cubase/Nuendo: Studio > VST Plug-in Manager > Refresh. Check the blocklist if plugins do
+  not appear.
+- Studio One: Options > Locations > VST Plug-ins > Scan, then drag from the browser to a
+  track.
+- REAPER: Options > Preferences > VST > Re-scan. Auto-detects the VST3 folder.
+- FL Studio: Options > Manage Plugins > Find Plugins, check the Installed section.
 
-### Cubase/Nuendo
-- Rescan: Studio → VST Plug-in Manager → Refresh
-- Check blocklist if plugins don't appear
+## Reporting issues
 
-### Studio One
-- Rescan: Studio One → Options → Locations → VST Plug-ins → Scan
-- Drag from browser to track
-
-### REAPER
-- Rescan: Options → Preferences → VST → Re-scan
-- Auto-detects VST3 folder
-
-### FL Studio
-- Rescan: Options → Manage Plugins → Find Plugins
-- Check "Installed" section
-
-## Known Issues (Beta)
-
-1. **All Platforms**
-   - First launch may take a few seconds to initialize
-   - Some parameter changes may cause brief audio interruption
-
-2. **macOS Specific**
-   - Unsigned plugins will show security warning (see installation instructions)
-   - M1/M2 Macs: Running under Rosetta if DAW is Intel-only
-
-3. **Windows Specific**
-   - May require Visual C++ Redistributables (included in installer)
-   - Windows Defender may scan plugins on first use
-
-## Reporting Issues
-
-Please report bugs with the following information:
+Please include:
 1. Plugin name and version
 2. DAW and version
 3. Operating system
 4. Steps to reproduce
 5. Screenshot if applicable
 
-Email: beta@hyperprism.com
-GitHub: https://github.com/hyperprism/reimagined/issues
+Email: connect@zq-sfx.com
+GitHub: https://github.com/themightyzq/HyperPrismReimagined/issues
 
-## Plugin List
+## Plugin list
 
-### Dynamics & Compression
-- Compressor
-- Limiter  
-- Noise Gate
-- Stereo Dynamics
-
-### Filters & EQ
-- High Pass
-- Low Pass
-- Band Pass
-- Band Reject
-
-### Delays & Time Effects
-- Delay
-- Single Delay
-- Echo
-- Multi Delay
-
-### Modulation
-- Chorus
-- Flanger
-- Phaser
-- HyperPhaser
-- Tremolo
-- Vibrato
-- AutoPan
-
-### Pitch & Frequency
-- Pitch Changer
-- Frequency Shifter
-- Ring Modulator
-- Vocoder
-
-### Spatial & Stereo
-- Pan
-- Quasi Stereo
-- More Stereo
-- MS Matrix
-- Reverb
-
-### Distortion & Enhancement
-- Tube/Tape Saturation
-- Harmonic Exciter
-- Sonic Decimator
-- Bass Maximizer
+- Dynamics & Compression: Compressor, Limiter, Noise Gate, Stereo Dynamics
+- Filters & EQ: High Pass, Low Pass, Band Pass, Band Reject
+- Delays & Time Effects: Delay, Single Delay, Echo, Multi Delay
+- Modulation: Chorus, Flanger, Phaser, HyperPhaser, Tremolo, Vibrato, AutoPan
+- Pitch & Frequency: Pitch Changer, Frequency Shifter, Ring Modulator, Vocoder
+- Spatial & Stereo: Pan, Quasi Stereo, More Stereo, MS Matrix, Reverb
+- Distortion & Enhancement: Tube/Tape Saturation, Harmonic Exciter, Sonic Decimator,
+  Bass Maximiser
 
 ## Legal
 
-This is BETA software provided for testing purposes only. By installing, you agree to:
-- Not distribute the software without permission
-- Report bugs and issues found during testing
-- Not use in commercial productions without authorization
-- Accept that the software is provided "as is" without warranty
+HyperPrism Reimagined is licensed under the GPL-3.0-or-later. Anyone may use, modify, and
+redistribute it under that licence, including for commercial purposes. It is provided as is,
+without warranty.
 
-© 2024 HyperPrism Reimagined. All rights reserved.
+Copyright (c) 2025-2026 ZQ SFX.
