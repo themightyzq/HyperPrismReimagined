@@ -184,10 +184,20 @@ juce_add_plugin(HyperPrismChorus
     VST3_CATEGORIES "Fx" "Modulation"
 )
 
+file(GLOB HyperPrismChorus_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Chorus/Presets/*.hppreset)
+if(HyperPrismChorus_PresetFiles)
+    juce_add_binary_data(HyperPrismChorusPresets SOURCES ${HyperPrismChorus_PresetFiles})
+    target_link_libraries(HyperPrismChorus PRIVATE HyperPrismChorusPresets)
+endif()
+
 target_sources(HyperPrismChorus
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Chorus/ChorusProcessor.cpp
         Source/Chorus/ChorusProcessor.h
         Source/Chorus/ChorusEditor.cpp
@@ -320,10 +330,20 @@ juce_add_plugin(HyperPrismBandPass
     VST3_CATEGORIES "Fx" "Filter"
 )
 
+file(GLOB HyperPrismBandPass_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/BandPass/Presets/*.hppreset)
+if(HyperPrismBandPass_PresetFiles)
+    juce_add_binary_data(HyperPrismBandPassPresets SOURCES ${HyperPrismBandPass_PresetFiles})
+    target_link_libraries(HyperPrismBandPass PRIVATE HyperPrismBandPassPresets)
+endif()
+
 target_sources(HyperPrismBandPass
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/BandPass/BandPassProcessor.cpp
         Source/BandPass/BandPassProcessor.h
         Source/BandPass/BandPassEditor.cpp
@@ -524,10 +544,20 @@ juce_add_plugin(HyperPrismCompressor
     VST3_CATEGORIES "Fx" "Dynamics"
 )
 
+file(GLOB HyperPrismCompressor_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Compressor/Presets/*.hppreset)
+if(HyperPrismCompressor_PresetFiles)
+    juce_add_binary_data(HyperPrismCompressorPresets SOURCES ${HyperPrismCompressor_PresetFiles})
+    target_link_libraries(HyperPrismCompressor PRIVATE HyperPrismCompressorPresets)
+endif()
+
 target_sources(HyperPrismCompressor
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Compressor/CompressorProcessor.cpp
         Source/Compressor/CompressorProcessor.h
         Source/Compressor/CompressorEditor.cpp
@@ -1211,6 +1241,14 @@ function(add_hyperprism_ui_snapshot plugin_target effect_dir processor_header pr
         zqsfx::ui
         juce::juce_audio_utils
         juce::juce_dsp)
+    # ${plugin_target}'s own JuceHeader.h #includes "BinaryData.h" once any target links its
+    # juce_add_binary_data() library (JUCE_TARGET_HAS_BINARY_DATA), and this tool compiles that
+    # same generated JuceHeader.h itself -- but a PRIVATE link only reaches the direct linker's
+    # own compilation, so this tool needs the binary-data library linked here too, not just on
+    # ${plugin_target}, whenever that plugin has any Presets/*.hppreset to compile in.
+    if(TARGET ${plugin_target}Presets)
+        target_link_libraries(${snapshot_target} PRIVATE ${plugin_target}Presets)
+    endif()
 endfunction()
 
 add_hyperprism_ui_snapshot(HyperPrismCompressor Compressor CompressorProcessor.h CompressorProcessor)
@@ -1243,3 +1281,45 @@ endfunction()
 
 add_hyperprism_state_check(HyperPrismHarmonicExciter HarmonicExciter HarmonicExciterProcessor.h HarmonicExciterProcessor HP_CHECK_HARMONIC_EXCITER)
 add_hyperprism_state_check(HyperPrismNoiseGate       NoiseGate       NoiseGateProcessor.h       NoiseGateProcessor       HP_CHECK_NOISE_GATE)
+
+# ---- Preset round-trip checks (hp::PresetManager, Source/Shared/PresetManager.h/.cpp; see
+# tools/preset_roundtrip/main.cpp). Piloted for the same three plugins as the UI snapshot tool
+# above. Same link pattern as add_hyperprism_ui_snapshot()/add_hyperprism_state_check(); the
+# extra apvts_kind argument is "member" for a plugin whose APVTS is a public `apvts` member
+# (Compressor) or "accessor" for one exposing `getValueTreeState()` (Chorus, BandPass).
+function(add_hyperprism_preset_roundtrip plugin_target effect_dir processor_header processor_class apvts_kind param_a param_b)
+    set(check_target "hyperprism_preset_roundtrip_${plugin_target}")
+    if(apvts_kind STREQUAL "member")
+        set(apvts_is_member 1)
+    else()
+        set(apvts_is_member 0)
+    endif()
+    juce_add_console_app(${check_target} PRODUCT_NAME "${check_target}")
+    target_sources(${check_target} PRIVATE tools/preset_roundtrip/main.cpp)
+    target_compile_definitions(${check_target} PRIVATE
+        "HP_ROUNDTRIP_PROCESSOR_HEADER=\"${processor_header}\""
+        "HP_ROUNDTRIP_PROCESSOR_CLASS=${processor_class}"
+        "HP_ROUNDTRIP_APVTS_IS_MEMBER=${apvts_is_member}"
+        "HP_ROUNDTRIP_PARAM_A=\"${param_a}\""
+        "HP_ROUNDTRIP_PARAM_B=\"${param_b}\"")
+    target_include_directories(${check_target} PRIVATE
+        Source/${effect_dir}
+        Source/Shared
+        $<TARGET_PROPERTY:${plugin_target},JUCE_GENERATED_SOURCES_DIRECTORY>)
+    target_link_libraries(${check_target} PRIVATE
+        ${plugin_target}
+        zqsfx::ui
+        juce::juce_audio_utils
+        juce::juce_dsp)
+    # See add_hyperprism_ui_snapshot()'s comment above: this tool needs ${plugin_target}'s
+    # binary-data library linked here too, not just on ${plugin_target}, whenever that plugin
+    # has any Presets/*.hppreset compiled in.
+    if(TARGET ${plugin_target}Presets)
+        target_link_libraries(${check_target} PRIVATE ${plugin_target}Presets)
+    endif()
+    add_test(NAME ${check_target} COMMAND ${check_target})
+endfunction()
+
+add_hyperprism_preset_roundtrip(HyperPrismCompressor Compressor CompressorProcessor.h CompressorProcessor member   threshold  ratio)
+add_hyperprism_preset_roundtrip(HyperPrismChorus     Chorus     ChorusProcessor.h     ChorusProcessor     accessor rate       depth)
+add_hyperprism_preset_roundtrip(HyperPrismBandPass   BandPass   BandPassProcessor.h   BandPassProcessor   accessor centerFreq bandwidth)

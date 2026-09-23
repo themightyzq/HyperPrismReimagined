@@ -34,6 +34,13 @@ Hover any control to see a tooltip describing it.
 Logic Pro hosts Audio Unit plugins only. Use the AU build there once one is available (see
 Install above). Pro Tools is not supported: it requires AAX, which is not built.
 
+Compressor, Chorus, and Band-Pass Filter each have a preset bar at the top of the window
+(previous/next arrows, a name list, Save, and a menu for rename, overwrite, delete, and reveal
+preset folder); the other plugins do not have one yet. User presets are saved to
+`~/Library/Audio/Presets/ZQ SFX/HyperPrism Reimagined/<Plugin>/` (the platform-equivalent folder
+on Windows and Linux), and each plugin's factory presets, where it has any, are built into that
+plugin only.
+
 ## The 32 plugins
 
 ### Dynamics

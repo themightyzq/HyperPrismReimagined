@@ -198,9 +198,11 @@ void GainReductionMeter::timerCallback()
 // CompressorEditor Implementation
 //==============================================================================
 CompressorEditor::CompressorEditor(CompressorProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p), gainReductionMeter(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      presetBar(p.apvts, "HyperPrism Reimagined Compressor", "Compressor"), gainReductionMeter(p)
 {
     setLookAndFeel(&customLookAndFeel);
+    addAndMakeVisible(presetBar);
     
     // Initialize default parameter assignments
     xParameterIDs.add("threshold");
@@ -396,6 +398,7 @@ void CompressorEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
+    presetBar.setBounds(header.getX() + 12, 4, header.getWidth() - 52, 22);
     // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
     logo.setBounds(header.getRight() - 28, 8, 24, 24);
     bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);

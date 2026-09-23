@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Parameters presetName="Init Copy">
+  <PARAM id="attack" value="9.999999046325684"/>
+  <PARAM id="bypass" value="0.0"/>
+  <PARAM id="knee" value="2.0"/>
+  <PARAM id="makeupGain" value="2.980232238769531e-7"/>
+  <PARAM id="mix" value="100.0"/>
+  <PARAM id="ratio" value="4.0"/>
+  <PARAM id="release" value="99.99999237060547"/>
+  <PARAM id="threshold" value="-19.99999809265137"/>
+</Parameters>
