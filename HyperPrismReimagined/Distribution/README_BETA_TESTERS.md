@@ -16,6 +16,8 @@ feedback. The public release is a rolling `latest` build; there is no separate b
    then click Open again in the dialog. This is only needed once per plugin.
 4. Restart your DAW and rescan plugins.
 
+Requires macOS 11.0 or later.
+
 AU is not in this release yet; it was added to the source after the last build. To use
 HyperPrism in Logic Pro or another AU-only host today, build the AU target from source.
 

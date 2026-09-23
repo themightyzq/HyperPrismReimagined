@@ -22,6 +22,8 @@ source (below) until the next release.
 The binaries are unsigned. On macOS, right-click the plugin and choose Open the first time,
 since Gatekeeper blocks a plain double-click.
 
+Requires macOS 11.0 or later.
+
 ## Use
 
 Load any of the 32 plugins as an effect on a track in your DAW. Every plugin has the same
