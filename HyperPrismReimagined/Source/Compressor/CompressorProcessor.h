@@ -38,7 +38,16 @@ public:
     
     float getGainReduction() const { return currentGainReduction.load(); }
 
+    // Editor size, persisted with the session as editor_width/editor_height properties
+    // (0 = never set, use the editor default). Atomics: a host may call getStateInformation
+    // off the message thread while the editor's resized() writes here.
+    int  getEditorWidth()  const { return editorWidth.load(); }
+    int  getEditorHeight() const { return editorHeight.load(); }
+    void setEditorSize(int w, int h) { editorWidth.store(w); editorHeight.store(h); }
+
 private:
+    std::atomic<int> editorWidth { 0 };
+    std::atomic<int> editorHeight { 0 };
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     
     // Compression parameters

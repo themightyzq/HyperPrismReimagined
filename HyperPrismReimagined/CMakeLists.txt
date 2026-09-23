@@ -115,10 +115,20 @@ juce_add_plugin(HyperPrismDelay
 #     NAMESPACE BinaryData
 # )
 
+file(GLOB HyperPrismDelay_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Delay/Presets/*.hppreset)
+if(HyperPrismDelay_PresetFiles)
+    juce_add_binary_data(HyperPrismDelayPresets SOURCES ${HyperPrismDelay_PresetFiles})
+    target_link_libraries(HyperPrismDelay PRIVATE HyperPrismDelayPresets)
+endif()
+
 target_sources(HyperPrismDelay
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Delay/DelayProcessor.cpp
         Source/Delay/DelayProcessor.h
         Source/Delay/DelayEditor.cpp
@@ -150,10 +160,20 @@ juce_add_plugin(HyperPrismReverb
     VST3_CATEGORIES "Fx" "Reverb"
 )
 
+file(GLOB HyperPrismReverb_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Reverb/Presets/*.hppreset)
+if(HyperPrismReverb_PresetFiles)
+    juce_add_binary_data(HyperPrismReverbPresets SOURCES ${HyperPrismReverb_PresetFiles})
+    target_link_libraries(HyperPrismReverb PRIVATE HyperPrismReverbPresets)
+endif()
+
 target_sources(HyperPrismReverb
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Reverb/ReverbProcessor.cpp
         Source/Reverb/ReverbProcessor.h
         Source/Reverb/ReverbEditor.cpp
@@ -228,10 +248,20 @@ juce_add_plugin(HyperPrismFlanger
     VST3_CATEGORIES "Fx" "Modulation"
 )
 
+file(GLOB HyperPrismFlanger_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Flanger/Presets/*.hppreset)
+if(HyperPrismFlanger_PresetFiles)
+    juce_add_binary_data(HyperPrismFlangerPresets SOURCES ${HyperPrismFlanger_PresetFiles})
+    target_link_libraries(HyperPrismFlanger PRIVATE HyperPrismFlangerPresets)
+endif()
+
 target_sources(HyperPrismFlanger
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Flanger/FlangerProcessor.cpp
         Source/Flanger/FlangerProcessor.h
         Source/Flanger/FlangerEditor.cpp
@@ -262,10 +292,20 @@ juce_add_plugin(HyperPrismHighPass
     VST3_CATEGORIES "Fx" "Filter"
 )
 
+file(GLOB HyperPrismHighPass_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/HighPass/Presets/*.hppreset)
+if(HyperPrismHighPass_PresetFiles)
+    juce_add_binary_data(HyperPrismHighPassPresets SOURCES ${HyperPrismHighPass_PresetFiles})
+    target_link_libraries(HyperPrismHighPass PRIVATE HyperPrismHighPassPresets)
+endif()
+
 target_sources(HyperPrismHighPass
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/HighPass/HighPassProcessor.cpp
         Source/HighPass/HighPassProcessor.h
         Source/HighPass/HighPassEditor.cpp
@@ -296,10 +336,20 @@ juce_add_plugin(HyperPrismLowPass
     VST3_CATEGORIES "Fx" "Filter"
 )
 
+file(GLOB HyperPrismLowPass_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/LowPass/Presets/*.hppreset)
+if(HyperPrismLowPass_PresetFiles)
+    juce_add_binary_data(HyperPrismLowPassPresets SOURCES ${HyperPrismLowPass_PresetFiles})
+    target_link_libraries(HyperPrismLowPass PRIVATE HyperPrismLowPassPresets)
+endif()
+
 target_sources(HyperPrismLowPass
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/LowPass/LowPassProcessor.cpp
         Source/LowPass/LowPassProcessor.h
         Source/LowPass/LowPassEditor.cpp
@@ -374,10 +424,20 @@ juce_add_plugin(HyperPrismBandReject
     VST3_CATEGORIES "Fx" "Filter"
 )
 
+file(GLOB HyperPrismBandReject_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/BandReject/Presets/*.hppreset)
+if(HyperPrismBandReject_PresetFiles)
+    juce_add_binary_data(HyperPrismBandRejectPresets SOURCES ${HyperPrismBandReject_PresetFiles})
+    target_link_libraries(HyperPrismBandReject PRIVATE HyperPrismBandRejectPresets)
+endif()
+
 target_sources(HyperPrismBandReject
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/BandReject/BandRejectProcessor.cpp
         Source/BandReject/BandRejectProcessor.h
         Source/BandReject/BandRejectEditor.cpp
@@ -408,10 +468,20 @@ juce_add_plugin(HyperPrismTremolo
     VST3_CATEGORIES "Fx" "Modulation"
 )
 
+file(GLOB HyperPrismTremolo_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Tremolo/Presets/*.hppreset)
+if(HyperPrismTremolo_PresetFiles)
+    juce_add_binary_data(HyperPrismTremoloPresets SOURCES ${HyperPrismTremolo_PresetFiles})
+    target_link_libraries(HyperPrismTremolo PRIVATE HyperPrismTremoloPresets)
+endif()
+
 target_sources(HyperPrismTremolo
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Tremolo/TremoloProcessor.cpp
         Source/Tremolo/TremoloProcessor.h
         Source/Tremolo/TremoloEditor.cpp
@@ -442,10 +512,20 @@ juce_add_plugin(HyperPrismVibrato
     VST3_CATEGORIES "Fx" "Modulation"
 )
 
+file(GLOB HyperPrismVibrato_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Vibrato/Presets/*.hppreset)
+if(HyperPrismVibrato_PresetFiles)
+    juce_add_binary_data(HyperPrismVibratoPresets SOURCES ${HyperPrismVibrato_PresetFiles})
+    target_link_libraries(HyperPrismVibrato PRIVATE HyperPrismVibratoPresets)
+endif()
+
 target_sources(HyperPrismVibrato
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Vibrato/VibratoProcessor.cpp
         Source/Vibrato/VibratoProcessor.h
         Source/Vibrato/VibratoEditor.cpp
@@ -476,10 +556,20 @@ juce_add_plugin(HyperPrismPhaser
     VST3_CATEGORIES "Fx" "Modulation"
 )
 
+file(GLOB HyperPrismPhaser_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Phaser/Presets/*.hppreset)
+if(HyperPrismPhaser_PresetFiles)
+    juce_add_binary_data(HyperPrismPhaserPresets SOURCES ${HyperPrismPhaser_PresetFiles})
+    target_link_libraries(HyperPrismPhaser PRIVATE HyperPrismPhaserPresets)
+endif()
+
 target_sources(HyperPrismPhaser
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Phaser/PhaserProcessor.cpp
         Source/Phaser/PhaserProcessor.h
         Source/Phaser/PhaserEditor.cpp
@@ -510,10 +600,20 @@ juce_add_plugin(HyperPrismNoiseGate
     VST3_CATEGORIES "Fx" "Dynamics"
 )
 
+file(GLOB HyperPrismNoiseGate_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/NoiseGate/Presets/*.hppreset)
+if(HyperPrismNoiseGate_PresetFiles)
+    juce_add_binary_data(HyperPrismNoiseGatePresets SOURCES ${HyperPrismNoiseGate_PresetFiles})
+    target_link_libraries(HyperPrismNoiseGate PRIVATE HyperPrismNoiseGatePresets)
+endif()
+
 target_sources(HyperPrismNoiseGate
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/NoiseGate/NoiseGateProcessor.cpp
         Source/NoiseGate/NoiseGateProcessor.h
         Source/NoiseGate/NoiseGateEditor.cpp
@@ -588,10 +688,20 @@ juce_add_plugin(HyperPrismLimiter
     VST3_CATEGORIES "Fx" "Dynamics" "Limiter"
 )
 
+file(GLOB HyperPrismLimiter_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Limiter/Presets/*.hppreset)
+if(HyperPrismLimiter_PresetFiles)
+    juce_add_binary_data(HyperPrismLimiterPresets SOURCES ${HyperPrismLimiter_PresetFiles})
+    target_link_libraries(HyperPrismLimiter PRIVATE HyperPrismLimiterPresets)
+endif()
+
 target_sources(HyperPrismLimiter
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Limiter/LimiterProcessor.cpp
         Source/Limiter/LimiterProcessor.h
         Source/Limiter/LimiterEditor.cpp
@@ -622,10 +732,20 @@ juce_add_plugin(HyperPrismTubeTapeSaturation
     VST3_CATEGORIES "Fx" "Distortion" "Saturation"
 )
 
+file(GLOB HyperPrismTubeTapeSaturation_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/TubeTapeSaturation/Presets/*.hppreset)
+if(HyperPrismTubeTapeSaturation_PresetFiles)
+    juce_add_binary_data(HyperPrismTubeTapeSaturationPresets SOURCES ${HyperPrismTubeTapeSaturation_PresetFiles})
+    target_link_libraries(HyperPrismTubeTapeSaturation PRIVATE HyperPrismTubeTapeSaturationPresets)
+endif()
+
 target_sources(HyperPrismTubeTapeSaturation
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/TubeTapeSaturation/TubeTapeSaturationProcessor.cpp
         Source/TubeTapeSaturation/TubeTapeSaturationProcessor.h
         Source/TubeTapeSaturation/TubeTapeSaturationEditor.cpp
@@ -656,10 +776,20 @@ juce_add_plugin(HyperPrismHarmonicExciter
     VST3_CATEGORIES "Fx" "Distortion"
 )
 
+file(GLOB HyperPrismHarmonicExciter_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/HarmonicExciter/Presets/*.hppreset)
+if(HyperPrismHarmonicExciter_PresetFiles)
+    juce_add_binary_data(HyperPrismHarmonicExciterPresets SOURCES ${HyperPrismHarmonicExciter_PresetFiles})
+    target_link_libraries(HyperPrismHarmonicExciter PRIVATE HyperPrismHarmonicExciterPresets)
+endif()
+
 target_sources(HyperPrismHarmonicExciter
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/HarmonicExciter/HarmonicExciterProcessor.cpp
         Source/HarmonicExciter/HarmonicExciterProcessor.h
         Source/HarmonicExciter/HarmonicExciterEditor.cpp
@@ -690,10 +820,20 @@ juce_add_plugin(HyperPrismBassMaximiser
     VST3_CATEGORIES "Fx" "Distortion"
 )
 
+file(GLOB HyperPrismBassMaximiser_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/BassMaximiser/Presets/*.hppreset)
+if(HyperPrismBassMaximiser_PresetFiles)
+    juce_add_binary_data(HyperPrismBassMaximiserPresets SOURCES ${HyperPrismBassMaximiser_PresetFiles})
+    target_link_libraries(HyperPrismBassMaximiser PRIVATE HyperPrismBassMaximiserPresets)
+endif()
+
 target_sources(HyperPrismBassMaximiser
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/BassMaximiser/BassMaximiserProcessor.cpp
         Source/BassMaximiser/BassMaximiserProcessor.h
         Source/BassMaximiser/BassMaximiserEditor.cpp
@@ -725,10 +865,20 @@ juce_add_plugin(HyperPrismSingleDelay
     VST3_CATEGORIES "Fx" "Delay"
 )
 
+file(GLOB HyperPrismSingleDelay_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/SingleDelay/Presets/*.hppreset)
+if(HyperPrismSingleDelay_PresetFiles)
+    juce_add_binary_data(HyperPrismSingleDelayPresets SOURCES ${HyperPrismSingleDelay_PresetFiles})
+    target_link_libraries(HyperPrismSingleDelay PRIVATE HyperPrismSingleDelayPresets)
+endif()
+
 target_sources(HyperPrismSingleDelay
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/SingleDelay/SingleDelayProcessor.cpp
         Source/SingleDelay/SingleDelayProcessor.h
         Source/SingleDelay/SingleDelayEditor.cpp
@@ -759,10 +909,20 @@ juce_add_plugin(HyperPrismMultiDelay
     VST3_CATEGORIES "Fx" "Delay"
 )
 
+file(GLOB HyperPrismMultiDelay_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/MultiDelay/Presets/*.hppreset)
+if(HyperPrismMultiDelay_PresetFiles)
+    juce_add_binary_data(HyperPrismMultiDelayPresets SOURCES ${HyperPrismMultiDelay_PresetFiles})
+    target_link_libraries(HyperPrismMultiDelay PRIVATE HyperPrismMultiDelayPresets)
+endif()
+
 target_sources(HyperPrismMultiDelay
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/MultiDelay/MultiDelayProcessor.cpp
         Source/MultiDelay/MultiDelayProcessor.h
         Source/MultiDelay/MultiDelayEditor.cpp
@@ -793,10 +953,20 @@ juce_add_plugin(HyperPrismPan
     VST3_CATEGORIES "Fx" "Spatial"
 )
 
+file(GLOB HyperPrismPan_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Pan/Presets/*.hppreset)
+if(HyperPrismPan_PresetFiles)
+    juce_add_binary_data(HyperPrismPanPresets SOURCES ${HyperPrismPan_PresetFiles})
+    target_link_libraries(HyperPrismPan PRIVATE HyperPrismPanPresets)
+endif()
+
 target_sources(HyperPrismPan
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Pan/PanProcessor.cpp
         Source/Pan/PanProcessor.h
         Source/Pan/PanEditor.cpp
@@ -827,10 +997,20 @@ juce_add_plugin(HyperPrismAutoPan
     VST3_CATEGORIES "Fx" "Spatial" "Modulation"
 )
 
+file(GLOB HyperPrismAutoPan_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/AutoPan/Presets/*.hppreset)
+if(HyperPrismAutoPan_PresetFiles)
+    juce_add_binary_data(HyperPrismAutoPanPresets SOURCES ${HyperPrismAutoPan_PresetFiles})
+    target_link_libraries(HyperPrismAutoPan PRIVATE HyperPrismAutoPanPresets)
+endif()
+
 target_sources(HyperPrismAutoPan
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/AutoPan/AutoPanProcessor.cpp
         Source/AutoPan/AutoPanProcessor.h
         Source/AutoPan/AutoPanEditor.cpp
@@ -861,10 +1041,20 @@ juce_add_plugin(HyperPrismQuasiStereo
     VST3_CATEGORIES "Fx" "Spatial"
 )
 
+file(GLOB HyperPrismQuasiStereo_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/QuasiStereo/Presets/*.hppreset)
+if(HyperPrismQuasiStereo_PresetFiles)
+    juce_add_binary_data(HyperPrismQuasiStereoPresets SOURCES ${HyperPrismQuasiStereo_PresetFiles})
+    target_link_libraries(HyperPrismQuasiStereo PRIVATE HyperPrismQuasiStereoPresets)
+endif()
+
 target_sources(HyperPrismQuasiStereo
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/QuasiStereo/QuasiStereoProcessor.cpp
         Source/QuasiStereo/QuasiStereoProcessor.h
         Source/QuasiStereo/QuasiStereoEditor.cpp
@@ -895,10 +1085,20 @@ juce_add_plugin(HyperPrismMoreStereo
     VST3_CATEGORIES "Fx" "Spatial"
 )
 
+file(GLOB HyperPrismMoreStereo_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/MoreStereo/Presets/*.hppreset)
+if(HyperPrismMoreStereo_PresetFiles)
+    juce_add_binary_data(HyperPrismMoreStereoPresets SOURCES ${HyperPrismMoreStereo_PresetFiles})
+    target_link_libraries(HyperPrismMoreStereo PRIVATE HyperPrismMoreStereoPresets)
+endif()
+
 target_sources(HyperPrismMoreStereo
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/MoreStereo/MoreStereoProcessor.cpp
         Source/MoreStereo/MoreStereoProcessor.h
         Source/MoreStereo/MoreStereoEditor.cpp
@@ -929,10 +1129,20 @@ juce_add_plugin(HyperPrismMSMatrix
     VST3_CATEGORIES "Fx" "Spatial"
 )
 
+file(GLOB HyperPrismMSMatrix_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/MSMatrix/Presets/*.hppreset)
+if(HyperPrismMSMatrix_PresetFiles)
+    juce_add_binary_data(HyperPrismMSMatrixPresets SOURCES ${HyperPrismMSMatrix_PresetFiles})
+    target_link_libraries(HyperPrismMSMatrix PRIVATE HyperPrismMSMatrixPresets)
+endif()
+
 target_sources(HyperPrismMSMatrix
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/MSMatrix/MSMatrixProcessor.cpp
         Source/MSMatrix/MSMatrixProcessor.h
         Source/MSMatrix/MSMatrixEditor.cpp
@@ -963,10 +1173,20 @@ juce_add_plugin(HyperPrismStereoDynamics
     VST3_CATEGORIES "Fx" "Dynamics" "Spatial"
 )
 
+file(GLOB HyperPrismStereoDynamics_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/StereoDynamics/Presets/*.hppreset)
+if(HyperPrismStereoDynamics_PresetFiles)
+    juce_add_binary_data(HyperPrismStereoDynamicsPresets SOURCES ${HyperPrismStereoDynamics_PresetFiles})
+    target_link_libraries(HyperPrismStereoDynamics PRIVATE HyperPrismStereoDynamicsPresets)
+endif()
+
 target_sources(HyperPrismStereoDynamics
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/StereoDynamics/StereoDynamicsProcessor.cpp
         Source/StereoDynamics/StereoDynamicsProcessor.h
         Source/StereoDynamics/StereoDynamicsEditor.cpp
@@ -997,10 +1217,20 @@ juce_add_plugin(HyperPrismFrequencyShifter
     VST3_CATEGORIES "Fx" "Pitch Shift" "Modulation"
 )
 
+file(GLOB HyperPrismFrequencyShifter_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/FrequencyShifter/Presets/*.hppreset)
+if(HyperPrismFrequencyShifter_PresetFiles)
+    juce_add_binary_data(HyperPrismFrequencyShifterPresets SOURCES ${HyperPrismFrequencyShifter_PresetFiles})
+    target_link_libraries(HyperPrismFrequencyShifter PRIVATE HyperPrismFrequencyShifterPresets)
+endif()
+
 target_sources(HyperPrismFrequencyShifter
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/FrequencyShifter/FrequencyShifterProcessor.cpp
         Source/FrequencyShifter/FrequencyShifterProcessor.h
         Source/FrequencyShifter/FrequencyShifterEditor.cpp
@@ -1031,10 +1261,20 @@ juce_add_plugin(HyperPrismVocoder
     VST3_CATEGORIES "Fx" "Modulation"
 )
 
+file(GLOB HyperPrismVocoder_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Vocoder/Presets/*.hppreset)
+if(HyperPrismVocoder_PresetFiles)
+    juce_add_binary_data(HyperPrismVocoderPresets SOURCES ${HyperPrismVocoder_PresetFiles})
+    target_link_libraries(HyperPrismVocoder PRIVATE HyperPrismVocoderPresets)
+endif()
+
 target_sources(HyperPrismVocoder
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Vocoder/VocoderProcessor.cpp
         Source/Vocoder/VocoderProcessor.h
         Source/Vocoder/VocoderEditor.cpp
@@ -1065,10 +1305,20 @@ juce_add_plugin(HyperPrismPitchChanger
     VST3_CATEGORIES "Fx" "Pitch Shift"
 )
 
+file(GLOB HyperPrismPitchChanger_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/PitchChanger/Presets/*.hppreset)
+if(HyperPrismPitchChanger_PresetFiles)
+    juce_add_binary_data(HyperPrismPitchChangerPresets SOURCES ${HyperPrismPitchChanger_PresetFiles})
+    target_link_libraries(HyperPrismPitchChanger PRIVATE HyperPrismPitchChangerPresets)
+endif()
+
 target_sources(HyperPrismPitchChanger
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/PitchChanger/PitchChangerProcessor.cpp
         Source/PitchChanger/PitchChangerProcessor.h
         Source/PitchChanger/PitchChangerEditor.cpp
@@ -1099,10 +1349,20 @@ juce_add_plugin(HyperPrismSonicDecimator
     VST3_CATEGORIES "Fx" "Distortion"
 )
 
+file(GLOB HyperPrismSonicDecimator_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/SonicDecimator/Presets/*.hppreset)
+if(HyperPrismSonicDecimator_PresetFiles)
+    juce_add_binary_data(HyperPrismSonicDecimatorPresets SOURCES ${HyperPrismSonicDecimator_PresetFiles})
+    target_link_libraries(HyperPrismSonicDecimator PRIVATE HyperPrismSonicDecimatorPresets)
+endif()
+
 target_sources(HyperPrismSonicDecimator
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/SonicDecimator/SonicDecimatorProcessor.cpp
         Source/SonicDecimator/SonicDecimatorProcessor.h
         Source/SonicDecimator/SonicDecimatorEditor.cpp
@@ -1133,10 +1393,20 @@ juce_add_plugin(HyperPrismRingModulator
     VST3_CATEGORIES "Fx" "Modulation"
 )
 
+file(GLOB HyperPrismRingModulator_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/RingModulator/Presets/*.hppreset)
+if(HyperPrismRingModulator_PresetFiles)
+    juce_add_binary_data(HyperPrismRingModulatorPresets SOURCES ${HyperPrismRingModulator_PresetFiles})
+    target_link_libraries(HyperPrismRingModulator PRIVATE HyperPrismRingModulatorPresets)
+endif()
+
 target_sources(HyperPrismRingModulator
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/RingModulator/RingModulatorProcessor.cpp
         Source/RingModulator/RingModulatorProcessor.h
         Source/RingModulator/RingModulatorEditor.cpp
@@ -1167,10 +1437,20 @@ juce_add_plugin(HyperPrismHyperPhaser
     VST3_CATEGORIES "Fx" "Modulation"
 )
 
+file(GLOB HyperPrismHyperPhaser_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/HyperPhaser/Presets/*.hppreset)
+if(HyperPrismHyperPhaser_PresetFiles)
+    juce_add_binary_data(HyperPrismHyperPhaserPresets SOURCES ${HyperPrismHyperPhaser_PresetFiles})
+    target_link_libraries(HyperPrismHyperPhaser PRIVATE HyperPrismHyperPhaserPresets)
+endif()
+
 target_sources(HyperPrismHyperPhaser
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/HyperPhaser/HyperPhaserProcessor.cpp
         Source/HyperPhaser/HyperPhaserProcessor.h
         Source/HyperPhaser/HyperPhaserEditor.cpp
@@ -1201,10 +1481,20 @@ juce_add_plugin(HyperPrismEcho
     VST3_CATEGORIES "Fx" "Delay"
 )
 
+file(GLOB HyperPrismEcho_PresetFiles CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Echo/Presets/*.hppreset)
+if(HyperPrismEcho_PresetFiles)
+    juce_add_binary_data(HyperPrismEchoPresets SOURCES ${HyperPrismEcho_PresetFiles})
+    target_link_libraries(HyperPrismEcho PRIVATE HyperPrismEchoPresets)
+endif()
+
 target_sources(HyperPrismEcho
     PRIVATE
         Source/Shared/HyperPrismLookAndFeel.cpp
         Source/Shared/HyperPrismLookAndFeel.h
+        Source/Shared/PresetManager.cpp
+        Source/Shared/PresetManager.h
+        Source/Shared/PresetBar.cpp
+        Source/Shared/PresetBar.h
         Source/Echo/EchoProcessor.cpp
         Source/Echo/EchoProcessor.h
         Source/Echo/EchoEditor.cpp

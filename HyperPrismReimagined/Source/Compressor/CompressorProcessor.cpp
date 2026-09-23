@@ -245,6 +245,8 @@ void CompressorProcessor::changeProgramName(int, const juce::String&)
 void CompressorProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = apvts.copyState();
+    state.setProperty("editor_width",  getEditorWidth(),  nullptr);
+    state.setProperty("editor_height", getEditorHeight(), nullptr);
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
 }
@@ -255,5 +257,12 @@ void CompressorProcessor::setStateInformation(const void* data, int sizeInBytes)
 
     if (xmlState.get() != nullptr)
         if (xmlState->hasTagName(apvts.state.getType()))
-            apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+        {
+            auto tree = juce::ValueTree::fromXml(*xmlState);
+            setEditorSize(static_cast<int>(tree.getProperty("editor_width", 0)),
+                          static_cast<int>(tree.getProperty("editor_height", 0)));
+            tree.removeProperty("editor_width", nullptr);
+            tree.removeProperty("editor_height", nullptr);
+            apvts.replaceState(tree);
+        }
 }

@@ -260,9 +260,15 @@ ChorusEditor::ChorusEditor(ChorusProcessor& p)
     bypassButton.setDescription("Bypass the effect");
     xyPad.setTooltip("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
     xyPad.setDescription("Click and drag to control assigned parameters. Right-click parameter labels to assign X/Y axes.");
+    // Stored size read before setResizeLimits, which fires a transient resized() at the
+    // minimum that must not be mistaken for a saved size.
+    const int storedW = audioProcessor.getEditorWidth();
+    const int storedH = audioProcessor.getEditorHeight();
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
+    if (storedW >= 600 && storedW <= 900 && storedH >= 520 && storedH <= 750)
+        setSize(storedW, storedH);
 }
 
 ChorusEditor::~ChorusEditor()
@@ -320,6 +326,7 @@ void ChorusEditor::paint(juce::Graphics& g)
 
 void ChorusEditor::resized()
 {
+    audioProcessor.setEditorSize(getWidth(), getHeight());
     auto bounds = getLocalBounds();
 
     // === HEADER (72px) ===
