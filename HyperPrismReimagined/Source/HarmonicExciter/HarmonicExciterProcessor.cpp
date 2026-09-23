@@ -127,10 +127,27 @@ void HarmonicExciterProcessor::prepareToPlay(double sampleRate, int samplesPerBl
 
     dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
     highFreqBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+
+#if HP_HARMONICEXCITER_FORCE_1X
+    oversampling.reset();
+    setLatencySamples(0);
+#else
+    static_assert(kOversamplingFactor == 4, "oversampling stage count below assumes 4x (2 half-band stages)");
+    oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
+        (size_t) juce::jmax(1, getTotalNumInputChannels()),
+        (size_t) 2, // log2(kOversamplingFactor)
+        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR,
+        true);
+    oversampling->initProcessing((size_t) samplesPerBlock);
+    oversampling->reset();
+    setLatencySamples((int) std::round(oversampling->getLatencyInSamples()));
+#endif
 }
 
 void HarmonicExciterProcessor::releaseResources()
 {
+    if (oversampling != nullptr)
+        oversampling->reset();
 }
 
 bool HarmonicExciterProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -183,6 +200,41 @@ void HarmonicExciterProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     juce::dsp::ProcessContextReplacing<float> highFreqContext(highFreqBlock);
     highPassFilter.process(highFreqContext);
 
+    // The harmonic generator is the nonlinear stage: run it 4x oversampled so the
+    // harmonics it manufactures are pushed above the base Nyquist before the
+    // downsampling half-band filter removes them (HP_HARMONICEXCITER_FORCE_1X=1
+    // disables this for an A/B comparison).
+#if HP_HARMONICEXCITER_FORCE_1X
+    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    {
+        auto* highFreqData = highFreqBuffer.getWritePointer(channel);
+
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        {
+            highFreqData[sample] = (type == 0)
+                ? generateWarmHarmonics(highFreqData[sample], drive, harmonics)
+                : generateBrightHarmonics(highFreqData[sample], drive, harmonics);
+        }
+    }
+#else
+    jassert(oversampling != nullptr);
+    auto oversampledBlock = oversampling->processSamplesUp(highFreqBlock);
+
+    for (size_t channel = 0; channel < oversampledBlock.getNumChannels(); ++channel)
+    {
+        auto* data = oversampledBlock.getChannelPointer(channel);
+
+        for (size_t sample = 0; sample < oversampledBlock.getNumSamples(); ++sample)
+        {
+            data[sample] = (type == 0)
+                ? generateWarmHarmonics(data[sample], drive, harmonics)
+                : generateBrightHarmonics(data[sample], drive, harmonics);
+        }
+    }
+
+    oversampling->processSamplesDown(highFreqBlock);
+#endif
+
     // Process each channel
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
@@ -192,21 +244,8 @@ void HarmonicExciterProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            float input = highFreqData[sample];
-            float processedSample;
-
-            // Apply harmonic generation based on type
-            if (type == 0) // Warm
-            {
-                processedSample = generateWarmHarmonics(input, drive, harmonics);
-            }
-            else // Bright
-            {
-                processedSample = generateBrightHarmonics(input, drive, harmonics);
-            }
-
-            // Mix dry and processed signals
-            channelData[sample] = dryData[sample] + (processedSample * mix);
+            // Mix dry and processed (now-oversampled) harmonic signal
+            channelData[sample] = dryData[sample] + (highFreqData[sample] * mix);
         }
     }
 
@@ -262,6 +301,8 @@ juce::AudioProcessorEditor* HarmonicExciterProcessor::createEditor()
 void HarmonicExciterProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = valueTreeState.copyState();
+    state.setProperty("editor_width", editorWidth.load(), nullptr);
+    state.setProperty("editor_height", editorHeight.load(), nullptr);
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
 }
@@ -274,7 +315,12 @@ void HarmonicExciterProcessor::setStateInformation(const void* data, int sizeInB
 
     if (xmlState->hasTagName(valueTreeState.state.getType()))
     {
-        valueTreeState.replaceState(juce::ValueTree::fromXml(*xmlState));
+        auto state = juce::ValueTree::fromXml(*xmlState);
+        setEditorSize(static_cast<int>(state.getProperty("editor_width", 0)),
+                      static_cast<int>(state.getProperty("editor_height", 0)));
+        state.removeProperty("editor_width", nullptr);
+        state.removeProperty("editor_height", nullptr);
+        valueTreeState.replaceState(state);
         return;
     }
 

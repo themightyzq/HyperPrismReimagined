@@ -6,11 +6,19 @@
 
 #include <JuceHeader.h>
 
+// 4x oversampling wraps the saturation waveshaper only (processTubeSaturation /
+// processTapeSaturation / processTransformerSaturation) to push the harmonics that
+// distortion generates above the original Nyquist before they alias back down.
+// Flip to 1 for an un-oversampled A/B comparison; never ship it that way.
+#define HP_TUBETAPE_FORCE_1X 0
+
 class TubeTapeSaturationProcessor : public juce::AudioProcessor
 {
 public:
     TubeTapeSaturationProcessor();
     ~TubeTapeSaturationProcessor() override = default;
+
+    static constexpr int kOversamplingFactor = 4;
 
     // AudioProcessor interface
     void prepareToPlay(double sampleRate, int) override;
@@ -47,6 +55,11 @@ public:
     // Get metering levels
     float getInputLevel() const { return inputLevel.load(); }
     float getOutputLevel() const { return outputLevel.load(); }
+
+    // Editor size persistence (see getStateInformation/setStateInformation)
+    int getEditorWidth() const noexcept { return editorWidth.load(); }
+    int getEditorHeight() const noexcept { return editorHeight.load(); }
+    void setEditorSize(int w, int h) noexcept { editorWidth.store(w); editorHeight.store(h); }
 
     // Parameter IDs
     static const juce::String BYPASS_ID;
@@ -112,6 +125,15 @@ private:
     
     // DC blocking filters
     juce::IIRFilter dcBlockLeft, dcBlockRight;
-    
+
+    // 4x oversampling around the waveshaper only (see HP_TUBETAPE_FORCE_1X above).
+    // Rebuilt in prepareToPlay (channel count / block size are only known there);
+    // never touched from processBlock, so no audio-thread allocation.
+    std::unique_ptr<juce::dsp::Oversampling<float>> oversampling;
+
+    // Editor size persistence, read/written from the message thread only.
+    std::atomic<int> editorWidth { 0 };
+    std::atomic<int> editorHeight { 0 };
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TubeTapeSaturationProcessor)
 };

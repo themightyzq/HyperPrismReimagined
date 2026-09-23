@@ -321,10 +321,13 @@ void SaturationMeter::timerCallback()
 // TubeTapeSaturationEditor Implementation
 //==============================================================================
 TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p), saturationMeter(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      presetBar(p.getValueTreeState(), "HyperPrism Reimagined Tube-Tape Saturation", "TubeTapeSaturation"),
+      saturationMeter(p)
 {
     setLookAndFeel(&customLookAndFeel);
-    
+    addAndMakeVisible(presetBar);
+
     // Initialize default parameter assignments
     xParameterIDs.add(TubeTapeSaturationProcessor::DRIVE_ID);
     yParameterIDs.add(TubeTapeSaturationProcessor::WARMTH_ID);
@@ -454,9 +457,16 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
     outputLevelSlider.setDescription("Overall output volume after saturation");
     bypassButton.setTooltip("Bypass the effect");
     bypassButton.setDescription("Bypass the effect");
+
+    const int storedWidth = audioProcessor.getEditorWidth();
+    const int storedHeight = audioProcessor.getEditorHeight();
+
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
+
+    if (storedWidth >= 600 && storedWidth <= 900 && storedHeight >= 520 && storedHeight <= 750)
+        setSize(storedWidth, storedHeight);
 }
 
 TubeTapeSaturationEditor::~TubeTapeSaturationEditor()
@@ -516,6 +526,7 @@ void TubeTapeSaturationEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
+    presetBar.setBounds(header.getX() + 12, 4, header.getWidth() - 52, 22);
     titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
     brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
     // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
@@ -589,6 +600,8 @@ void TubeTapeSaturationEditor::resized()
 
     // Meter
     saturationMeter.setBounds(meterArea.reduced(4));
+
+    audioProcessor.setEditorSize(getWidth(), getHeight());
 }
 
 void TubeTapeSaturationEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 

@@ -223,25 +223,55 @@ juce::AudioProcessorValueTreeState::ParameterLayout SonicDecimatorProcessor::cre
 void SonicDecimatorProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     // Prepare DSP components with actual buffer size (fixes 512-sample artifact bug)
-    sampleRateReducer.prepare(sampleRate, samplesPerBlock);
-    bitCrusher.reset();
-    noiseShaper.reset();
-    
+    for (auto& r : sampleRateReducers)
+    {
+#if HP_SONICDECIMATOR_FORCE_1X
+        r.prepare(sampleRate, samplesPerBlock);
+#else
+    // The quantiser now runs on 4x-oversampled audio, so as far as the sample-and-hold
+    // decimator and its anti-alias filter are concerned, "original sample rate" is
+    // hostRate * kOversamplingFactor. targetSampleRate (set per-block from the Rate
+    // parameter) stays in real Hz, so a given Rate setting still decimates to the same
+    // audible rate as it did at 1x -- this is the required hold-counter scaling.
+        r.prepare(sampleRate * kOversamplingFactor, samplesPerBlock * kOversamplingFactor);
+#endif
+    }
+    for (auto& b : bitCrushers) b.reset();
+    for (auto& n : noiseShapers) n.reset();
+
     // Prepare dry buffer for mixing
     dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
-    
+
     // Reset metering
     inputLevel.store(0.0f);
     outputLevel.store(0.0f);
     bitReduction.store(0.0f);
     sampleReduction.store(0.0f);
+
+#if HP_SONICDECIMATOR_FORCE_1X
+    oversampling.reset();
+    setLatencySamples(0);
+#else
+    static_assert(kOversamplingFactor == 4, "oversampling stage count below assumes 4x (2 half-band stages)");
+    oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
+        (size_t) juce::jmax(1, getTotalNumOutputChannels()),
+        (size_t) 2, // log2(kOversamplingFactor)
+        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR,
+        true);
+    oversampling->initProcessing((size_t) samplesPerBlock);
+    oversampling->reset();
+    setLatencySamples((int) std::round(oversampling->getLatencyInSamples()));
+#endif
 }
 
 void SonicDecimatorProcessor::releaseResources()
 {
-    sampleRateReducer.reset();
-    bitCrusher.reset();
-    noiseShaper.reset();
+    for (auto& r : sampleRateReducers) r.reset();
+    for (auto& b : bitCrushers) b.reset();
+    for (auto& n : noiseShapers) n.reset();
+
+    if (oversampling != nullptr)
+        oversampling->reset();
 }
 
 bool SonicDecimatorProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -287,46 +317,88 @@ void SonicDecimatorProcessor::processDecimation(juce::AudioBuffer<float>& buffer
     const float outputGain = juce::Decibels::decibelsToGain(outputLevelParam->load());
     
     // Update DSP parameters
-    bitCrusher.setBitDepth(bitDepth);
-    bitCrusher.setDithering(dither);
-    sampleRateReducer.setSampleRate(sampleRate);
-    sampleRateReducer.setAntiAliasing(antiAlias);
+    for (auto& b : bitCrushers)
+    {
+        b.setBitDepth(bitDepth);
+        b.setDithering(dither);
+    }
+    for (auto& r : sampleRateReducers)
+    {
+        r.setSampleRate(sampleRate);
+        r.setAntiAliasing(antiAlias);
+    }
     
     // Store dry signal for mixing
     dryBuffer.makeCopyOf(buffer);
-    
+
     float inputLevelSum = 0.0f;
-    float outputLevelSum = 0.0f;
-    
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        const auto* dryData = dryBuffer.getReadPointer(channel);
+        for (int sample = 0; sample < numSamples; ++sample)
+            inputLevelSum += std::abs(dryData[static_cast<size_t>(sample)]);
+    }
+
     // Calculate reduction amounts for metering
     float originalSampleRate = static_cast<float>(getSampleRate());
     float sampleReductionAmount = 1.0f - (sampleRate / originalSampleRate);
     float bitReductionAmount = 1.0f - (bitDepth / 24.0f);
-    
+
+    // The bit/rate quantiser is the nonlinear stage: run it 4x oversampled so the
+    // quantisation harmonics it introduces are pushed above the base Nyquist before the
+    // downsampling half-band filter removes them (HP_SONICDECIMATOR_FORCE_1X=1 disables
+    // this for an A/B comparison). The SampleRateReducer's hold counter was already
+    // scaled for the oversampled rate in prepareToPlay.
+#if HP_SONICDECIMATOR_FORCE_1X
     for (int channel = 0; channel < numChannels; ++channel)
     {
         auto* channelData = buffer.getWritePointer(channel);
-        auto* dryData = dryBuffer.getReadPointer(channel);
-        
+        auto& reducer = sampleRateReducers[static_cast<size_t>(juce::jmin(channel, kMaxChannels - 1))];
+        auto& crusher = bitCrushers[static_cast<size_t>(juce::jmin(channel, kMaxChannels - 1))];
+
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            float input = channelData[static_cast<size_t>(sample)];
-            inputLevelSum += std::abs(input);
-            
-            // Apply sample rate reduction first
-            float sampleReduced = sampleRateReducer.processSample(input);
-            
-            // Then apply bit crushing
-            float bitCrushed = bitCrusher.processSample(sampleReduced);
-            
-            // Mix dry and wet signals
-            float output = (dryData[static_cast<size_t>(sample)] * (1.0f - mix) + bitCrushed * mix) * outputGain;
+            float sampleReduced = reducer.processSample(channelData[static_cast<size_t>(sample)]);
+            channelData[static_cast<size_t>(sample)] = crusher.processSample(sampleReduced);
+        }
+    }
+#else
+    jassert(oversampling != nullptr);
+    juce::dsp::AudioBlock<float> block(buffer);
+    auto oversampledBlock = oversampling->processSamplesUp(block);
+
+    for (size_t channel = 0; channel < oversampledBlock.getNumChannels(); ++channel)
+    {
+        auto* data = oversampledBlock.getChannelPointer(channel);
+        auto& reducer = sampleRateReducers[juce::jmin(channel, (size_t) kMaxChannels - 1)];
+        auto& crusher = bitCrushers[juce::jmin(channel, (size_t) kMaxChannels - 1)];
+
+        for (size_t sample = 0; sample < oversampledBlock.getNumSamples(); ++sample)
+        {
+            float sampleReduced = reducer.processSample(data[sample]);
+            data[sample] = crusher.processSample(sampleReduced);
+        }
+    }
+
+    oversampling->processSamplesDown(block);
+#endif
+
+    // Mix dry/wet and apply output gain, at the base sample rate.
+    float outputLevelSum = 0.0f;
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        auto* channelData = buffer.getWritePointer(channel);
+        const auto* dryData = dryBuffer.getReadPointer(channel);
+
+        for (int sample = 0; sample < numSamples; ++sample)
+        {
+            float output = (dryData[static_cast<size_t>(sample)] * (1.0f - mix)
+                             + channelData[static_cast<size_t>(sample)] * mix) * outputGain;
             channelData[static_cast<size_t>(sample)] = output;
-            
             outputLevelSum += std::abs(output);
         }
     }
-    
+
     // Update metering
     inputLevel.store(inputLevelSum / (numSamples * numChannels));
     outputLevel.store(outputLevelSum / (numSamples * numChannels));
@@ -343,7 +415,10 @@ juce::AudioProcessorEditor* SonicDecimatorProcessor::createEditor()
 //==============================================================================
 void SonicDecimatorProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    auto xml = valueTreeState.copyState().createXml();
+    auto state = valueTreeState.copyState();
+    state.setProperty("editor_width", editorWidth.load(), nullptr);
+    state.setProperty("editor_height", editorHeight.load(), nullptr);
+    auto xml = state.createXml();
     copyXmlToBinary(*xml, destData);
 }
 
@@ -351,5 +426,12 @@ void SonicDecimatorProcessor::setStateInformation(const void* data, int sizeInBy
 {
     auto xml = getXmlFromBinary(data, sizeInBytes);
     if (xml != nullptr && xml->hasTagName(valueTreeState.state.getType()))
-        valueTreeState.replaceState(juce::ValueTree::fromXml(*xml));
+    {
+        auto state = juce::ValueTree::fromXml(*xml);
+        setEditorSize(static_cast<int>(state.getProperty("editor_width", 0)),
+                      static_cast<int>(state.getProperty("editor_height", 0)));
+        state.removeProperty("editor_width", nullptr);
+        state.removeProperty("editor_height", nullptr);
+        valueTreeState.replaceState(state);
+    }
 }

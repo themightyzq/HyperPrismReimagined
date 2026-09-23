@@ -1613,3 +1613,35 @@ endfunction()
 add_hyperprism_preset_roundtrip(HyperPrismCompressor Compressor CompressorProcessor.h CompressorProcessor member   threshold  ratio)
 add_hyperprism_preset_roundtrip(HyperPrismChorus     Chorus     ChorusProcessor.h     ChorusProcessor     accessor rate       depth)
 add_hyperprism_preset_roundtrip(HyperPrismBandPass   BandPass   BandPassProcessor.h   BandPassProcessor   accessor centerFreq bandwidth)
+
+
+# ---- Stereo null check (identical mono input must give identical L and R; added with the
+# SonicDecimator per-channel state fix, 2026-09-23) and the oversampling alias/latency check
+# (tools/oversampling_check/main.cpp). Same link pattern as add_hyperprism_state_check().
+function(add_hyperprism_console_check kind plugin_target effect_dir processor_header processor_class flag)
+    set(check_target "hyperprism_${kind}_${plugin_target}")
+    juce_add_console_app(${check_target} PRODUCT_NAME "${check_target}")
+    target_sources(${check_target} PRIVATE tools/${kind}/main.cpp)
+    target_compile_definitions(${check_target} PRIVATE
+        "HP_CHECK_PROCESSOR_HEADER=\"${processor_header}\""
+        "HP_CHECK_PROCESSOR_CLASS=${processor_class}"
+        "${flag}=1")
+    target_include_directories(${check_target} PRIVATE
+        Source/${effect_dir}
+        Source/Shared
+        $<TARGET_PROPERTY:${plugin_target},JUCE_GENERATED_SOURCES_DIRECTORY>)
+    target_link_libraries(${check_target} PRIVATE
+        ${plugin_target}
+        zqsfx::ui
+        juce::juce_audio_utils
+        juce::juce_dsp)
+    if(TARGET ${plugin_target}Presets)
+        target_link_libraries(${check_target} PRIVATE ${plugin_target}Presets)
+    endif()
+    add_test(NAME ${check_target} COMMAND ${check_target})
+endfunction()
+
+add_hyperprism_console_check(stereo_null_check HyperPrismSonicDecimator SonicDecimator SonicDecimatorProcessor.h SonicDecimatorProcessor HP_CHECK_SONICDECIMATOR)
+add_hyperprism_console_check(oversampling_check HyperPrismSonicDecimator     SonicDecimator     SonicDecimatorProcessor.h     SonicDecimatorProcessor     HP_CHECK_SONICDECIMATOR)
+add_hyperprism_console_check(oversampling_check HyperPrismTubeTapeSaturation TubeTapeSaturation TubeTapeSaturationProcessor.h TubeTapeSaturationProcessor HP_CHECK_TUBETAPE)
+add_hyperprism_console_check(oversampling_check HyperPrismHarmonicExciter    HarmonicExciter    HarmonicExciterProcessor.h    HarmonicExciterProcessor    HP_CHECK_HARMONICEXCITER)

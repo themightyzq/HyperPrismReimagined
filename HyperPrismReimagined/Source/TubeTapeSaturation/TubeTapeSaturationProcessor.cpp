@@ -76,21 +76,35 @@ juce::AudioProcessorValueTreeState::ParameterLayout TubeTapeSaturationProcessor:
 //==============================================================================
 void TubeTapeSaturationProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    juce::ignoreUnused(samplesPerBlock);
     currentSampleRate = sampleRate;
-    
+
     // Initialize filters
     juce::IIRCoefficients dcBlockCoeffs = juce::IIRCoefficients::makeHighPass(sampleRate, 20.0);
     dcBlockLeft.setCoefficients(dcBlockCoeffs);
     dcBlockRight.setCoefficients(dcBlockCoeffs);
-    
+
     // Initialize shelf filters for warmth and brightness
     updateFilters();
-    
+
     // Reset processing state
     previousInputRMS = 0.0f;
     previousOutputRMS = 0.0f;
     harmonicContent.store(0.0f);
+
+#if HP_TUBETAPE_FORCE_1X
+    oversampling.reset();
+    setLatencySamples(0);
+#else
+    static_assert(kOversamplingFactor == 4, "oversampling stage count below assumes 4x (2 half-band stages)");
+    oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
+        (size_t) juce::jmax(1, getTotalNumOutputChannels()),
+        (size_t) 2, // log2(kOversamplingFactor)
+        juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR,
+        true);
+    oversampling->initProcessing((size_t) samplesPerBlock);
+    oversampling->reset();
+    setLatencySamples((int) std::round(oversampling->getLatencyInSamples()));
+#endif
 }
 
 void TubeTapeSaturationProcessor::releaseResources()
@@ -102,6 +116,9 @@ void TubeTapeSaturationProcessor::releaseResources()
     lowShelfRight.reset();
     highShelfLeft.reset();
     highShelfRight.reset();
+
+    if (oversampling != nullptr)
+        oversampling->reset();
 }
 
 bool TubeTapeSaturationProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -138,7 +155,7 @@ void TubeTapeSaturationProcessor::processSaturation(juce::AudioBuffer<float>& bu
 {
     const int numChannels = buffer.getNumChannels();
     const int numSamples = buffer.getNumSamples();
-    
+
     // Calculate input level
     float inputSum = 0.0f;
     for (int channel = 0; channel < numChannels; ++channel)
@@ -150,29 +167,41 @@ void TubeTapeSaturationProcessor::processSaturation(juce::AudioBuffer<float>& bu
         }
     }
     inputLevel.store(inputSum / (numChannels * numSamples));
-    
+
     const float drive = driveParam->load() / 100.0f;
     const int type = static_cast<int>(typeParam->load());
     const float warmth = warmthParam->load() / 100.0f;
     const float brightness = brightnessParam->load() / 100.0f;
     const float outputGain = juce::Decibels::decibelsToGain(outputLevelParam->load());
-    
+
+    // Pre-filtering for warmth/brightness shaping, at the base sample rate (linear,
+    // does not need oversampling).
     for (int channel = 0; channel < numChannels; ++channel)
     {
         auto* channelData = buffer.getWritePointer(channel);
         auto& lowShelf = (channel == 0) ? lowShelfLeft : lowShelfRight;
         auto& highShelf = (channel == 0) ? highShelfLeft : highShelfRight;
-        auto& dcBlock = (channel == 0) ? dcBlockLeft : dcBlockRight;
-        
+
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            float input = channelData[static_cast<size_t>(sample)];
-            
-            // Pre-filtering for warmth and brightness shaping
-            float processed = lowShelf.processSingleSampleRaw(input);
+            float processed = lowShelf.processSingleSampleRaw(channelData[static_cast<size_t>(sample)]);
             processed = highShelf.processSingleSampleRaw(processed);
-            
-            // Apply saturation based on type
+            channelData[static_cast<size_t>(sample)] = processed;
+        }
+    }
+
+    // The waveshaper is the nonlinear stage: run it 4x oversampled so the harmonics it
+    // generates are pushed above the base Nyquist before the downsampling half-band
+    // filter removes them (HP_TUBETAPE_FORCE_1X=1 disables this for an A/B comparison).
+#if HP_TUBETAPE_FORCE_1X
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        auto* channelData = buffer.getWritePointer(channel);
+
+        for (int sample = 0; sample < numSamples; ++sample)
+        {
+            float processed = channelData[static_cast<size_t>(sample)];
+
             switch (type)
             {
                 case Tube:
@@ -185,11 +214,52 @@ void TubeTapeSaturationProcessor::processSaturation(juce::AudioBuffer<float>& bu
                     processed = processTransformerSaturation(processed, drive, warmth, brightness);
                     break;
             }
-            
-            // DC blocking
-            processed = dcBlock.processSingleSampleRaw(processed);
-            
-            // Output level adjustment
+
+            channelData[static_cast<size_t>(sample)] = processed;
+        }
+    }
+#else
+    jassert(oversampling != nullptr);
+    juce::dsp::AudioBlock<float> block(buffer);
+    auto oversampledBlock = oversampling->processSamplesUp(block);
+
+    for (size_t channel = 0; channel < oversampledBlock.getNumChannels(); ++channel)
+    {
+        auto* data = oversampledBlock.getChannelPointer(channel);
+
+        for (size_t sample = 0; sample < oversampledBlock.getNumSamples(); ++sample)
+        {
+            float processed = data[sample];
+
+            switch (type)
+            {
+                case Tube:
+                    processed = processTubeSaturation(processed, drive, warmth, brightness);
+                    break;
+                case Tape:
+                    processed = processTapeSaturation(processed, drive, warmth, brightness);
+                    break;
+                case Transformer:
+                    processed = processTransformerSaturation(processed, drive, warmth, brightness);
+                    break;
+            }
+
+            data[sample] = processed;
+        }
+    }
+
+    oversampling->processSamplesDown(block);
+#endif
+
+    // DC blocking + output level, at the base sample rate.
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
+        auto* channelData = buffer.getWritePointer(channel);
+        auto& dcBlock = (channel == 0) ? dcBlockLeft : dcBlockRight;
+
+        for (int sample = 0; sample < numSamples; ++sample)
+        {
+            float processed = dcBlock.processSingleSampleRaw(channelData[static_cast<size_t>(sample)]);
             channelData[static_cast<size_t>(sample)] = processed * outputGain;
         }
     }
@@ -397,7 +467,10 @@ juce::AudioProcessorEditor* TubeTapeSaturationProcessor::createEditor()
 //==============================================================================
 void TubeTapeSaturationProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    auto xml = valueTreeState.copyState().createXml();
+    auto state = valueTreeState.copyState();
+    state.setProperty("editor_width", editorWidth.load(), nullptr);
+    state.setProperty("editor_height", editorHeight.load(), nullptr);
+    auto xml = state.createXml();
     copyXmlToBinary(*xml, destData);
 }
 
@@ -405,5 +478,12 @@ void TubeTapeSaturationProcessor::setStateInformation(const void* data, int size
 {
     auto xml = getXmlFromBinary(data, sizeInBytes);
     if (xml != nullptr && xml->hasTagName(valueTreeState.state.getType()))
-        valueTreeState.replaceState(juce::ValueTree::fromXml(*xml));
+    {
+        auto state = juce::ValueTree::fromXml(*xml);
+        setEditorSize(static_cast<int>(state.getProperty("editor_width", 0)),
+                      static_cast<int>(state.getProperty("editor_height", 0)));
+        state.removeProperty("editor_width", nullptr);
+        state.removeProperty("editor_height", nullptr);
+        valueTreeState.replaceState(state);
+    }
 }

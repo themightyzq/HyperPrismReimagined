@@ -258,10 +258,13 @@ void DecimationMeter::timerCallback()
 // SonicDecimatorEditor Implementation
 //==============================================================================
 SonicDecimatorEditor::SonicDecimatorEditor(SonicDecimatorProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p), decimationMeter(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      presetBar(p.getValueTreeState(), "HyperPrism Reimagined Sonic Decimator", "SonicDecimator"),
+      decimationMeter(p)
 {
     setLookAndFeel(&customLookAndFeel);
-    
+    addAndMakeVisible(presetBar);
+
     // Initialize default parameter assignments
     xParameterIDs.add(SonicDecimatorProcessor::BIT_DEPTH_ID);
     yParameterIDs.add(SonicDecimatorProcessor::SAMPLE_RATE_ID);
@@ -390,9 +393,16 @@ SonicDecimatorEditor::SonicDecimatorEditor(SonicDecimatorProcessor& p)
     outputLevelSlider.setDescription("Overall output volume");
     bypassButton.setTooltip("Bypass the effect");
     bypassButton.setDescription("Bypass the effect");
+
+    const int storedWidth = audioProcessor.getEditorWidth();
+    const int storedHeight = audioProcessor.getEditorHeight();
+
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
+
+    if (storedWidth >= 600 && storedWidth <= 900 && storedHeight >= 520 && storedHeight <= 750)
+        setSize(storedWidth, storedHeight);
 }
 
 SonicDecimatorEditor::~SonicDecimatorEditor()
@@ -444,6 +454,7 @@ void SonicDecimatorEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
+    presetBar.setBounds(header.getX() + 12, 4, header.getWidth() - 52, 22);
     titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
     brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
     // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
@@ -513,6 +524,8 @@ void SonicDecimatorEditor::resized()
     centerKnob(mixSlider, mixLabel, outputArea.getX() + 90, 90, outY + outKnob / 2, outKnob);
 
     decimationMeter.setBounds(meterArea.reduced(4));
+
+    audioProcessor.setEditorSize(getWidth(), getHeight());
 }
 
 void SonicDecimatorEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 

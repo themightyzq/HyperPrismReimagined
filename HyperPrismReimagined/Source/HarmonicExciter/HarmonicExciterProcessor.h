@@ -2,11 +2,19 @@
 
 #include <JuceHeader.h>
 
+// 4x oversampling wraps the harmonic generator only (generateWarmHarmonics /
+// generateBrightHarmonics) to push the harmonics it manufactures above the original
+// Nyquist before they alias back down. Flip to 1 for an un-oversampled A/B comparison;
+// never ship it that way.
+#define HP_HARMONICEXCITER_FORCE_1X 0
+
 class HarmonicExciterProcessor : public juce::AudioProcessor
 {
 public:
     HarmonicExciterProcessor();
     ~HarmonicExciterProcessor() override;
+
+    static constexpr int kOversamplingFactor = 4;
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -57,6 +65,11 @@ public:
     // Get current output level for metering
     float getCurrentOutputLevel() const { return outputLevel.load(); }
 
+    // Editor size persistence (see getStateInformation/setStateInformation)
+    int getEditorWidth() const noexcept { return editorWidth.load(); }
+    int getEditorHeight() const noexcept { return editorHeight.load(); }
+    void setEditorSize(int w, int h) noexcept { editorWidth.store(w); editorHeight.store(h); }
+
 private:
     juce::AudioProcessorValueTreeState valueTreeState;
 
@@ -77,6 +90,14 @@ private:
     // Harmonic generation functions
     float generateWarmHarmonics(float input, float drive, float harmonics);
     float generateBrightHarmonics(float input, float drive, float harmonics);
-    
+
+    // 4x oversampling around the harmonic generator only (see HP_HARMONICEXCITER_FORCE_1X
+    // above). Rebuilt in prepareToPlay; never touched from processBlock.
+    std::unique_ptr<juce::dsp::Oversampling<float>> oversampling;
+
+    // Editor size persistence, read/written from the message thread only.
+    std::atomic<int> editorWidth { 0 };
+    std::atomic<int> editorHeight { 0 };
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(HarmonicExciterProcessor)
 };
