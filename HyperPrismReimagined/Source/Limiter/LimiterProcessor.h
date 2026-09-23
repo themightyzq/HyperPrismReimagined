@@ -48,10 +48,17 @@ public:
     
     // Get the AudioProcessorValueTreeState
     juce::AudioProcessorValueTreeState& getStateInformation() { return apvts; }
+    juce::AudioProcessorValueTreeState& getValueTreeState() { return apvts; }
+
+    // Editor size persistence
+    int getEditorWidth() const { return editorWidth.load(); }
+    int getEditorHeight() const { return editorHeight.load(); }
+    void setEditorSize(int w, int h) { editorWidth.store(w); editorHeight.store(h); }
 
 private:
     // Parameter state
     juce::AudioProcessorValueTreeState apvts;
+    std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
     std::atomic<float>* bypassParam = nullptr;
     // DSP members
     double currentSampleRate = 44100.0;

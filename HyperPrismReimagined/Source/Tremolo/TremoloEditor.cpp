@@ -261,10 +261,13 @@ void TremoloMeter::timerCallback()
 // TremoloEditor Implementation
 //==============================================================================
 TremoloEditor::TremoloEditor(TremoloProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p), tremoloMeter(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      presetBar(p.getValueTreeState(), "HyperPrism Reimagined Tremolo", "Tremolo"),
+      tremoloMeter(p)
 {
     setLookAndFeel(&customLookAndFeel);
-    
+    addAndMakeVisible(presetBar);
+
     // Initialize default parameter assignments
     xParameterIDs.add(TremoloProcessor::RATE_ID);
     yParameterIDs.add(TremoloProcessor::DEPTH_ID);
@@ -397,9 +400,19 @@ TremoloEditor::TremoloEditor(TremoloProcessor& p)
     mixSlider.setDescription("Balance between dry and tremolo signal");
     bypassButton.setTooltip("Bypass the effect");
     bypassButton.setDescription("Bypass the effect");
+    const int storedEditorWidth = audioProcessor.getEditorWidth();
+    const int storedEditorHeight = audioProcessor.getEditorHeight();
+
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
+
+    if (storedEditorWidth != 0 && storedEditorHeight != 0
+        && storedEditorWidth >= 600 && storedEditorWidth <= 900
+        && storedEditorHeight >= 520 && storedEditorHeight <= 750)
+    {
+        setSize(storedEditorWidth, storedEditorHeight);
+    }
 }
 
 TremoloEditor::~TremoloEditor()
@@ -451,6 +464,7 @@ void TremoloEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
+    presetBar.setBounds(header.getX() + 12, 4, header.getWidth() - 52, 22);
     titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
     brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
     // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
@@ -519,6 +533,8 @@ void TremoloEditor::resized()
     // Tremolo meter in remaining output area
     auto meterArea = bottomRight.reduced(4);
     tremoloMeter.setBounds(meterArea.reduced(4));
+
+    audioProcessor.setEditorSize(getWidth(), getHeight());
 }
 
 void TremoloEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 

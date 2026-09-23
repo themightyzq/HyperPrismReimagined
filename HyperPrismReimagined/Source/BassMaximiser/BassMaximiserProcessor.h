@@ -48,9 +48,14 @@ public:
     // Get the AudioProcessorValueTreeState
     juce::AudioProcessorValueTreeState& getValueTreeState() { return apvts; }
 
+    int getEditorWidth() const { return editorWidth.load(); }
+    int getEditorHeight() const { return editorHeight.load(); }
+    void setEditorSize(int w, int h) { editorWidth.store(w); editorHeight.store(h); }
+
 private:
     // Parameter state
     juce::AudioProcessorValueTreeState apvts;
+    std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
     std::atomic<float>* bypassParam = nullptr;
 
     // DSP members

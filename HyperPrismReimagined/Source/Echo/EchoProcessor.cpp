@@ -183,6 +183,8 @@ juce::AudioProcessorEditor* EchoProcessor::createEditor()
 void EchoProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = parameters.copyState();
+    state.setProperty("editor_width", getEditorWidth(), nullptr);
+    state.setProperty("editor_height", getEditorHeight(), nullptr);
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
 }
@@ -192,5 +194,11 @@ void EchoProcessor::setStateInformation(const void* data, int sizeInBytes)
     std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
     if (xmlState.get() != nullptr)
         if (xmlState->hasTagName(parameters.state.getType()))
-            parameters.replaceState(juce::ValueTree::fromXml(*xmlState));
+        {
+            auto newState = juce::ValueTree::fromXml(*xmlState);
+            setEditorSize((int) newState.getProperty("editor_width", 0), (int) newState.getProperty("editor_height", 0));
+            newState.removeProperty("editor_width", nullptr);
+            newState.removeProperty("editor_height", nullptr);
+            parameters.replaceState(newState);
+        }
 }

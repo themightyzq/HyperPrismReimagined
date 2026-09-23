@@ -46,6 +46,9 @@ public:
     juce::AudioParameterFloat* lookahead = nullptr;
 
     juce::AudioProcessorValueTreeState& getValueTreeState() { return valueTreeState; }
+    int getEditorWidth() const { return editorWidth.load(); }
+    int getEditorHeight() const { return editorHeight.load(); }
+    void setEditorSize(int w, int h) { editorWidth = w; editorHeight = h; }
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     // Old sessions carry an XmlElement tagged "NoiseGateState" with one attribute per
@@ -87,6 +90,9 @@ private:
     // Helper functions
     float dbToLinear(float db) const;
     float linearToDb(float linear) const;
-    
+
+    // Editor size persistence
+    std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(NoiseGateProcessor)
 };

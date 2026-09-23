@@ -238,6 +238,8 @@ juce::AudioProcessorEditor* TremoloProcessor::createEditor()
 void TremoloProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = valueTreeState.copyState();
+    state.setProperty("editor_width", getEditorWidth(), nullptr);
+    state.setProperty("editor_height", getEditorHeight(), nullptr);
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
 }
@@ -246,8 +248,17 @@ void TremoloProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
     if (xmlState.get() != nullptr)
+    {
         if (xmlState->hasTagName(valueTreeState.state.getType()))
-            valueTreeState.replaceState(juce::ValueTree::fromXml(*xmlState));
+        {
+            auto newTree = juce::ValueTree::fromXml(*xmlState);
+            setEditorSize((int) newTree.getProperty("editor_width", 0),
+                          (int) newTree.getProperty("editor_height", 0));
+            newTree.removeProperty("editor_width", nullptr);
+            newTree.removeProperty("editor_height", nullptr);
+            valueTreeState.replaceState(newTree);
+        }
+    }
 }
 
 //==============================================================================

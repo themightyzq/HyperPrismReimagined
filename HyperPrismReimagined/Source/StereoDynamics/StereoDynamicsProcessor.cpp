@@ -348,7 +348,10 @@ juce::AudioProcessorEditor* StereoDynamicsProcessor::createEditor()
 //==============================================================================
 void StereoDynamicsProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    auto xml = valueTreeState.copyState().createXml();
+    auto state = valueTreeState.copyState();
+    state.setProperty("editor_width", getEditorWidth(), nullptr);
+    state.setProperty("editor_height", getEditorHeight(), nullptr);
+    auto xml = state.createXml();
     copyXmlToBinary(*xml, destData);
 }
 
@@ -356,5 +359,12 @@ void StereoDynamicsProcessor::setStateInformation(const void* data, int sizeInBy
 {
     auto xml = getXmlFromBinary(data, sizeInBytes);
     if (xml != nullptr && xml->hasTagName(valueTreeState.state.getType()))
-        valueTreeState.replaceState(juce::ValueTree::fromXml(*xml));
+    {
+        auto newTree = juce::ValueTree::fromXml(*xml);
+        setEditorSize((int) newTree.getProperty("editor_width", 0),
+                      (int) newTree.getProperty("editor_height", 0));
+        newTree.removeProperty("editor_width", nullptr);
+        newTree.removeProperty("editor_height", nullptr);
+        valueTreeState.replaceState(newTree);
+    }
 }

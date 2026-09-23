@@ -319,7 +319,10 @@ juce::AudioProcessorEditor* AutoPanProcessor::createEditor()
 //==============================================================================
 void AutoPanProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    auto xml = valueTreeState.copyState().createXml();
+    auto state = valueTreeState.copyState();
+    state.setProperty("editor_width", getEditorWidth(), nullptr);
+    state.setProperty("editor_height", getEditorHeight(), nullptr);
+    auto xml = state.createXml();
     copyXmlToBinary(*xml, destData);
 }
 
@@ -327,5 +330,11 @@ void AutoPanProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     auto xml = getXmlFromBinary(data, sizeInBytes);
     if (xml != nullptr && xml->hasTagName(valueTreeState.state.getType()))
-        valueTreeState.replaceState(juce::ValueTree::fromXml(*xml));
+    {
+        auto newState = juce::ValueTree::fromXml(*xml);
+        setEditorSize((int) newState.getProperty("editor_width", 0), (int) newState.getProperty("editor_height", 0));
+        newState.removeProperty("editor_width", nullptr);
+        newState.removeProperty("editor_height", nullptr);
+        valueTreeState.replaceState(newState);
+    }
 }

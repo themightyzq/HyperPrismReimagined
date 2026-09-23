@@ -41,6 +41,10 @@ public:
     // Parameter access
     juce::AudioProcessorValueTreeState& getValueTreeState() { return valueTreeState; }
 
+    int getEditorWidth() const { return editorWidth.load(); }
+    int getEditorHeight() const { return editorHeight.load(); }
+    void setEditorSize(int w, int h) { editorWidth = w; editorHeight = h; }
+
     // Parameter IDs
     static const juce::String BYPASS_ID;
     static const juce::String MIX_ID;
@@ -91,5 +95,8 @@ private:
     // Processing state
     double currentSampleRate = 44100.0;
     
+    // Editor size persistence
+    std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VibratoProcessor)
 };

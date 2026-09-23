@@ -119,10 +119,15 @@ void XYPad::setAxisColors(const juce::Colour& xColor, const juce::Colour& yColor
 // DelayEditor Implementation
 //==============================================================================
 DelayEditor::DelayEditor(DelayProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      presetBar(p.getValueTreeState(), "HyperPrism Reimagined Delay", "Delay")
 {
+    const int storedEditorWidth = audioProcessor.getEditorWidth();
+    const int storedEditorHeight = audioProcessor.getEditorHeight();
+
     setLookAndFeel(&customLookAndFeel);
-    
+    addAndMakeVisible(presetBar);
+
     // Initialize default parameter assignments
     xParameterIDs.add(DelayProcessor::DELAY_TIME_ID);
     yParameterIDs.add(DelayProcessor::FEEDBACK_ID);
@@ -265,6 +270,12 @@ DelayEditor::DelayEditor(DelayProcessor& p)
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
+    if (storedEditorWidth != 0 && storedEditorHeight != 0 &&
+        storedEditorWidth >= 600 && storedEditorWidth <= 900 &&
+        storedEditorHeight >= 520 && storedEditorHeight <= 750)
+    {
+        setSize(storedEditorWidth, storedEditorHeight);
+    }
 }
 
 DelayEditor::~DelayEditor()
@@ -325,6 +336,7 @@ void DelayEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
+    presetBar.setBounds(header.getX() + 12, 4, header.getWidth() - 52, 22);
     titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
     brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
     // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
@@ -393,6 +405,8 @@ void DelayEditor::resized()
     int outKnob = 58;
     int outY = outputArea.getY() + 24;
     centerKnob(mixSlider, mixLabel, outputArea.getCentreX() - 50, 100, outY + outKnob / 2, outKnob);
+
+    audioProcessor.setEditorSize(getWidth(), getHeight());
 }
 
 void DelayEditor::setupControls()

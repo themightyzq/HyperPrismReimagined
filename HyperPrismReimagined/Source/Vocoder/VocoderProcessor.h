@@ -46,7 +46,10 @@ public:
     
     //==============================================================================
     juce::AudioProcessorValueTreeState& getValueTreeState() { return valueTreeState; }
-    
+    int getEditorWidth() const { return editorWidth.load(); }
+    int getEditorHeight() const { return editorHeight.load(); }
+    void setEditorSize(int w, int h) { editorWidth = w; editorHeight = h; }
+
     // Parameter IDs
     static const juce::String BYPASS_ID;
     static const juce::String CARRIER_FREQ_ID;
@@ -148,6 +151,9 @@ private:
     std::atomic<float> modulatorLevel { 0.0f };
     std::atomic<float> outputLevel { 0.0f };
     mutable std::vector<float> bandLevels;
+
+    // Editor size persistence
+    std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VocoderProcessor)
 };

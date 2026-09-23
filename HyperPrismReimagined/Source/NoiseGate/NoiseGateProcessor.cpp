@@ -269,6 +269,8 @@ juce::AudioProcessorEditor* NoiseGateProcessor::createEditor()
 void NoiseGateProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
     auto state = valueTreeState.copyState();
+    state.setProperty("editor_width", getEditorWidth(), nullptr);
+    state.setProperty("editor_height", getEditorHeight(), nullptr);
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
 }
@@ -281,7 +283,12 @@ void NoiseGateProcessor::setStateInformation(const void* data, int sizeInBytes)
 
     if (xmlState->hasTagName(valueTreeState.state.getType()))
     {
-        valueTreeState.replaceState(juce::ValueTree::fromXml(*xmlState));
+        auto newTree = juce::ValueTree::fromXml(*xmlState);
+        setEditorSize((int) newTree.getProperty("editor_width", 0),
+                      (int) newTree.getProperty("editor_height", 0));
+        newTree.removeProperty("editor_width", nullptr);
+        newTree.removeProperty("editor_height", nullptr);
+        valueTreeState.replaceState(newTree);
         return;
     }
 

@@ -244,10 +244,15 @@ void MultiDelayMeter::timerCallback()
 // MultiDelayEditor Implementation
 //==============================================================================
 MultiDelayEditor::MultiDelayEditor(MultiDelayProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p), multiDelayMeter(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      presetBar(p.getValueTreeState(), "HyperPrism Reimagined Multi Delay", "MultiDelay"), multiDelayMeter(p)
 {
+    const int storedEditorWidth = audioProcessor.getEditorWidth();
+    const int storedEditorHeight = audioProcessor.getEditorHeight();
+
     setLookAndFeel(&customLookAndFeel);
-    
+    addAndMakeVisible(presetBar);
+
     // Initialize default parameter assignments for most commonly used controls
     xParameterIDs.add(MultiDelayProcessor::DELAY1_TIME_ID); // Delay 1 Time
     yParameterIDs.add(MultiDelayProcessor::DELAY1_LEVEL_ID); // Delay 1 Level
@@ -431,6 +436,10 @@ MultiDelayEditor::MultiDelayEditor(MultiDelayProcessor& p)
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
+    if (storedEditorWidth != 0 && storedEditorHeight != 0
+        && storedEditorWidth >= 600 && storedEditorWidth <= 900
+        && storedEditorHeight >= 520 && storedEditorHeight <= 750)
+        setSize(storedEditorWidth, storedEditorHeight);
 }
 
 void MultiDelayEditor::selectTap(int tapIndex)
@@ -530,10 +539,13 @@ void MultiDelayEditor::paint(juce::Graphics& g)
 
 void MultiDelayEditor::resized()
 {
+    audioProcessor.setEditorSize(getWidth(), getHeight());
+
     auto bounds = getLocalBounds();
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
+    presetBar.setBounds(header.getX() + 12, 4, header.getWidth() - 52, 22);
     titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
     brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
     // Logo sits at the far right (style guide section 5); bypass moves left to clear it.

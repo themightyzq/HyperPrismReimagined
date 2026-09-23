@@ -11,10 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Added
 - Preset system (`hp::PresetManager` / `hp::PresetBar`, `Source/Shared/`): Init, per-plugin
   factory presets compiled from `Source/<Effect>/Presets/*.hppreset`, and user presets saved to
-  `~/Library/Audio/Presets/ZQ SFX/HyperPrism Reimagined/<Effect>/`. Piloted on Compressor,
-  Chorus, and Band-Pass Filter (`Source/Compressor/Presets/Init Copy.hppreset` is the format
-  exemplar); the other 29 plugins are not wired yet. Covered by three new CTest round-trip
-  checks (`ctest --test-dir build`, 5/5 passing with the two existing state checks).
+  `~/Library/Audio/Presets/ZQ SFX/HyperPrism Reimagined/<Effect>/`. Wired into all 32 editors
+  (`Source/Compressor/Presets/Init Copy.hppreset` is the format exemplar; sound presets are still
+  to be authored). Every editor also remembers its size across close and reopen. Covered by
+  three CTest round-trip checks (`ctest --test-dir build`, 9/9 with the state, null and
+  oversampling checks).
 
 ### Removed
 - 12 orphaned VST3 SDK example symlinks from user plugin folder

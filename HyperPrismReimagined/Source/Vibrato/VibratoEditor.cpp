@@ -283,10 +283,13 @@ void VibratoMeter::timerCallback()
 // VibratoEditor Implementation
 //==============================================================================
 VibratoEditor::VibratoEditor(VibratoProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p), vibratoMeter(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      presetBar(p.getValueTreeState(), "HyperPrism Reimagined Vibrato", "Vibrato"),
+      vibratoMeter(p)
 {
     setLookAndFeel(&customLookAndFeel);
-    
+    addAndMakeVisible(presetBar);
+
     // Initialize default parameter assignments
     xParameterIDs.add(VibratoProcessor::RATE_ID);
     yParameterIDs.add(VibratoProcessor::DEPTH_ID);
@@ -431,9 +434,19 @@ VibratoEditor::VibratoEditor(VibratoProcessor& p)
     mixSlider.setDescription("Balance between dry and vibrato signal");
     bypassButton.setTooltip("Bypass the effect");
     bypassButton.setDescription("Bypass the effect");
+    const int storedEditorWidth = audioProcessor.getEditorWidth();
+    const int storedEditorHeight = audioProcessor.getEditorHeight();
+
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
+
+    if (storedEditorWidth != 0 && storedEditorHeight != 0
+        && storedEditorWidth >= 600 && storedEditorWidth <= 900
+        && storedEditorHeight >= 520 && storedEditorHeight <= 750)
+    {
+        setSize(storedEditorWidth, storedEditorHeight);
+    }
 }
 
 VibratoEditor::~VibratoEditor()
@@ -496,6 +509,7 @@ void VibratoEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
+    presetBar.setBounds(header.getX() + 12, 4, header.getWidth() - 52, 22);
     titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
     brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
     // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
@@ -565,6 +579,8 @@ void VibratoEditor::resized()
 
     // Meter
     vibratoMeter.setBounds(meterArea.reduced(4));
+
+    audioProcessor.setEditorSize(getWidth(), getHeight());
 }
 
 void VibratoEditor::setupSlider(juce::Slider& slider, ParameterLabel& label, 

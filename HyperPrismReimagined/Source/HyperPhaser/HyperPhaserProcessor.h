@@ -49,9 +49,13 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState& getValueTreeState() { return parameters; }
+    int getEditorWidth() const { return editorWidth.load(); }
+    int getEditorHeight() const { return editorHeight.load(); }
+    void setEditorSize(int w, int h) { editorWidth.store(w); editorHeight.store(h); }
 
 private:
     juce::AudioProcessorValueTreeState parameters;
+    std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
     
     // Allpass filter stage
     struct AllpassStage

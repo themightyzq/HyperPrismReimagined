@@ -35,6 +35,9 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
+    int getEditorWidth() const { return editorWidth.load(); }
+    int getEditorHeight() const { return editorHeight.load(); }
+    void setEditorSize(int w, int h) { editorWidth = w; editorHeight = h; }
 
 private:
     juce::AudioProcessorValueTreeState apvts;
@@ -49,6 +52,9 @@ private:
 
     // Helper functions for waveform generation
     float generateWaveform(float phase, int waveformType);
+
+    // Editor size persistence
+    std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RingModulatorProcessor)
 };

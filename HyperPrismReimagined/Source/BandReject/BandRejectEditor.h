@@ -10,6 +10,7 @@
 #include "BandRejectProcessor.h"
 #include "../Shared/HyperPrismLookAndFeel.h"
 #include "../Shared/HyperPrismAbout.h"
+#include "../Shared/PresetBar.h"
 
 //==============================================================================
 // Clickable parameter label for X/Y assignment
@@ -87,6 +88,9 @@ private:
     
     BandRejectProcessor& audioProcessor;
     HyperPrismLookAndFeel customLookAndFeel;
+
+    // Preset browsing (Source/Shared/PresetBar.h)
+    hp::PresetBar presetBar;
 
     // ZQ SFX company mark + About box trigger (style guide section 5)
     zqsfx::ui::LogoMark logo { JucePlugin_Name };

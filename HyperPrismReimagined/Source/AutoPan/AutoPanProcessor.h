@@ -81,7 +81,10 @@ public:
     
     //==============================================================================
     juce::AudioProcessorValueTreeState& getValueTreeState() { return valueTreeState; }
-    
+    int getEditorWidth() const { return editorWidth.load(); }
+    int getEditorHeight() const { return editorHeight.load(); }
+    void setEditorSize(int w, int h) { editorWidth.store(w); editorHeight.store(h); }
+
     // Parameter IDs
     static const juce::String BYPASS_ID;
     static const juce::String RATE_ID;
@@ -105,7 +108,8 @@ private:
     void calculatePanGains(float panValue, float& leftGain, float& rightGain);
     
     juce::AudioProcessorValueTreeState valueTreeState;
-    
+    std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
+
     // Parameter pointers for performance
     std::atomic<float>* bypassParam = nullptr;
     std::atomic<float>* rateParam = nullptr;

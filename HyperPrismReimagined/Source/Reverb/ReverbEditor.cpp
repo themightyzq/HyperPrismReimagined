@@ -119,10 +119,12 @@ void XYPad::setAxisColors(const juce::Colour& xColor, const juce::Colour& yColor
 // ReverbEditor Implementation
 //==============================================================================
 ReverbEditor::ReverbEditor(ReverbProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      presetBar(p.getValueTreeState(), "HyperPrism Reimagined Reverb", "Reverb")
 {
     setLookAndFeel(&customLookAndFeel);
-    
+    addAndMakeVisible(presetBar);
+
     // Initialize default parameter assignments
     xParameterIDs.add(ReverbProcessor::ROOM_SIZE_ID);
     yParameterIDs.add(ReverbProcessor::DAMPING_ID);
@@ -259,9 +261,19 @@ ReverbEditor::ReverbEditor(ReverbProcessor& p)
     mixSlider.setDescription("Balance between dry and reverb signal");
     bypassButton.setTooltip("Bypass the effect");
     bypassButton.setDescription("Bypass the effect");
+    const int storedEditorWidth = audioProcessor.getEditorWidth();
+    const int storedEditorHeight = audioProcessor.getEditorHeight();
+
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
+
+    if (storedEditorWidth != 0 && storedEditorHeight != 0
+        && storedEditorWidth >= 600 && storedEditorWidth <= 900
+        && storedEditorHeight >= 520 && storedEditorHeight <= 750)
+    {
+        setSize(storedEditorWidth, storedEditorHeight);
+    }
 }
 
 ReverbEditor::~ReverbEditor()
@@ -322,6 +334,7 @@ void ReverbEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
+    presetBar.setBounds(header.getX() + 12, 4, header.getWidth() - 52, 22);
     titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
     brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
     // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
@@ -387,6 +400,8 @@ void ReverbEditor::resized()
 
     outputSectionX = outputArea.getX();
     outputSectionY = outputArea.getY();
+
+    audioProcessor.setEditorSize(getWidth(), getHeight());
 }
 
 void ReverbEditor::setupControls()

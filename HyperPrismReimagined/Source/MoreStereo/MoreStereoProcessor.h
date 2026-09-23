@@ -46,7 +46,12 @@ public:
     
     //==============================================================================
     juce::AudioProcessorValueTreeState& getValueTreeState() { return valueTreeState; }
-    
+
+    // Editor size persistence
+    int getEditorWidth() const { return editorWidth.load(); }
+    int getEditorHeight() const { return editorHeight.load(); }
+    void setEditorSize(int w, int h) { editorWidth.store(w); editorHeight.store(h); }
+
     // Parameter IDs
     static const juce::String BYPASS_ID;
     static const juce::String WIDTH_ID;
@@ -69,7 +74,8 @@ private:
     void calculateStereoWidth(const juce::AudioBuffer<float>& buffer);
     
     juce::AudioProcessorValueTreeState valueTreeState;
-    
+    std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
+
     // Parameter pointers for performance
     std::atomic<float>* bypassParam = nullptr;
     std::atomic<float>* widthParam = nullptr;

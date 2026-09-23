@@ -119,10 +119,15 @@ void XYPad::setAxisColors(const juce::Colour& xColor, const juce::Colour& yColor
 // EchoEditor Implementation
 //==============================================================================
 EchoEditor::EchoEditor(EchoProcessor& p)
-    : AudioProcessorEditor(&p), audioProcessor(p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
+      presetBar(p.getValueTreeState(), "HyperPrism Reimagined Echo", "Echo")
 {
+    const int storedEditorWidth = audioProcessor.getEditorWidth();
+    const int storedEditorHeight = audioProcessor.getEditorHeight();
+
     setLookAndFeel(&customLookAndFeel);
-    
+    addAndMakeVisible(presetBar);
+
     // Initialize default parameter assignments
     xParameterIDs.add(EchoProcessor::DELAY_ID);
     yParameterIDs.add(EchoProcessor::FEEDBACK_ID);
@@ -222,6 +227,12 @@ EchoEditor::EchoEditor(EchoProcessor& p)
     setSize(700, 550);
     setResizable(true, true);
     setResizeLimits(600, 520, 900, 750);
+    if (storedEditorWidth != 0 && storedEditorHeight != 0 &&
+        storedEditorWidth >= 600 && storedEditorWidth <= 900 &&
+        storedEditorHeight >= 520 && storedEditorHeight <= 750)
+    {
+        setSize(storedEditorWidth, storedEditorHeight);
+    }
 }
 
 EchoEditor::~EchoEditor()
@@ -281,6 +292,7 @@ void EchoEditor::resized()
 
     // === HEADER (72px) ===
     auto header = bounds.removeFromTop(72);
+    presetBar.setBounds(header.getX() + 12, 4, header.getWidth() - 52, 22);
     titleLabel.setBounds(header.getX() + 12, 30, header.getWidth() - 146, 20);
     brandLabel.setBounds(header.getX() + 12, 50, header.getWidth() - 146, 16);
     // Logo sits at the far right (style guide section 5); bypass moves left to clear it.
@@ -339,6 +351,8 @@ void EchoEditor::resized()
     int outKnob = 58;
     int outY = outputArea.getY() + 24;
     centerKnob(mixSlider, mixLabel, outputArea.getCentreX() - 50, 100, outY + outKnob / 2, outKnob);
+
+    audioProcessor.setEditorSize(getWidth(), getHeight());
 }
 
 void EchoEditor::setupControls()
