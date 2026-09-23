@@ -181,12 +181,12 @@ void ReverbProcessor::processReverb(juce::AudioBuffer<float>& buffer)
             float delayedRight = preDelayRight[readIndex];
             
             // Write current samples to delay buffer
-            preDelayLeft[preDelayWriteIndex] = leftChannel[sample];
-            preDelayRight[preDelayWriteIndex] = rightChannel[sample];
+            preDelayLeft[preDelayWriteIndex] = leftChannel[static_cast<size_t>(sample)];
+            preDelayRight[preDelayWriteIndex] = rightChannel[static_cast<size_t>(sample)];
             
             // Replace current samples with delayed ones
-            leftChannel[sample] = delayedLeft;
-            rightChannel[sample] = delayedRight;
+            leftChannel[static_cast<size_t>(sample)] = delayedLeft;
+            rightChannel[static_cast<size_t>(sample)] = delayedRight;
             
             // Advance write index
             preDelayWriteIndex = (preDelayWriteIndex + 1) % maxPreDelayInSamples;
@@ -209,11 +209,11 @@ void ReverbProcessor::processReverb(juce::AudioBuffer<float>& buffer)
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        leftChannel[sample] = leftLowCut.processSingleSampleRaw(leftChannel[sample]);
-        leftChannel[sample] = leftHighCut.processSingleSampleRaw(leftChannel[sample]);
+        leftChannel[static_cast<size_t>(sample)] = leftLowCut.processSingleSampleRaw(leftChannel[static_cast<size_t>(sample)]);
+        leftChannel[static_cast<size_t>(sample)] = leftHighCut.processSingleSampleRaw(leftChannel[static_cast<size_t>(sample)]);
         
-        rightChannel[sample] = rightLowCut.processSingleSampleRaw(rightChannel[sample]);
-        rightChannel[sample] = rightHighCut.processSingleSampleRaw(rightChannel[sample]);
+        rightChannel[static_cast<size_t>(sample)] = rightLowCut.processSingleSampleRaw(rightChannel[static_cast<size_t>(sample)]);
+        rightChannel[static_cast<size_t>(sample)] = rightHighCut.processSingleSampleRaw(rightChannel[static_cast<size_t>(sample)]);
     }
     
     // Mix wet and dry signals
@@ -224,7 +224,7 @@ void ReverbProcessor::processReverb(juce::AudioBuffer<float>& buffer)
         
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            channelData[sample] = dryData[sample] + (mix * (channelData[sample] - dryData[sample]));
+            channelData[static_cast<size_t>(sample)] = dryData[static_cast<size_t>(sample)] + (mix * (channelData[static_cast<size_t>(sample)] - dryData[static_cast<size_t>(sample)]));
         }
     }
 }

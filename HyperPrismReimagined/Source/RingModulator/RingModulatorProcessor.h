@@ -8,7 +8,7 @@ public:
     RingModulatorProcessor();
     ~RingModulatorProcessor() override;
 
-    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
+    void prepareToPlay(double sampleRate, int) override;
     void releaseResources() override;
 
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;

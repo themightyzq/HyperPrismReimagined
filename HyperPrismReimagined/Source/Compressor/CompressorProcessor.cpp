@@ -229,16 +229,16 @@ int CompressorProcessor::getCurrentProgram()
     return 0;
 }
 
-void CompressorProcessor::setCurrentProgram(int index)
+void CompressorProcessor::setCurrentProgram(int)
 {
 }
 
-const juce::String CompressorProcessor::getProgramName(int index)
+const juce::String CompressorProcessor::getProgramName(int)
 {
     return {};
 }
 
-void CompressorProcessor::changeProgramName(int index, const juce::String& newName)
+void CompressorProcessor::changeProgramName(int, const juce::String&)
 {
 }
 

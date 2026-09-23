@@ -175,7 +175,7 @@ void ChorusProcessor::processChorus(juce::AudioBuffer<float>& buffer)
         float rightDelayTime = delayMs + (lfoRight * depth * delayMs * 0.5f);
         
         // Process left channel
-        float leftInput = leftChannel[sample];
+        float leftInput = leftChannel[static_cast<size_t>(sample)];
         float leftChorus = leftDelayLine.processSample(leftInput, leftDelayTime, feedback);
         
         // Apply filtering
@@ -183,7 +183,7 @@ void ChorusProcessor::processChorus(juce::AudioBuffer<float>& buffer)
         leftChorus = leftHighCut.processSingleSampleRaw(leftChorus);
         
         // Process right channel
-        float rightInput = rightChannel[sample];
+        float rightInput = rightChannel[static_cast<size_t>(sample)];
         float rightChorus = rightDelayLine.processSample(rightInput, rightDelayTime, feedback);
         
         // Apply filtering
@@ -191,8 +191,8 @@ void ChorusProcessor::processChorus(juce::AudioBuffer<float>& buffer)
         rightChorus = rightHighCut.processSingleSampleRaw(rightChorus);
         
         // Mix wet and dry signals
-        leftChannel[sample] = leftInput + (mix * (leftChorus - leftInput));
-        rightChannel[sample] = rightInput + (mix * (rightChorus - rightInput));
+        leftChannel[static_cast<size_t>(sample)] = leftInput + (mix * (leftChorus - leftInput));
+        rightChannel[static_cast<size_t>(sample)] = rightInput + (mix * (rightChorus - rightInput));
         
         // Advance LFO phases
         lfoPhase += lfoIncrement;

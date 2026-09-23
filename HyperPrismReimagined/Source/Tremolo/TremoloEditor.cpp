@@ -188,7 +188,7 @@ void TremoloMeter::paint(juce::Graphics& g)
     for (size_t i = 0; i < lfoWaveform.size(); ++i)
     {
         float x = displayArea.getX() + (i / float(lfoWaveform.size() - 1)) * displayArea.getWidth();
-        float y = displayArea.getCentreY() - lfoWaveform[i] * waveformHeight * 0.4f * depth;
+        float y = displayArea.getCentreY() - lfoWaveform[static_cast<size_t>(i)] * waveformHeight * 0.4f * depth;
 
         if (i == 0)
             waveformPath.startNewSubPath(x, y);
@@ -238,18 +238,18 @@ void TremoloMeter::timerCallback()
         switch (waveformType)
         {
             case 0: // Sine
-                lfoWaveform[i] = std::sin(2.0f * juce::MathConstants<float>::pi * phase);
+                lfoWaveform[static_cast<size_t>(i)] = std::sin(2.0f * juce::MathConstants<float>::pi * phase);
                 break;
                 
             case 1: // Triangle
                 if (phase < 0.5f)
-                    lfoWaveform[i] = 4.0f * phase - 1.0f;
+                    lfoWaveform[static_cast<size_t>(i)] = 4.0f * phase - 1.0f;
                 else
-                    lfoWaveform[i] = 3.0f - 4.0f * phase;
+                    lfoWaveform[static_cast<size_t>(i)] = 3.0f - 4.0f * phase;
                 break;
                 
             case 2: // Square
-                lfoWaveform[i] = phase < 0.5f ? 1.0f : -1.0f;
+                lfoWaveform[static_cast<size_t>(i)] = phase < 0.5f ? 1.0f : -1.0f;
                 break;
         }
     }

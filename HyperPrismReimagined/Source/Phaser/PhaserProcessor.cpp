@@ -202,7 +202,7 @@ void PhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
             float modulatedFreq = centerFreq + (lfoValue * freqRange * depth);
             
             // Process through all-pass filters
-            float input = channelData[sample];
+            float input = channelData[static_cast<size_t>(sample)];
             float output = input;
             
             // Apply feedback
@@ -222,7 +222,7 @@ void PhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
             
             // Mix dry and wet signals
             const float mix = mixSmoothed.getNextValue() * 0.01f;
-            channelData[sample] = input * (1.0f - mix) + output * mix;
+            channelData[static_cast<size_t>(sample)] = input * (1.0f - mix) + output * mix;
         }
     }
 }

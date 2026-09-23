@@ -225,12 +225,12 @@ void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer)
     for (int sample = 0; sample < numSamples; ++sample)
     {
         // Filter bass frequencies
-        bassLeft[sample] = lowPassLeft.processSingleSampleRaw(bassLeft[sample]);
-        bassRight[sample] = lowPassRight.processSingleSampleRaw(bassRight[sample]);
+        bassLeft[static_cast<size_t>(sample)] = lowPassLeft.processSingleSampleRaw(bassLeft[static_cast<size_t>(sample)]);
+        bassRight[static_cast<size_t>(sample)] = lowPassRight.processSingleSampleRaw(bassRight[static_cast<size_t>(sample)]);
         
         // Filter treble frequencies
-        trebleLeft[sample] = highPassLeft.processSingleSampleRaw(trebleLeft[sample]);
-        trebleRight[sample] = highPassRight.processSingleSampleRaw(trebleRight[sample]);
+        trebleLeft[static_cast<size_t>(sample)] = highPassLeft.processSingleSampleRaw(trebleLeft[static_cast<size_t>(sample)]);
+        trebleRight[static_cast<size_t>(sample)] = highPassRight.processSingleSampleRaw(trebleRight[static_cast<size_t>(sample)]);
     }
     
     // Process bass frequencies (make mono if required)
@@ -238,13 +238,13 @@ void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer)
     {
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            float mono = (bassLeft[sample] + bassRight[sample]) * 0.5f;
-            float dryLeft = bassLeft[sample] * (1.0f - bassMonoAmount);
-            float dryRight = bassRight[sample] * (1.0f - bassMonoAmount);
+            float mono = (bassLeft[static_cast<size_t>(sample)] + bassRight[static_cast<size_t>(sample)]) * 0.5f;
+            float dryLeft = bassLeft[static_cast<size_t>(sample)] * (1.0f - bassMonoAmount);
+            float dryRight = bassRight[static_cast<size_t>(sample)] * (1.0f - bassMonoAmount);
             float wetMono = mono * bassMonoAmount;
             
-            bassLeft[sample] = dryLeft + wetMono;
-            bassRight[sample] = dryRight + wetMono;
+            bassLeft[static_cast<size_t>(sample)] = dryLeft + wetMono;
+            bassRight[static_cast<size_t>(sample)] = dryRight + wetMono;
         }
     }
     
@@ -253,25 +253,25 @@ void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer)
     {
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            float mono = (trebleLeft[sample] + trebleRight[sample]) * 0.5f;
-            float side = (trebleLeft[sample] - trebleRight[sample]) * 0.5f;
+            float mono = (trebleLeft[static_cast<size_t>(sample)] + trebleRight[static_cast<size_t>(sample)]) * 0.5f;
+            float side = (trebleLeft[static_cast<size_t>(sample)] - trebleRight[static_cast<size_t>(sample)]) * 0.5f;
             
             // Enhance stereo image
             side *= (1.0f + stereoEnhance * 2.0f);
             
-            trebleLeft[sample] = mono + side;
-            trebleRight[sample] = mono - side;
+            trebleLeft[static_cast<size_t>(sample)] = mono + side;
+            trebleRight[static_cast<size_t>(sample)] = mono - side;
         }
     }
     
     // Apply overall stereo width to treble
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float mono = (trebleLeft[sample] + trebleRight[sample]) * 0.5f;
-        float side = (trebleLeft[sample] - trebleRight[sample]) * 0.5f * width;
+        float mono = (trebleLeft[static_cast<size_t>(sample)] + trebleRight[static_cast<size_t>(sample)]) * 0.5f;
+        float side = (trebleLeft[static_cast<size_t>(sample)] - trebleRight[static_cast<size_t>(sample)]) * 0.5f * width;
         
-        trebleLeft[sample] = mono + side;
-        trebleRight[sample] = mono - side;
+        trebleLeft[static_cast<size_t>(sample)] = mono + side;
+        trebleRight[static_cast<size_t>(sample)] = mono - side;
     }
     
     // Process ambience if enabled
@@ -289,8 +289,8 @@ void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer)
         
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            float leftInput = ambienceLeft[sample];
-            float rightInput = ambienceRight[sample];
+            float leftInput = ambienceLeft[static_cast<size_t>(sample)];
+            float rightInput = ambienceRight[static_cast<size_t>(sample)];
             
             // Add small delays (3-7 ms)
             float leftDelayed = ambienceDelayLeft.popSample(0, 3.0f * 48.0f, true);
@@ -299,10 +299,10 @@ void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer)
             ambienceDelayLeft.pushSample(0, leftInput);
             ambienceDelayRight.pushSample(0, rightInput);
             
-            ambienceLeft[sample] = leftDelayed * ambienceAmount * 0.3f;
-            ambienceRight[sample] = rightDelayed * ambienceAmount * 0.3f;
+            ambienceLeft[static_cast<size_t>(sample)] = leftDelayed * ambienceAmount * 0.3f;
+            ambienceRight[static_cast<size_t>(sample)] = rightDelayed * ambienceAmount * 0.3f;
             
-            ambienceLevelSum += (std::abs(ambienceLeft[sample]) + std::abs(ambienceRight[sample])) * 0.5f;
+            ambienceLevelSum += (std::abs(ambienceLeft[static_cast<size_t>(sample)]) + std::abs(ambienceRight[static_cast<size_t>(sample)])) * 0.5f;
         }
     }
     
@@ -312,19 +312,19 @@ void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer)
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        leftData[sample] = (bassLeft[sample] + trebleLeft[sample]) * outputLevel;
-        rightData[sample] = (bassRight[sample] + trebleRight[sample]) * outputLevel;
+        leftData[static_cast<size_t>(sample)] = (bassLeft[static_cast<size_t>(sample)] + trebleLeft[static_cast<size_t>(sample)]) * outputLevel;
+        rightData[static_cast<size_t>(sample)] = (bassRight[static_cast<size_t>(sample)] + trebleRight[static_cast<size_t>(sample)]) * outputLevel;
         
         // Add ambience
         if (ambienceAmount > 0.001f)
         {
-            leftData[sample] += ambienceBuffer.getSample(0, sample);
-            rightData[sample] += ambienceBuffer.getSample(1, sample);
+            leftData[static_cast<size_t>(sample)] += ambienceBuffer.getSample(0, sample);
+            rightData[static_cast<size_t>(sample)] += ambienceBuffer.getSample(1, sample);
         }
         
         // Accumulate for metering
-        leftLevelSum += std::abs(leftData[sample]);
-        rightLevelSum += std::abs(rightData[sample]);
+        leftLevelSum += std::abs(leftData[static_cast<size_t>(sample)]);
+        rightLevelSum += std::abs(rightData[static_cast<size_t>(sample)]);
     }
     
     // Update level metering
@@ -345,8 +345,8 @@ void MoreStereoProcessor::calculateStereoWidth(const juce::AudioBuffer<float>& b
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float left = leftData[sample];
-        float right = rightData[sample];
+        float left = leftData[static_cast<size_t>(sample)];
+        float right = rightData[static_cast<size_t>(sample)];
         
         correlationSum += left * right;
         leftSquareSum += left * left;

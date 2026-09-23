@@ -82,16 +82,16 @@ int BassMaximiserProcessor::getCurrentProgram()
     return 0;
 }
 
-void BassMaximiserProcessor::setCurrentProgram(int index)
+void BassMaximiserProcessor::setCurrentProgram(int)
 {
 }
 
-const juce::String BassMaximiserProcessor::getProgramName(int index)
+const juce::String BassMaximiserProcessor::getProgramName(int)
 {
     return {};
 }
 
-void BassMaximiserProcessor::changeProgramName(int index, const juce::String& newName)
+void BassMaximiserProcessor::changeProgramName(int, const juce::String&)
 {
 }
 
@@ -182,22 +182,22 @@ void BassMaximiserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
         
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            float input = channelData[sample];
+            float input = channelData[static_cast<size_t>(sample)];
             
             // Split signal into bass and high frequencies
-            float bassSignal = bassFilter[channel].processSample(input);
-            float highSignal = highPassFilter[channel].processSample(input);
+            float bassSignal = bassFilter[static_cast<size_t>(channel)].processSample(input);
+            float highSignal = highPassFilter[static_cast<size_t>(channel)].processSample(input);
             
             // Apply boost to bass signal
             float boostedBass = bassSignal * juce::Decibels::decibelsToGain(boost);
             
             // Generate sub-harmonics
-            float subHarmonic = generateSubHarmonic(boostedBass, subHarmonicPhase[channel], harmonics);
-            subHarmonicData[sample] = subHarmonic;
+            float subHarmonic = generateSubHarmonic(boostedBass, subHarmonicPhase[static_cast<size_t>(channel)], harmonics);
+            subHarmonicData[static_cast<size_t>(sample)] = subHarmonic;
             
             // Apply bass compression/limiting (tightness)
-            float processedBass = processBassCompression(boostedBass, bassEnvelopes[channel], 
-                                                       bassGainReduction[channel], tightness, frequency);
+            float processedBass = processBassCompression(boostedBass, bassEnvelopes[static_cast<size_t>(channel)], 
+                                                       bassGainReduction[static_cast<size_t>(channel)], tightness, frequency);
             
             // Apply phase invert if enabled
             if (phaseInvert)
@@ -209,7 +209,7 @@ void BassMaximiserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
             // Apply output gain
             output *= outputGainSmoother.getNextValue();
             
-            channelData[sample] = output;
+            channelData[static_cast<size_t>(sample)] = output;
             
             // Accumulate bass level for metering (only channel 0 for stereo linking)
             if (channel == 0)
@@ -331,7 +331,7 @@ float BassMaximiserProcessor::calculateRMS(const float* buffer, int numSamples)
     float sum = 0.0f;
     for (int i = 0; i < numSamples; ++i)
     {
-        sum += buffer[i] * buffer[i];
+        sum += buffer[static_cast<size_t>(i)] * buffer[static_cast<size_t>(i)];
     }
     return std::sqrt(sum / numSamples);
 }

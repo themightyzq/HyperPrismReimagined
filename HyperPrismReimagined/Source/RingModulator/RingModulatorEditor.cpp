@@ -158,7 +158,7 @@ void RingModulatorMeter::paint(juce::Graphics& g)
     for (size_t i = 0; i < carrierWaveform.size(); ++i)
     {
         float x = carrierWaveArea.getX() + (i / float(carrierWaveform.size() - 1)) * carrierWaveArea.getWidth();
-        float y = carrierWaveArea.getCentreY() - carrierWaveform[i] * carrierWaveArea.getHeight() * 0.4f;
+        float y = carrierWaveArea.getCentreY() - carrierWaveform[static_cast<size_t>(i)] * carrierWaveArea.getHeight() * 0.4f;
         
         if (i == 0)
             carrierPath.startNewSubPath(x, y);
@@ -182,7 +182,7 @@ void RingModulatorMeter::paint(juce::Graphics& g)
     for (size_t i = 0; i < modulatorWaveform.size(); ++i)
     {
         float x = modulatorWaveArea.getX() + (i / float(modulatorWaveform.size() - 1)) * modulatorWaveArea.getWidth();
-        float y = modulatorWaveArea.getCentreY() - modulatorWaveform[i] * modulatorWaveArea.getHeight() * 0.4f;
+        float y = modulatorWaveArea.getCentreY() - modulatorWaveform[static_cast<size_t>(i)] * modulatorWaveArea.getHeight() * 0.4f;
         
         if (i == 0)
             modulatorPath.startNewSubPath(x, y);
@@ -206,7 +206,7 @@ void RingModulatorMeter::paint(juce::Graphics& g)
     for (size_t i = 0; i < outputWaveform.size(); ++i)
     {
         float x = outputWaveArea.getX() + (i / float(outputWaveform.size() - 1)) * outputWaveArea.getWidth();
-        float y = outputWaveArea.getCentreY() - outputWaveform[i] * outputWaveArea.getHeight() * 0.4f;
+        float y = outputWaveArea.getCentreY() - outputWaveform[static_cast<size_t>(i)] * outputWaveArea.getHeight() * 0.4f;
         
         if (i == 0)
             outputPath.startNewSubPath(x, y);
@@ -249,9 +249,9 @@ void RingModulatorMeter::timerCallback()
         const float c = std::sin(t * juce::MathConstants<float>::twoPi * carrierCycles);
         const float m = std::sin(t * juce::MathConstants<float>::twoPi * modulatorCycles);
 
-        carrierWaveform[i]   = c;
-        modulatorWaveform[i] = m;
-        outputWaveform[i]    = juce::jlimit(-1.0f, 1.0f, c * m * mix);
+        carrierWaveform[static_cast<size_t>(i)]   = c;
+        modulatorWaveform[static_cast<size_t>(i)] = m;
+        outputWaveform[static_cast<size_t>(i)]    = juce::jlimit(-1.0f, 1.0f, c * m * mix);
     }
 
     repaint();

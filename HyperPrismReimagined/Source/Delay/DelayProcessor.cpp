@@ -67,7 +67,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout DelayProcessor::createParame
     return { parameters.begin(), parameters.end() };
 }
 
-void DelayProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void DelayProcessor::prepareToPlay(double sampleRate, int)
 {
     currentSampleRate = sampleRate;
     
@@ -151,24 +151,24 @@ void DelayProcessor::processDelay(juce::AudioBuffer<float>& buffer)
     for (int sample = 0; sample < numSamples; ++sample)
     {
         // Process left channel
-        float leftInput = leftChannel[sample];
+        float leftInput = leftChannel[static_cast<size_t>(sample)];
         float leftDelayed = leftDelay.processSample(leftInput, feedback);
         
         // Apply filtering
         leftDelayed = leftLowCut.processSingleSampleRaw(leftDelayed);
         leftDelayed = leftHighCut.processSingleSampleRaw(leftDelayed);
         
-        leftChannel[sample] = leftInput + (mix * (leftDelayed - leftInput));
+        leftChannel[static_cast<size_t>(sample)] = leftInput + (mix * (leftDelayed - leftInput));
         
         // Process right channel
-        float rightInput = rightChannel[sample];
+        float rightInput = rightChannel[static_cast<size_t>(sample)];
         float rightDelayed = rightDelay.processSample(rightInput, feedback);
         
         // Apply filtering
         rightDelayed = rightLowCut.processSingleSampleRaw(rightDelayed);
         rightDelayed = rightHighCut.processSingleSampleRaw(rightDelayed);
         
-        rightChannel[sample] = rightInput + (mix * (rightDelayed - rightInput));
+        rightChannel[static_cast<size_t>(sample)] = rightInput + (mix * (rightDelayed - rightInput));
     }
 }
 

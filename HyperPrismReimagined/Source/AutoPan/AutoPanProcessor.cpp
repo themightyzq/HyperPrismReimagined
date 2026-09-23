@@ -273,18 +273,18 @@ void AutoPanProcessor::processAutoPan(juce::AudioBuffer<float>& buffer)
         float currentRightGain = smoothedRightGain.getNextValue();
         
         // Store original signals
-        float leftInput = leftData[sample];
-        float rightInput = rightData[sample];
+        float leftInput = leftData[static_cast<size_t>(sample)];
+        float rightInput = rightData[static_cast<size_t>(sample)];
         
         // Apply panning to combined mono signal
         float monoSignal = (leftInput + rightInput) * 0.5f;
         
-        leftData[sample] = monoSignal * currentLeftGain;
-        rightData[sample] = monoSignal * currentRightGain;
+        leftData[static_cast<size_t>(sample)] = monoSignal * currentLeftGain;
+        rightData[static_cast<size_t>(sample)] = monoSignal * currentRightGain;
         
         // Accumulate for metering
-        leftLevelSum += std::abs(leftData[sample]);
-        rightLevelSum += std::abs(rightData[sample]);
+        leftLevelSum += std::abs(leftData[static_cast<size_t>(sample)]);
+        rightLevelSum += std::abs(rightData[static_cast<size_t>(sample)]);
         lfoSum += std::abs(phasedLFO);
     }
     

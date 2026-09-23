@@ -192,7 +192,7 @@ void QuasiStereoProcessor::processQuasiStereo(juce::AudioBuffer<float>& buffer)
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float input = (leftData[sample] + rightData[sample]) * 0.5f; // Mix to mono first
+        float input = (leftData[static_cast<size_t>(sample)] + rightData[static_cast<size_t>(sample)]) * 0.5f; // Mix to mono first
         
         // Create delayed version
         float delayedSample = delayLine.popSample(0, delaySamples, true);
@@ -225,12 +225,12 @@ void QuasiStereoProcessor::processQuasiStereo(juce::AudioBuffer<float>& buffer)
         float mono = (left + right) * 0.5f;
         float side = (left - right) * 0.5f * width;
         
-        leftData[sample] = (mono + side) * outputLevel;
-        rightData[sample] = (mono - side) * outputLevel;
+        leftData[static_cast<size_t>(sample)] = (mono + side) * outputLevel;
+        rightData[static_cast<size_t>(sample)] = (mono - side) * outputLevel;
         
         // Accumulate for metering
-        leftLevelSum += std::abs(leftData[sample]);
-        rightLevelSum += std::abs(rightData[sample]);
+        leftLevelSum += std::abs(leftData[static_cast<size_t>(sample)]);
+        rightLevelSum += std::abs(rightData[static_cast<size_t>(sample)]);
     }
     
     // Update level metering
@@ -256,8 +256,8 @@ void QuasiStereoProcessor::calculateStereoWidth(const juce::AudioBuffer<float>& 
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float left = leftData[sample];
-        float right = rightData[sample];
+        float left = leftData[static_cast<size_t>(sample)];
+        float right = rightData[static_cast<size_t>(sample)];
         
         correlationSum += left * right;
         leftSquareSum += left * left;

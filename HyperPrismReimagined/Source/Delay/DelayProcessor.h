@@ -13,7 +13,7 @@ public:
     ~DelayProcessor() override = default;
 
     // AudioProcessor interface
-    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
+    void prepareToPlay(double sampleRate, int) override;
     void releaseResources() override;
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
     void processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages) override;
@@ -30,9 +30,9 @@ public:
     double getTailLengthSeconds() const override { return 2.0; }
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
-    void setCurrentProgram(int index) override {}
-    const juce::String getProgramName(int index) override { return "Default"; }
-    void changeProgramName(int index, const juce::String& newName) override {}
+    void setCurrentProgram(int) override {}
+    const juce::String getProgramName(int) override { return "Default"; }
+    void changeProgramName(int, const juce::String&) override {}
     
     // State save/restore
     void getStateInformation(juce::MemoryBlock& destData) override;

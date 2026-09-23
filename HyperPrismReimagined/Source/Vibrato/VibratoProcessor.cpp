@@ -149,11 +149,11 @@ void VibratoProcessor::processVibrato(juce::AudioBuffer<float>& buffer)
             modulatedDelay = juce::jmax(0.1f, modulatedDelay);
             
             // Process through delay line
-            float input = channelData[sample];
+            float input = channelData[static_cast<size_t>(sample)];
             float vibratoOutput = delayLine->processSample(input, modulatedDelay, feedback);
             
             // Mix wet and dry signals
-            channelData[sample] = input * (1.0f - mix) + vibratoOutput * mix;
+            channelData[static_cast<size_t>(sample)] = input * (1.0f - mix) + vibratoOutput * mix;
             
             // Advance LFO phase
             channelLfoPhase += lfoIncrement;

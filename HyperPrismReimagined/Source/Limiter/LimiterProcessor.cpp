@@ -88,20 +88,17 @@ int LimiterProcessor::getCurrentProgram()
     return 0;
 }
 
-void LimiterProcessor::setCurrentProgram(int index)
+void LimiterProcessor::setCurrentProgram(int)
 {
-    juce::ignoreUnused(index);
 }
 
-const juce::String LimiterProcessor::getProgramName(int index)
+const juce::String LimiterProcessor::getProgramName(int)
 {
-    juce::ignoreUnused(index);
     return {};
 }
 
-void LimiterProcessor::changeProgramName(int index, const juce::String& newName)
+void LimiterProcessor::changeProgramName(int, const juce::String&)
 {
-    juce::ignoreUnused(index, newName);
 }
 
 void LimiterProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -217,21 +214,21 @@ void LimiterProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
         for (int sample = 0; sample < numSamples; ++sample)
         {
             // Apply input gain
-            float input = channelData[sample] * inputGainLinear;
+            float input = channelData[static_cast<size_t>(sample)] * inputGainLinear;
             
             // Simplified limiting without expensive lookahead loop
             // Use immediate input instead of complex lookahead processing
             float inputAbs = std::abs(input);
             
             // Fast envelope follower
-            float& envelope = envelopeFollowers[channel];
+            float& envelope = envelopeFollowers[static_cast<size_t>(channel)];
             if (inputAbs > envelope)
                 envelope = inputAbs; // Instant attack
             else
                 envelope = inputAbs + 0.999f * (envelope - inputAbs); // Fast release
             
             // Calculate gain reduction
-            float& smoothedGain = smoothedGains[channel];
+            float& smoothedGain = smoothedGains[static_cast<size_t>(channel)];
             float targetGain = (envelope > ceilingLinear) ? ceilingLinear / envelope : 1.0f;
             
             // Simple gain smoothing
@@ -252,7 +249,7 @@ void LimiterProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
             // Hard clip as final safety
             output = std::max(-ceilingLinear, std::min(ceilingLinear, output));
             
-            channelData[sample] = output;
+            channelData[static_cast<size_t>(sample)] = output;
             
             // Update metering
             maxGainReduction = std::min(maxGainReduction, smoothedGain);

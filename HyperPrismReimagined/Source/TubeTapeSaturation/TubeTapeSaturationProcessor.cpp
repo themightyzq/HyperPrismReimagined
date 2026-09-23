@@ -146,7 +146,7 @@ void TubeTapeSaturationProcessor::processSaturation(juce::AudioBuffer<float>& bu
         const auto* channelData = buffer.getReadPointer(channel);
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            inputSum += std::abs(channelData[sample]);
+            inputSum += std::abs(channelData[static_cast<size_t>(sample)]);
         }
     }
     inputLevel.store(inputSum / (numChannels * numSamples));
@@ -166,7 +166,7 @@ void TubeTapeSaturationProcessor::processSaturation(juce::AudioBuffer<float>& bu
         
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            float input = channelData[sample];
+            float input = channelData[static_cast<size_t>(sample)];
             
             // Pre-filtering for warmth and brightness shaping
             float processed = lowShelf.processSingleSampleRaw(input);
@@ -190,7 +190,7 @@ void TubeTapeSaturationProcessor::processSaturation(juce::AudioBuffer<float>& bu
             processed = dcBlock.processSingleSampleRaw(processed);
             
             // Output level adjustment
-            channelData[sample] = processed * outputGain;
+            channelData[static_cast<size_t>(sample)] = processed * outputGain;
         }
     }
 }
@@ -234,7 +234,7 @@ void TubeTapeSaturationProcessor::calculateHarmonicContent(const juce::AudioBuff
         const auto* channelData = buffer.getReadPointer(channel);
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            sumSquares += channelData[sample] * channelData[sample];
+            sumSquares += channelData[static_cast<size_t>(sample)] * channelData[static_cast<size_t>(sample)];
         }
     }
     

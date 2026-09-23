@@ -209,10 +209,10 @@ void TremoloProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
             float amplitude = 1.0f - (depth * 0.5f * (1.0f - lfoValue));
             
             // Apply tremolo effect
-            float wetSignal = channelData[sample] * amplitude;
+            float wetSignal = channelData[static_cast<size_t>(sample)] * amplitude;
             
             // Mix dry and wet signals
-            channelData[sample] = dryData[sample] * (1.0f - mix) + wetSignal * mix;
+            channelData[static_cast<size_t>(sample)] = dryData[static_cast<size_t>(sample)] * (1.0f - mix) + wetSignal * mix;
         }
         
         // Keep LFOs in sync after processing

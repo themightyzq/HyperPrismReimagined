@@ -170,7 +170,7 @@ void VibratoMeter::paint(juce::Graphics& g)
     for (size_t i = 0; i < lfoWaveform.size(); ++i)
     {
         float x = lfoArea.getX() + (i / float(lfoWaveform.size() - 1)) * lfoArea.getWidth();
-        float y = lfoArea.getCentreY() - lfoWaveform[i] * lfoArea.getHeight() * 0.3f * depth;
+        float y = lfoArea.getCentreY() - lfoWaveform[static_cast<size_t>(i)] * lfoArea.getHeight() * 0.3f * depth;
         
         if (i == 0)
             waveformPath.startNewSubPath(x, y);
@@ -218,7 +218,7 @@ void VibratoMeter::paint(juce::Graphics& g)
             float x = centerX + std::cos(angle) * radius;
             float y = centerY + std::sin(angle) * radius;
             
-            float intensity = delayBuffer[i];
+            float intensity = delayBuffer[static_cast<size_t>(i)];
             auto dotColor = HyperPrismLookAndFeel::Colors::success.withAlpha(intensity);
             g.setColour(dotColor);
             g.fillEllipse(x - 2, y - 2, 4, 4);
@@ -265,7 +265,7 @@ void VibratoMeter::timerCallback()
     for (size_t i = 0; i < lfoWaveform.size(); ++i)
     {
         float phase = i / float(lfoWaveform.size());
-        lfoWaveform[i] = std::sin(2.0f * juce::MathConstants<float>::pi * phase);
+        lfoWaveform[static_cast<size_t>(i)] = std::sin(2.0f * juce::MathConstants<float>::pi * phase);
     }
     
     // Simulate delay buffer activity
@@ -273,7 +273,7 @@ void VibratoMeter::timerCallback()
     {
         // Create a moving pattern in the delay buffer
         float bufferPhase = (i + currentPhase * delayBuffer.size()) / delayBuffer.size();
-        delayBuffer[i] = (std::sin(bufferPhase * 4.0f * juce::MathConstants<float>::pi) + 1.0f) * 0.5f * depth;
+        delayBuffer[static_cast<size_t>(i)] = (std::sin(bufferPhase * 4.0f * juce::MathConstants<float>::pi) + 1.0f) * 0.5f * depth;
     }
     
     repaint();

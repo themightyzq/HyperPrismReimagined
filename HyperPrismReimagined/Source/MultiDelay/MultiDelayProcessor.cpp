@@ -271,10 +271,10 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
     // Process each delay line
     for (int delayIndex = 0; delayIndex < NUM_DELAYS; ++delayIndex)
     {
-        const float delayTimeMs = delayTimeParams[delayIndex]->load();
-        const float delayLevel = delayLevelParams[delayIndex]->load() / 100.0f;
-        const float delayPan = delayPanParams[delayIndex]->load() / 100.0f; // -1 to +1
-        const float delayFeedback = delayFeedbackParams[delayIndex]->load() / 100.0f;
+        const float delayTimeMs = delayTimeParams[static_cast<size_t>(delayIndex)]->load();
+        const float delayLevel = delayLevelParams[static_cast<size_t>(delayIndex)]->load() / 100.0f;
+        const float delayPan = delayPanParams[static_cast<size_t>(delayIndex)]->load() / 100.0f; // -1 to +1
+        const float delayFeedback = delayFeedbackParams[static_cast<size_t>(delayIndex)]->load() / 100.0f;
         
         if (delayLevel < 0.001f) // Skip if level is essentially zero
             continue;
@@ -294,7 +294,7 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
             leftPanGain = 1.0f - delayPan; // Reduce left channel
         }
         
-        auto& delayLine = delayLines[delayIndex];
+        auto& delayLine = delayLines[static_cast<size_t>(delayIndex)];
         float delayLevelSum = 0.0f;
         
         for (int channel = 0; channel < numChannels; ++channel)
@@ -307,7 +307,7 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
             
             for (int sample = 0; sample < numSamples; ++sample)
             {
-                float input = dryData[sample];
+                float input = dryData[static_cast<size_t>(sample)];
                 
                 // Get delayed sample
                 float delayedSample = currentDelayLine.popSample(0, delaySamples, true);
@@ -320,8 +320,8 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
                 {
                     if (otherDelay != delayIndex)
                     {
-                        auto& otherDelayLine = (channel == 0) ? delayLines[otherDelay].leftDelay : delayLines[otherDelay].rightDelay;
-                        float otherDelayTime = (delayTimeParams[otherDelay]->load() / 1000.0f) * static_cast<float>(currentSampleRate);
+                        auto& otherDelayLine = (channel == 0) ? delayLines[static_cast<size_t>(otherDelay)].leftDelay : delayLines[static_cast<size_t>(otherDelay)].rightDelay;
+                        float otherDelayTime = (delayTimeParams[static_cast<size_t>(otherDelay)]->load() / 1000.0f) * static_cast<float>(currentSampleRate);
                         float otherDelayedSample = otherDelayLine.popSample(0, otherDelayTime, true);
                         feedbackSum += otherDelayedSample * globalFeedback * 0.25f; // Attenuated global feedback
                     }
@@ -333,7 +333,7 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
                 currentDelayLine.pushSample(0, feedbackInput);
                 
                 // Add to output with level, pan, and master mix
-                wetData[sample] += delayedSample * delayLevel * panGain;
+                wetData[static_cast<size_t>(sample)] += delayedSample * delayLevel * panGain;
                 
                 // Accumulate for level metering
                 delayLevelSum += std::abs(delayedSample) * delayLevel;
@@ -352,7 +352,7 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
         
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            outputData[sample] = (dryData[sample] * (1.0f - masterMix)) + (outputData[sample] * masterMix);
+            outputData[static_cast<size_t>(sample)] = (dryData[static_cast<size_t>(sample)] * (1.0f - masterMix)) + (outputData[static_cast<size_t>(sample)] * masterMix);
         }
     }
     
@@ -368,7 +368,7 @@ std::array<float, 4> MultiDelayProcessor::getDelayLevels() const
     std::array<float, 4> levels;
     for (int i = 0; i < NUM_DELAYS; ++i)
     {
-        levels[i] = delayLines[i].levelMeter.load();
+        levels[static_cast<size_t>(i)] = delayLines[static_cast<size_t>(i)].levelMeter.load();
     }
     return levels;
 }

@@ -80,16 +80,16 @@ int LowPassProcessor::getCurrentProgram()
     return 0;
 }
 
-void LowPassProcessor::setCurrentProgram(int index)
+void LowPassProcessor::setCurrentProgram(int)
 {
 }
 
-const juce::String LowPassProcessor::getProgramName(int index)
+const juce::String LowPassProcessor::getProgramName(int)
 {
     return "Default";
 }
 
-void LowPassProcessor::changeProgramName(int index, const juce::String& newName)
+void LowPassProcessor::changeProgramName(int, const juce::String&)
 {
 }
 
@@ -186,7 +186,7 @@ void LowPassProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
         auto* channelData = buffer.getWritePointer(channel);
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            channelData[sample] *= currentGain;
+            channelData[static_cast<size_t>(sample)] *= currentGain;
         }
     }
 
@@ -199,7 +199,7 @@ void LowPassProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
         
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            wetData[sample] = dryData[sample] * (1.0f - mixValue) + wetData[sample] * mixValue;
+            wetData[static_cast<size_t>(sample)] = dryData[static_cast<size_t>(sample)] * (1.0f - mixValue) + wetData[static_cast<size_t>(sample)] * mixValue;
         }
     }
 }

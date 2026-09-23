@@ -85,7 +85,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout HyperPhaserProcessor::create
     return layout;
 }
 
-void HyperPhaserProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void HyperPhaserProcessor::prepareToPlay(double sampleRate, int)
 {
     currentSampleRate = static_cast<float>(sampleRate);
     
@@ -179,7 +179,7 @@ void HyperPhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
     for (int channel = 0; channel < numChannels; ++channel)
     {
         auto* channelData = buffer.getWritePointer(channel);
-        auto& state = channelStates[channel];
+        auto& state = channelStates[static_cast<size_t>(channel)];
         
         for (int sample = 0; sample < numSamples; ++sample)
         {
@@ -194,7 +194,7 @@ void HyperPhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
             const float modulatedFreq = baseFreq * std::exp2f(lfoValue);
             
             // Get input sample
-            float inputSample = channelData[sample];
+            float inputSample = channelData[static_cast<size_t>(sample)];
             float processedSample = inputSample;
             
             // Apply allpass stages
@@ -219,7 +219,7 @@ void HyperPhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
             }
             
             // Mix dry and wet signals
-            channelData[sample] = inputSample * (1.0f - mix) + processedSample * mix;
+            channelData[static_cast<size_t>(sample)] = inputSample * (1.0f - mix) + processedSample * mix;
         }
     }
 }

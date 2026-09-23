@@ -197,7 +197,7 @@ void SaturationMeter::paint(juce::Graphics& g)
         
         for (size_t i = 0; i < harmonicSpectrum.size(); ++i)
         {
-            float barHeight = harmonicArea.getHeight() * harmonicSpectrum[i];
+            float barHeight = harmonicArea.getHeight() * harmonicSpectrum[static_cast<size_t>(i)];
             auto barRect = juce::Rectangle<float>(harmonicArea.getX() + i * barWidth + 2, 
                                                  harmonicArea.getBottom() - barHeight, 
                                                  barWidth - 4, 
@@ -311,7 +311,7 @@ void SaturationMeter::timerCallback()
         // Apply drive influence
         float driveInfluence = drive * 0.3f * (5.0f - i) / 5.0f;
         
-        harmonicSpectrum[i] = juce::jlimit(0.0f, 1.0f, baseLevel + typeInfluence + driveInfluence);
+        harmonicSpectrum[static_cast<size_t>(i)] = juce::jlimit(0.0f, 1.0f, baseLevel + typeInfluence + driveInfluence);
     }
     
     repaint();

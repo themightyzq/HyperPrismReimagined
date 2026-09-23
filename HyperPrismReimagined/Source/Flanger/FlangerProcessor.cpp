@@ -177,7 +177,7 @@ void FlangerProcessor::processFlanger(juce::AudioBuffer<float>& buffer)
         rightDelayTime = juce::jmax(0.1f, rightDelayTime);
         
         // Process left channel
-        float leftInput = leftChannel[sample];
+        float leftInput = leftChannel[static_cast<size_t>(sample)];
         float leftFlanger = leftDelayLine.processSample(leftInput, leftDelayTime, feedback);
         
         // Apply filtering
@@ -185,7 +185,7 @@ void FlangerProcessor::processFlanger(juce::AudioBuffer<float>& buffer)
         leftFlanger = leftHighCut.processSingleSampleRaw(leftFlanger);
         
         // Process right channel
-        float rightInput = rightChannel[sample];
+        float rightInput = rightChannel[static_cast<size_t>(sample)];
         float rightFlanger = rightDelayLine.processSample(rightInput, rightDelayTime, feedback);
         
         // Apply filtering
@@ -193,8 +193,8 @@ void FlangerProcessor::processFlanger(juce::AudioBuffer<float>& buffer)
         rightFlanger = rightHighCut.processSingleSampleRaw(rightFlanger);
         
         // Mix wet and dry signals
-        leftChannel[sample] = leftInput + (mix * (leftFlanger - leftInput));
-        rightChannel[sample] = rightInput + (mix * (rightFlanger - rightInput));
+        leftChannel[static_cast<size_t>(sample)] = leftInput + (mix * (leftFlanger - leftInput));
+        rightChannel[static_cast<size_t>(sample)] = rightInput + (mix * (rightFlanger - rightInput));
         
         // Advance LFO phases
         lfoPhase += lfoIncrement;

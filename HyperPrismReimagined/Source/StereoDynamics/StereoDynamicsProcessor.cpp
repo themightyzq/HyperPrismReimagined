@@ -238,8 +238,8 @@ void StereoDynamicsProcessor::processStereoDynamics(juce::AudioBuffer<float>& bu
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float left = leftData[sample];
-        float right = rightData[sample];
+        float left = leftData[static_cast<size_t>(sample)];
+        float right = rightData[static_cast<size_t>(sample)];
         
         // Encode L/R to M/S
         float mid, side;
@@ -286,8 +286,8 @@ void StereoDynamicsProcessor::processStereoDynamics(juce::AudioBuffer<float>& bu
         processedRight *= outputLevel;
         
         // Store processed audio
-        leftData[sample] = processedLeft;
-        rightData[sample] = processedRight;
+        leftData[static_cast<size_t>(sample)] = processedLeft;
+        rightData[static_cast<size_t>(sample)] = processedRight;
         
         // Accumulate for output level metering
         leftLevelSum += std::abs(processedLeft);

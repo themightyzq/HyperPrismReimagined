@@ -186,7 +186,7 @@ void BandRejectProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
         auto* channelData = buffer.getWritePointer(channel);
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            channelData[sample] *= currentGain;
+            channelData[static_cast<size_t>(sample)] *= currentGain;
         }
     }
 
@@ -199,7 +199,7 @@ void BandRejectProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
         
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            wetData[sample] = dryData[sample] * (1.0f - mixValue) + wetData[sample] * mixValue;
+            wetData[static_cast<size_t>(sample)] = dryData[static_cast<size_t>(sample)] * (1.0f - mixValue) + wetData[static_cast<size_t>(sample)] * mixValue;
         }
     }
 }

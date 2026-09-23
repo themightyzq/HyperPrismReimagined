@@ -146,13 +146,13 @@ void EchoProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
             float delayedSample = delayLineLeft.popSample(0, delaySamples, true);
             
             // Apply feedback
-            float inputWithFeedback = channelData[sample] + (delayedSample * currentFeedback);
+            float inputWithFeedback = channelData[static_cast<size_t>(sample)] + (delayedSample * currentFeedback);
             
             // Push to delay line
             delayLineLeft.pushSample(0, inputWithFeedback);
             
             // Mix dry and wet signals
-            channelData[sample] = channelData[sample] * (1.0f - currentMix) + delayedSample * currentMix;
+            channelData[static_cast<size_t>(sample)] = channelData[static_cast<size_t>(sample)] * (1.0f - currentMix) + delayedSample * currentMix;
         }
         
         // Process right channel
@@ -164,13 +164,13 @@ void EchoProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
             float delayedSample = delayLineRight.popSample(0, delaySamples, true);
             
             // Apply feedback
-            float inputWithFeedback = channelData[sample] + (delayedSample * currentFeedback);
+            float inputWithFeedback = channelData[static_cast<size_t>(sample)] + (delayedSample * currentFeedback);
             
             // Push to delay line
             delayLineRight.pushSample(0, inputWithFeedback);
             
             // Mix dry and wet signals
-            channelData[sample] = channelData[sample] * (1.0f - currentMix) + delayedSample * currentMix;
+            channelData[static_cast<size_t>(sample)] = channelData[static_cast<size_t>(sample)] * (1.0f - currentMix) + delayedSample * currentMix;
         }
     }
 }

@@ -175,8 +175,8 @@ void PanProcessor::processPanning(juce::AudioBuffer<float>& buffer)
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float leftInput = originalLeft[sample];
-        float rightInput = originalRight[sample];
+        float leftInput = originalLeft[static_cast<size_t>(sample)];
+        float rightInput = originalRight[static_cast<size_t>(sample)];
         
         // Apply stereo width
         float mono = (leftInput + rightInput) * 0.5f;
@@ -189,12 +189,12 @@ void PanProcessor::processPanning(juce::AudioBuffer<float>& buffer)
         float currentLeftGain = smoothedLeftGain.getNextValue();
         float currentRightGain = smoothedRightGain.getNextValue();
         
-        leftData[sample] = widthLeft * currentLeftGain;
-        rightData[sample] = widthRight * currentRightGain;
+        leftData[static_cast<size_t>(sample)] = widthLeft * currentLeftGain;
+        rightData[static_cast<size_t>(sample)] = widthRight * currentRightGain;
         
         // Accumulate for metering
-        leftLevelSum += std::abs(leftData[sample]);
-        rightLevelSum += std::abs(rightData[sample]);
+        leftLevelSum += std::abs(leftData[static_cast<size_t>(sample)]);
+        rightLevelSum += std::abs(rightData[static_cast<size_t>(sample)]);
     }
     
     // Update metering

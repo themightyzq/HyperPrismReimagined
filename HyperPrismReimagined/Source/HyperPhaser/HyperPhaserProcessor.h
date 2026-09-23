@@ -21,7 +21,7 @@ public:
     HyperPhaserProcessor();
     ~HyperPhaserProcessor() override;
 
-    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
+    void prepareToPlay(double sampleRate, int) override;
     void releaseResources() override;
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -41,9 +41,9 @@ public:
 
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
-    void setCurrentProgram(int index) override {}
-    const juce::String getProgramName(int index) override { return {}; }
-    void changeProgramName(int index, const juce::String& newName) override {}
+    void setCurrentProgram(int) override {}
+    const juce::String getProgramName(int) override { return {}; }
+    void changeProgramName(int, const juce::String&) override {}
 
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;

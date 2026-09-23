@@ -60,7 +60,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout RingModulatorProcessor::crea
     return { params.begin(), params.end() };
 }
 
-void RingModulatorProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void RingModulatorProcessor::prepareToPlay(double sampleRate, int)
 {
     // Reset phases
     carrierPhase = 0.0f;
@@ -154,9 +154,9 @@ void RingModulatorProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
             const float carrier = generateWaveform(localCarrierPhase, carrierWaveform);
             const float modulator = generateWaveform(localModulatorPhase, modulatorWaveform);
 
-            const float ringModSignal = channelData[sample] * carrier * (1.0f + modulator) * 0.5f;
+            const float ringModSignal = channelData[static_cast<size_t>(sample)] * carrier * (1.0f + modulator) * 0.5f;
 
-            channelData[sample] = (1.0f - mix) * channelData[sample] + mix * ringModSignal;
+            channelData[static_cast<size_t>(sample)] = (1.0f - mix) * channelData[static_cast<size_t>(sample)] + mix * ringModSignal;
 
             localCarrierPhase += carrierPhaseInc;
             localModulatorPhase += modulatorPhaseInc;
@@ -233,15 +233,15 @@ int RingModulatorProcessor::getCurrentProgram()
     return 0;
 }
 
-void RingModulatorProcessor::setCurrentProgram(int index)
+void RingModulatorProcessor::setCurrentProgram(int)
 {
 }
 
-const juce::String RingModulatorProcessor::getProgramName(int index)
+const juce::String RingModulatorProcessor::getProgramName(int)
 {
     return {};
 }
 
-void RingModulatorProcessor::changeProgramName(int index, const juce::String& newName)
+void RingModulatorProcessor::changeProgramName(int, const juce::String&)
 {
 }

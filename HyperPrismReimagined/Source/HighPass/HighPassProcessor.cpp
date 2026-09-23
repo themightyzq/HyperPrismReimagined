@@ -80,16 +80,16 @@ int HighPassProcessor::getCurrentProgram()
     return 0;
 }
 
-void HighPassProcessor::setCurrentProgram(int index)
+void HighPassProcessor::setCurrentProgram(int)
 {
 }
 
-const juce::String HighPassProcessor::getProgramName(int index)
+const juce::String HighPassProcessor::getProgramName(int)
 {
     return "Default";
 }
 
-void HighPassProcessor::changeProgramName(int index, const juce::String& newName)
+void HighPassProcessor::changeProgramName(int, const juce::String&)
 {
 }
 
@@ -186,7 +186,7 @@ void HighPassProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         auto* channelData = buffer.getWritePointer(channel);
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            channelData[sample] *= currentGain;
+            channelData[static_cast<size_t>(sample)] *= currentGain;
         }
     }
 
@@ -199,7 +199,7 @@ void HighPassProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mid
         
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            wetData[sample] = dryData[sample] * (1.0f - mixValue) + wetData[sample] * mixValue;
+            wetData[static_cast<size_t>(sample)] = dryData[static_cast<size_t>(sample)] * (1.0f - mixValue) + wetData[static_cast<size_t>(sample)] * mixValue;
         }
     }
 }

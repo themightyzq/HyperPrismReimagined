@@ -310,7 +310,7 @@ void SonicDecimatorProcessor::processDecimation(juce::AudioBuffer<float>& buffer
         
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            float input = channelData[sample];
+            float input = channelData[static_cast<size_t>(sample)];
             inputLevelSum += std::abs(input);
             
             // Apply sample rate reduction first
@@ -320,8 +320,8 @@ void SonicDecimatorProcessor::processDecimation(juce::AudioBuffer<float>& buffer
             float bitCrushed = bitCrusher.processSample(sampleReduced);
             
             // Mix dry and wet signals
-            float output = (dryData[sample] * (1.0f - mix) + bitCrushed * mix) * outputGain;
-            channelData[sample] = output;
+            float output = (dryData[static_cast<size_t>(sample)] * (1.0f - mix) + bitCrushed * mix) * outputGain;
+            channelData[static_cast<size_t>(sample)] = output;
             
             outputLevelSum += std::abs(output);
         }

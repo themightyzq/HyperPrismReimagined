@@ -176,7 +176,7 @@ void MultiDelayMeter::paint(juce::Graphics& g)
         else // Delay lines 1-4
         {
             int delayIndex = i - 1;
-            level = delayLevels[delayIndex];
+            level = delayLevels[static_cast<size_t>(delayIndex)];
             meterColour = HyperPrismLookAndFeel::Colors::warning;
             label = "D" + juce::String(delayIndex + 1);
         }
@@ -234,7 +234,7 @@ void MultiDelayMeter::timerCallback()
     
     for (int i = 0; i < 4; ++i)
     {
-        delayLevels[i] = delayLevels[i] * smoothing + newDelayLevels[i] * (1.0f - smoothing);
+        delayLevels[static_cast<size_t>(i)] = delayLevels[static_cast<size_t>(i)] * smoothing + newDelayLevels[static_cast<size_t>(i)] * (1.0f - smoothing);
     }
     
     repaint();
@@ -284,14 +284,14 @@ MultiDelayEditor::MultiDelayEditor(MultiDelayProcessor& p)
     // Set up tap selector buttons
     for (int i = 0; i < 4; ++i)
     {
-        tapButtons[i].setButtonText("Tap " + juce::String(i + 1));
-        tapButtons[i].setClickingTogglesState(false);
-        tapButtons[i].setColour(juce::TextButton::buttonColourId,
+        tapButtons[static_cast<size_t>(i)].setButtonText("Tap " + juce::String(i + 1));
+        tapButtons[static_cast<size_t>(i)].setClickingTogglesState(false);
+        tapButtons[static_cast<size_t>(i)].setColour(juce::TextButton::buttonColourId,
                                 HyperPrismLookAndFeel::Colors::surfaceVariant);
-        tapButtons[i].setColour(juce::TextButton::textColourOffId,
+        tapButtons[static_cast<size_t>(i)].setColour(juce::TextButton::textColourOffId,
                                 HyperPrismLookAndFeel::Colors::onSurfaceVariant);
-        tapButtons[i].onClick = [this, i]() { selectTap(i); };
-        addAndMakeVisible(tapButtons[i]);
+        tapButtons[static_cast<size_t>(i)].onClick = [this, i]() { selectTap(i); };
+        addAndMakeVisible(tapButtons[static_cast<size_t>(i)]);
     }
 
     // Setup delay controls
@@ -309,11 +309,11 @@ MultiDelayEditor::MultiDelayEditor(MultiDelayProcessor& p)
     for (int i = 0; i < 4; ++i)
     {
         // Group label
-        delayGroupLabels[i].setText("Delay " + juce::String(i + 1), juce::dontSendNotification);
-        delayGroupLabels[i].setFont(juce::Font(12.0f, juce::Font::bold));
-        delayGroupLabels[i].setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::primary);
-        delayGroupLabels[i].setJustificationType(juce::Justification::centred);
-        addAndMakeVisible(delayGroupLabels[i]);
+        delayGroupLabels[static_cast<size_t>(i)].setText("Delay " + juce::String(i + 1), juce::dontSendNotification);
+        delayGroupLabels[static_cast<size_t>(i)].setFont(juce::Font(12.0f, juce::Font::bold));
+        delayGroupLabels[static_cast<size_t>(i)].setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::primary);
+        delayGroupLabels[static_cast<size_t>(i)].setJustificationType(juce::Justification::centred);
+        addAndMakeVisible(delayGroupLabels[static_cast<size_t>(i)]);
         
         // Compact sliders - smaller size for grid layout. (The per-slider
         // rotarySliderFillColourId "arc colour by category" calls that used to follow each of
@@ -322,23 +322,23 @@ MultiDelayEditor::MultiDelayEditor(MultiDelayProcessor& p)
         // colour ID at all, so they had become dead code. The group colour they used to paint
         // survives through the still-live, still-coloured column headers (paintColumnHeader()
         // in paint() below), which every knob in that column already matched by design.)
-        setupSlider(delayTimeSliders[i], delayTimeLabels[i], "Time");
-        setupSlider(delayLevelSliders[i], delayLevelLabels[i], "Level");
-        setupSlider(delayPanSliders[i], delayPanLabels[i], "Pan");
-        setupSlider(delayFeedbackSliders[i], delayFeedbackLabels[i], "FB");
+        setupSlider(delayTimeSliders[static_cast<size_t>(i)], delayTimeLabels[static_cast<size_t>(i)], "Time");
+        setupSlider(delayLevelSliders[static_cast<size_t>(i)], delayLevelLabels[static_cast<size_t>(i)], "Level");
+        setupSlider(delayPanSliders[static_cast<size_t>(i)], delayPanLabels[static_cast<size_t>(i)], "Pan");
+        setupSlider(delayFeedbackSliders[static_cast<size_t>(i)], delayFeedbackLabels[static_cast<size_t>(i)], "FB");
 
         // Set up right-click handlers
-        delayTimeLabels[i].onClick = [this, i, delayIds]() { 
-            showParameterMenu(&delayTimeLabels[i], delayIds[i][0]); 
+        delayTimeLabels[static_cast<size_t>(i)].onClick = [this, i, delayIds]() { 
+            showParameterMenu(&delayTimeLabels[static_cast<size_t>(i)], delayIds[static_cast<size_t>(i)][0]); 
         };
-        delayLevelLabels[i].onClick = [this, i, delayIds]() { 
-            showParameterMenu(&delayLevelLabels[i], delayIds[i][1]); 
+        delayLevelLabels[static_cast<size_t>(i)].onClick = [this, i, delayIds]() { 
+            showParameterMenu(&delayLevelLabels[static_cast<size_t>(i)], delayIds[static_cast<size_t>(i)][1]); 
         };
-        delayPanLabels[i].onClick = [this, i, delayIds]() { 
-            showParameterMenu(&delayPanLabels[i], delayIds[i][2]); 
+        delayPanLabels[static_cast<size_t>(i)].onClick = [this, i, delayIds]() { 
+            showParameterMenu(&delayPanLabels[static_cast<size_t>(i)], delayIds[static_cast<size_t>(i)][2]); 
         };
-        delayFeedbackLabels[i].onClick = [this, i, delayIds]() { 
-            showParameterMenu(&delayFeedbackLabels[i], delayIds[i][3]); 
+        delayFeedbackLabels[static_cast<size_t>(i)].onClick = [this, i, delayIds]() { 
+            showParameterMenu(&delayFeedbackLabels[static_cast<size_t>(i)], delayIds[static_cast<size_t>(i)][3]); 
         };
     }
     
@@ -364,14 +364,14 @@ MultiDelayEditor::MultiDelayEditor(MultiDelayProcessor& p)
     // Create delay attachments
     for (int i = 0; i < 4; ++i)
     {
-        delayTimeAttachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            vts, delayIds[i][0], delayTimeSliders[i]);
-        delayLevelAttachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            vts, delayIds[i][1], delayLevelSliders[i]);
-        delayPanAttachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            vts, delayIds[i][2], delayPanSliders[i]);
-        delayFeedbackAttachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            vts, delayIds[i][3], delayFeedbackSliders[i]);
+        delayTimeAttachments[static_cast<size_t>(i)] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            vts, delayIds[static_cast<size_t>(i)][0], delayTimeSliders[static_cast<size_t>(i)]);
+        delayLevelAttachments[static_cast<size_t>(i)] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            vts, delayIds[static_cast<size_t>(i)][1], delayLevelSliders[static_cast<size_t>(i)]);
+        delayPanAttachments[static_cast<size_t>(i)] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            vts, delayIds[static_cast<size_t>(i)][2], delayPanSliders[static_cast<size_t>(i)]);
+        delayFeedbackAttachments[static_cast<size_t>(i)] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            vts, delayIds[static_cast<size_t>(i)][3], delayFeedbackSliders[static_cast<size_t>(i)]);
     }
     
     // Setup XY Pad
@@ -400,19 +400,19 @@ MultiDelayEditor::MultiDelayEditor(MultiDelayProcessor& p)
     
     for (int i = 0; i < 4; ++i)
     {
-        delayTimeSliders[i].onValueChange = [this] { updateXYPadFromParameters(); };
-        delayLevelSliders[i].onValueChange = [this] { updateXYPadFromParameters(); };
-        delayPanSliders[i].onValueChange = [this] { updateXYPadFromParameters(); };
-        delayFeedbackSliders[i].onValueChange = [this] { updateXYPadFromParameters(); };
+        delayTimeSliders[static_cast<size_t>(i)].onValueChange = [this] { updateXYPadFromParameters(); };
+        delayLevelSliders[static_cast<size_t>(i)].onValueChange = [this] { updateXYPadFromParameters(); };
+        delayPanSliders[static_cast<size_t>(i)].onValueChange = [this] { updateXYPadFromParameters(); };
+        delayFeedbackSliders[static_cast<size_t>(i)].onValueChange = [this] { updateXYPadFromParameters(); };
     }
     
     // Tooltips
     for (int i = 0; i < 4; ++i)
     {
-        delayTimeSliders[i].setTooltip("Delay time for tap " + juce::String(i + 1));
-        delayLevelSliders[i].setTooltip("Volume level of tap " + juce::String(i + 1));
-        delayPanSliders[i].setTooltip("Stereo position of tap " + juce::String(i + 1));
-        delayFeedbackSliders[i].setTooltip("Feedback amount for tap " + juce::String(i + 1));
+        delayTimeSliders[static_cast<size_t>(i)].setTooltip("Delay time for tap " + juce::String(i + 1));
+        delayLevelSliders[static_cast<size_t>(i)].setTooltip("Volume level of tap " + juce::String(i + 1));
+        delayPanSliders[static_cast<size_t>(i)].setTooltip("Stereo position of tap " + juce::String(i + 1));
+        delayFeedbackSliders[static_cast<size_t>(i)].setTooltip("Feedback amount for tap " + juce::String(i + 1));
     }
     globalFeedbackSlider.setTooltip("Amount of signal fed back across all delay taps");
     globalFeedbackSlider.setDescription("Amount of signal fed back across all delay taps");
@@ -425,7 +425,7 @@ MultiDelayEditor::MultiDelayEditor(MultiDelayProcessor& p)
 
     // Hide unused group labels
     for (int i = 1; i < 4; ++i)
-        delayGroupLabels[i].setVisible(false);
+        delayGroupLabels[static_cast<size_t>(i)].setVisible(false);
 
     // Optimized size while maintaining functionality
     setSize(700, 550);
@@ -441,10 +441,10 @@ void MultiDelayEditor::selectTap(int tapIndex)
     for (int i = 0; i < 4; ++i)
     {
         bool selected = (i == tapIndex);
-        tapButtons[i].setColour(juce::TextButton::buttonColourId,
+        tapButtons[static_cast<size_t>(i)].setColour(juce::TextButton::buttonColourId,
             selected ? HyperPrismLookAndFeel::Colors::primary.withAlpha(0.3f)
                      : HyperPrismLookAndFeel::Colors::surfaceVariant);
-        tapButtons[i].setColour(juce::TextButton::textColourOffId,
+        tapButtons[static_cast<size_t>(i)].setColour(juce::TextButton::textColourOffId,
             selected ? HyperPrismLookAndFeel::Colors::onSurface
                      : HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     }
@@ -453,14 +453,14 @@ void MultiDelayEditor::selectTap(int tapIndex)
     for (int i = 0; i < 4; ++i)
     {
         bool visible = (i == tapIndex);
-        delayTimeSliders[i].setVisible(visible);
-        delayTimeLabels[i].setVisible(visible);
-        delayLevelSliders[i].setVisible(visible);
-        delayLevelLabels[i].setVisible(visible);
-        delayPanSliders[i].setVisible(visible);
-        delayPanLabels[i].setVisible(visible);
-        delayFeedbackSliders[i].setVisible(visible);
-        delayFeedbackLabels[i].setVisible(visible);
+        delayTimeSliders[static_cast<size_t>(i)].setVisible(visible);
+        delayTimeLabels[static_cast<size_t>(i)].setVisible(visible);
+        delayLevelSliders[static_cast<size_t>(i)].setVisible(visible);
+        delayLevelLabels[static_cast<size_t>(i)].setVisible(visible);
+        delayPanSliders[static_cast<size_t>(i)].setVisible(visible);
+        delayPanLabels[static_cast<size_t>(i)].setVisible(visible);
+        delayFeedbackSliders[static_cast<size_t>(i)].setVisible(visible);
+        delayFeedbackLabels[static_cast<size_t>(i)].setVisible(visible);
     }
 
     resized();
@@ -512,9 +512,9 @@ void MultiDelayEditor::paint(juce::Graphics& g)
 
     // TAP header
     int t = selectedTap;
-    if (delayTimeSliders[t].isVisible())
+    if (delayTimeSliders[static_cast<size_t>(t)].isVisible())
     {
-        paintColumnHeader(delayTimeSliders[t].getX() - 25, delayTimeSliders[t].getY() - 20, 250,
+        paintColumnHeader(delayTimeSliders[static_cast<size_t>(t)].getX() - 25, delayTimeSliders[static_cast<size_t>(t)].getY() - 20, 250,
                           "TAP " + juce::String(t + 1),
                           HyperPrismLookAndFeel::Colors::timing);
     }
@@ -556,7 +556,7 @@ void MultiDelayEditor::resized()
     int tabWidth = (tabBar.getWidth() - 6) / 4;
     for (int i = 0; i < 4; ++i)
     {
-        tapButtons[i].setBounds(tabBar.getX() + i * (tabWidth + 2), tabBar.getY(),
+        tapButtons[static_cast<size_t>(i)].setBounds(tabBar.getX() + i * (tabWidth + 2), tabBar.getY(),
                                 tabWidth, 26);
     }
     columnsArea.removeFromTop(8);
@@ -589,12 +589,12 @@ void MultiDelayEditor::resized()
     delayGroupLabels[0].setVisible(false);
 
     // Col 1: Time and Pan
-    centerKnob(delayTimeSliders[t], delayTimeLabels[t], col1.getX(), colWidth, y1, knobDiam);
-    centerKnob(delayPanSliders[t], delayPanLabels[t], col1.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(delayTimeSliders[static_cast<size_t>(t)], delayTimeLabels[static_cast<size_t>(t)], col1.getX(), colWidth, y1, knobDiam);
+    centerKnob(delayPanSliders[static_cast<size_t>(t)], delayPanLabels[static_cast<size_t>(t)], col1.getX(), colWidth, y1 + vSpace, knobDiam);
 
     // Col 2: Level and Feedback
-    centerKnob(delayLevelSliders[t], delayLevelLabels[t], col2.getX(), colWidth, y1, knobDiam);
-    centerKnob(delayFeedbackSliders[t], delayFeedbackLabels[t], col2.getX(), colWidth, y1 + vSpace, knobDiam);
+    centerKnob(delayLevelSliders[static_cast<size_t>(t)], delayLevelLabels[static_cast<size_t>(t)], col2.getX(), colWidth, y1, knobDiam);
+    centerKnob(delayFeedbackSliders[static_cast<size_t>(t)], delayFeedbackLabels[static_cast<size_t>(t)], col2.getX(), colWidth, y1 + vSpace, knobDiam);
 
     // Global Feedback below tap knobs
     int globalY = y1 + vSpace * 2 + 20;

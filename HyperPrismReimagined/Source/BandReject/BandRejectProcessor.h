@@ -14,7 +14,7 @@ public:
     ~BandRejectProcessor() override;
 
     //==============================================================================
-    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
+    void prepareToPlay(double sampleRate, int) override;
     void releaseResources() override;
 
 #ifndef JucePlugin_PreferredChannelConfigurations

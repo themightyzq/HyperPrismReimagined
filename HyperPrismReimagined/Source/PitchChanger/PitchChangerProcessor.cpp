@@ -98,7 +98,7 @@ void PitchChangerProcessor::PitchShifter::processBlock(juce::AudioBuffer<float>&
         auto* monoData = buffer.getWritePointer(0);
         for (int i = 0; i < numSamples; ++i)
         {
-            monoData[i] = (leftOutputBuffer[i] + rightOutputBuffer[i]) * 0.5f;
+            monoData[static_cast<size_t>(i)] = (leftOutputBuffer[static_cast<size_t>(i)] + rightOutputBuffer[static_cast<size_t>(i)]) * 0.5f;
         }
     }
     else
@@ -182,7 +182,7 @@ float PitchChangerProcessor::PitchDetector::autocorrelate(const float* buffer, i
     
     for (int i = 0; i < length; ++i)
     {
-        float a = buffer[i];
+        float a = buffer[static_cast<size_t>(i)];
         float b = buffer[i + delay];
         
         sum += a * b;
@@ -371,14 +371,14 @@ void PitchChangerProcessor::processPitchShifting(juce::AudioBuffer<float>& buffe
         
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            float dry = dryData[sample];
-            float wet = channelData[sample];
+            float dry = dryData[static_cast<size_t>(sample)];
+            float wet = channelData[static_cast<size_t>(sample)];
             
             inputLevelSum += std::abs(dry);
             
             // Mix and apply output level
             float output = (dry * (1.0f - mix) + wet * mix) * outputGain;
-            channelData[sample] = output;
+            channelData[static_cast<size_t>(sample)] = output;
             
             outputLevelSum += std::abs(output);
         }

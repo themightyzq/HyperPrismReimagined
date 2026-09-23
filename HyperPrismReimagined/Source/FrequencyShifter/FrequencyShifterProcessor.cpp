@@ -47,8 +47,8 @@ void FrequencyShifterProcessor::HilbertTransform::processBlock(juce::AudioBuffer
         
         for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
         {
-            auto result = processSample(channelData[sample]);
-            channelData[sample] = result.first; // Return real part
+            auto result = processSample(channelData[static_cast<size_t>(sample)]);
+            channelData[static_cast<size_t>(sample)] = result.first; // Return real part
         }
     }
 }
@@ -75,20 +75,20 @@ void FrequencyShifterProcessor::HilbertTransform::createHilbertCoefficients()
         int n = i - filterOrder / 2;
         if (n == 0)
         {
-            hilbertCoefficients[i] = 0.0f;
+            hilbertCoefficients[static_cast<size_t>(i)] = 0.0f;
         }
         else if (n % 2 == 0)
         {
-            hilbertCoefficients[i] = 0.0f;
+            hilbertCoefficients[static_cast<size_t>(i)] = 0.0f;
         }
         else
         {
-            hilbertCoefficients[i] = 2.0f / (juce::MathConstants<float>::pi * n);
+            hilbertCoefficients[static_cast<size_t>(i)] = 2.0f / (juce::MathConstants<float>::pi * n);
         }
         
         // Apply windowing
         float window = 0.5f * (1.0f - std::cos(2.0f * juce::MathConstants<float>::pi * i / (filterOrder - 1)));
-        hilbertCoefficients[i] *= window;
+        hilbertCoefficients[static_cast<size_t>(i)] *= window;
     }
 }
 
@@ -309,7 +309,7 @@ void FrequencyShifterProcessor::processFrequencyShifting(juce::AudioBuffer<float
         {
             auto* channelData = buffer.getWritePointer(channel);
 
-            const float input = channelData[sample];
+            const float input = channelData[static_cast<size_t>(sample)];
             inputLevelSum += std::abs(input);
 
             // Get analytic signal (complex representation) from this channel's
@@ -331,7 +331,7 @@ void FrequencyShifterProcessor::processFrequencyShifting(juce::AudioBuffer<float
             float output = dry * (1.0f - mix) + shiftedReal * mix;
             output *= outputLevelGain;
 
-            channelData[sample] = output;
+            channelData[static_cast<size_t>(sample)] = output;
             outputLevelSum += std::abs(output);
         }
     }

@@ -198,8 +198,8 @@ void MSMatrixProcessor::processLRToMS(juce::AudioBuffer<float>& buffer)
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float left = leftData[sample];
-        float right = rightData[sample];
+        float left = leftData[static_cast<size_t>(sample)];
+        float right = rightData[static_cast<size_t>(sample)];
         
         // Encode L/R to M/S
         float mid, side;
@@ -238,12 +238,12 @@ void MSMatrixProcessor::processLRToMS(juce::AudioBuffer<float>& buffer)
         processedRight *= balanceRightGain;
         
         // Apply output level and store
-        leftData[sample] = processedLeft * outputLevel;
-        rightData[sample] = processedRight * outputLevel;
+        leftData[static_cast<size_t>(sample)] = processedLeft * outputLevel;
+        rightData[static_cast<size_t>(sample)] = processedRight * outputLevel;
         
         // Accumulate for output metering
-        leftLevelSum += std::abs(leftData[sample]);
-        rightLevelSum += std::abs(rightData[sample]);
+        leftLevelSum += std::abs(leftData[static_cast<size_t>(sample)]);
+        rightLevelSum += std::abs(rightData[static_cast<size_t>(sample)]);
     }
     
     // Update metering
@@ -287,8 +287,8 @@ void MSMatrixProcessor::processMSToLR(juce::AudioBuffer<float>& buffer)
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float mid = leftData[sample];   // Input is M/S format
-        float side = rightData[sample];
+        float mid = leftData[static_cast<size_t>(sample)];   // Input is M/S format
+        float side = rightData[static_cast<size_t>(sample)];
         
         // Store original M/S for metering
         midLevelSum += std::abs(mid);
@@ -323,12 +323,12 @@ void MSMatrixProcessor::processMSToLR(juce::AudioBuffer<float>& buffer)
         right *= balanceRightGain;
         
         // Apply output level and store
-        leftData[sample] = left * outputLevel;
-        rightData[sample] = right * outputLevel;
+        leftData[static_cast<size_t>(sample)] = left * outputLevel;
+        rightData[static_cast<size_t>(sample)] = right * outputLevel;
         
         // Accumulate for output metering
-        leftLevelSum += std::abs(leftData[sample]);
-        rightLevelSum += std::abs(rightData[sample]);
+        leftLevelSum += std::abs(leftData[static_cast<size_t>(sample)]);
+        rightLevelSum += std::abs(rightData[static_cast<size_t>(sample)]);
     }
     
     // Update metering
@@ -370,8 +370,8 @@ void MSMatrixProcessor::processMSThrough(juce::AudioBuffer<float>& buffer)
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        float mid = midData[sample];
-        float side = sideData[sample];
+        float mid = midData[static_cast<size_t>(sample)];
+        float side = sideData[static_cast<size_t>(sample)];
         
         // Store original for metering
         midLevelSum += std::abs(mid);
@@ -385,8 +385,8 @@ void MSMatrixProcessor::processMSThrough(juce::AudioBuffer<float>& buffer)
         side *= currentSideGain * outputLevel;
         
         // Store processed M/S
-        midData[sample] = mid;
-        sideData[sample] = side;
+        midData[static_cast<size_t>(sample)] = mid;
+        sideData[static_cast<size_t>(sample)] = side;
         
         // For output metering in M/S mode, use M/S values
         leftLevelSum += std::abs(mid);
