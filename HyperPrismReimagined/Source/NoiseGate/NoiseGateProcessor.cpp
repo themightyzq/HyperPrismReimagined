@@ -1,46 +1,45 @@
 #include "NoiseGateProcessor.h"
 #include "NoiseGateEditor.h"
+#include <array>
 
 NoiseGateProcessor::NoiseGateProcessor()
     : AudioProcessor(BusesProperties()
                      .withInput("Input", juce::AudioChannelSet::stereo(), true)
                      .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       currentSampleRate(44100.0),
-      gateOpen(false)
+      gateOpen(false),
+      valueTreeState(*this, nullptr, stateType, createParameterLayout())
 {
-    // Initialize parameters with proper ranges
-    addParameter(threshold = new juce::AudioParameterFloat(
-        "threshold", "Threshold", 
-        juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 
-        -20.0f, "dB"));
-    
-    addParameter(attack = new juce::AudioParameterFloat(
-        "attack", "Attack", 
-        juce::NormalisableRange<float>(0.1f, 100.0f, 0.1f, 0.5f), 
-        1.0f, "ms"));
-    
-    addParameter(hold = new juce::AudioParameterFloat(
-        "hold", "Hold", 
-        juce::NormalisableRange<float>(0.0f, 500.0f, 0.1f), 
-        10.0f, "ms"));
-    
-    addParameter(release = new juce::AudioParameterFloat(
-        "release", "Release", 
-        juce::NormalisableRange<float>(1.0f, 5000.0f, 1.0f, 0.5f), 
-        100.0f, "ms"));
-    
-    addParameter(range = new juce::AudioParameterFloat(
-        "range", "Range", 
-        juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), 
-        -40.0f, "dB"));
-    
-    addParameter(lookahead = new juce::AudioParameterFloat(
-        "lookahead", "Lookahead",
-        juce::NormalisableRange<float>(0.0f, 10.0f, 0.01f),
-        2.0f, "ms"));
+    threshold       = dynamic_cast<juce::AudioParameterFloat*>(valueTreeState.getParameter("threshold"));
+    attack          = dynamic_cast<juce::AudioParameterFloat*>(valueTreeState.getParameter("attack"));
+    hold            = dynamic_cast<juce::AudioParameterFloat*>(valueTreeState.getParameter("hold"));
+    release         = dynamic_cast<juce::AudioParameterFloat*>(valueTreeState.getParameter("release"));
+    range           = dynamic_cast<juce::AudioParameterFloat*>(valueTreeState.getParameter("range"));
+    lookahead       = dynamic_cast<juce::AudioParameterFloat*>(valueTreeState.getParameter("lookahead"));
+    bypassParamBool = dynamic_cast<juce::AudioParameterBool*>(valueTreeState.getParameter("bypass"));
+    jassert(threshold && attack && hold && release && range && lookahead && bypassParamBool);
+}
 
-    addParameter(bypassParamBool = new juce::AudioParameterBool(
-        "bypass", "Bypass", false));
+juce::AudioProcessorValueTreeState::ParameterLayout NoiseGateProcessor::createParameterLayout()
+{
+    // Same IDs, names, ranges, defaults, units and order as the pre-migration addParameter calls.
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> parameters;
+
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "threshold", "Threshold", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), -20.0f, "dB"));
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "attack", "Attack", juce::NormalisableRange<float>(0.1f, 100.0f, 0.1f, 0.5f), 1.0f, "ms"));
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "hold", "Hold", juce::NormalisableRange<float>(0.0f, 500.0f, 0.1f), 10.0f, "ms"));
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "release", "Release", juce::NormalisableRange<float>(1.0f, 5000.0f, 1.0f, 0.5f), 100.0f, "ms"));
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "range", "Range", juce::NormalisableRange<float>(-60.0f, 0.0f, 0.1f), -40.0f, "dB"));
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
+        "lookahead", "Lookahead", juce::NormalisableRange<float>(0.0f, 10.0f, 0.01f), 2.0f, "ms"));
+    parameters.push_back(std::make_unique<juce::AudioParameterBool>("bypass", "Bypass", false));
+
+    return { parameters.begin(), parameters.end() };
 }
 
 NoiseGateProcessor::~NoiseGateProcessor()
@@ -269,35 +268,35 @@ juce::AudioProcessorEditor* NoiseGateProcessor::createEditor()
 
 void NoiseGateProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    auto state = getParameters();
-    std::unique_ptr<juce::XmlElement> xml(new juce::XmlElement("NoiseGateState"));
-    
-    for (auto* param : state)
-    {
-        if (auto* p = dynamic_cast<juce::AudioParameterFloat*>(param))
-        {
-            xml->setAttribute(p->paramID, (double)p->get());
-        }
-    }
-    
+    auto state = valueTreeState.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
 }
 
 void NoiseGateProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
     std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
-    
-    if (xmlState.get() != nullptr)
+    if (xmlState == nullptr)
+        return;
+
+    if (xmlState->hasTagName(valueTreeState.state.getType()))
     {
-        if (xmlState->hasTagName("NoiseGateState"))
+        valueTreeState.replaceState(juce::ValueTree::fromXml(*xmlState));
+        return;
+    }
+
+    if (xmlState->hasTagName(legacyStateTag))
+    {
+        // Pre-migration session: one attribute per float parameter in real units, keyed by
+        // paramID; bypass was never saved. Restore through the parameters so the APVTS
+        // tree, the host and the editor all see the same values.
+        const std::array<juce::RangedAudioParameter*, 6> legacyParams {
+            threshold, attack, hold, release, range, lookahead };
+        for (juce::RangedAudioParameter* p : legacyParams)
         {
-            for (auto* param : getParameters())
-            {
-                if (auto* p = dynamic_cast<juce::AudioParameterFloat*>(param))
-                {
-                    p->setValueNotifyingHost((float)xmlState->getDoubleAttribute(p->paramID, p->get()));
-                }
-            }
+            if (p != nullptr && xmlState->hasAttribute(p->paramID))
+                p->setValueNotifyingHost(p->convertTo0to1(
+                    static_cast<float>(xmlState->getDoubleAttribute(p->paramID))));
         }
     }
 }

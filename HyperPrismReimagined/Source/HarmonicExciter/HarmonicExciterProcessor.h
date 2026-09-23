@@ -34,18 +34,32 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-    // Parameters
-    juce::AudioParameterFloat* driveParam;
-    juce::AudioParameterFloat* frequencyParam;
-    juce::AudioParameterFloat* harmonicsParam;
-    juce::AudioParameterFloat* mixParam;
-    juce::AudioParameterChoice* typeParam;
+    // Parameters live in the APVTS (migrated 2026-09-23 from addParameter). The raw
+    // pointers are kept, now pointing at the APVTS-owned parameters, because the editor
+    // reads and writes them directly at many call sites. IDs, ranges, defaults and order
+    // are unchanged: drive, frequency, harmonics, mix, type, bypass.
+    juce::AudioParameterFloat* driveParam = nullptr;
+    juce::AudioParameterFloat* frequencyParam = nullptr;
+    juce::AudioParameterFloat* harmonicsParam = nullptr;
+    juce::AudioParameterFloat* mixParam = nullptr;
+    juce::AudioParameterChoice* typeParam = nullptr;
     juce::AudioParameterBool* bypassParamBool = nullptr;
+
+    juce::AudioProcessorValueTreeState& getValueTreeState() { return valueTreeState; }
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
+    // Old sessions (saved before the APVTS migration) carry an XmlElement tagged
+    // "HarmonicExciter" with one attribute per parameter; the APVTS tree is typed
+    // "HarmonicExciterState" so setStateInformation can tell the two apart.
+    static constexpr const char* legacyStateTag = "HarmonicExciter";
+    static constexpr const char* stateType = "HarmonicExciterState";
 
     // Get current output level for metering
     float getCurrentOutputLevel() const { return outputLevel.load(); }
 
 private:
+    juce::AudioProcessorValueTreeState valueTreeState;
+
     // Processing components
     juce::dsp::LinkwitzRileyFilter<float> highPassFilter;
     juce::dsp::LinkwitzRileyFilter<float> lowPassFilter;

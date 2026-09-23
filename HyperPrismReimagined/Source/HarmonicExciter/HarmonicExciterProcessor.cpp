@@ -4,33 +4,53 @@
 HarmonicExciterProcessor::HarmonicExciterProcessor()
     : AudioProcessor(BusesProperties()
         .withInput("Input", juce::AudioChannelSet::stereo(), true)
-        .withOutput("Output", juce::AudioChannelSet::stereo(), true))
+        .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+      valueTreeState(*this, nullptr, stateType, createParameterLayout())
 {
-    // Add parameters
-    addParameter(driveParam = new juce::AudioParameterFloat(
+    driveParam      = dynamic_cast<juce::AudioParameterFloat*>(valueTreeState.getParameter("drive"));
+    frequencyParam  = dynamic_cast<juce::AudioParameterFloat*>(valueTreeState.getParameter("frequency"));
+    harmonicsParam  = dynamic_cast<juce::AudioParameterFloat*>(valueTreeState.getParameter("harmonics"));
+    mixParam        = dynamic_cast<juce::AudioParameterFloat*>(valueTreeState.getParameter("mix"));
+    typeParam       = dynamic_cast<juce::AudioParameterChoice*>(valueTreeState.getParameter("type"));
+    bypassParamBool = dynamic_cast<juce::AudioParameterBool*>(valueTreeState.getParameter("bypass"));
+    jassert(driveParam && frequencyParam && harmonicsParam && mixParam && typeParam && bypassParamBool);
+}
+
+juce::AudioProcessorValueTreeState::ParameterLayout HarmonicExciterProcessor::createParameterLayout()
+{
+    // Same IDs, names, ranges, defaults and order as the pre-migration addParameter calls.
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>> parameters;
+
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
         "drive", "Drive",
-        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f),
-        30.0f));
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 30.0f,
+        juce::String(), juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value, 1) + " %"; }));
 
-    addParameter(frequencyParam = new juce::AudioParameterFloat(
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
         "frequency", "Frequency",
-        juce::NormalisableRange<float>(1000.0f, 20000.0f, 1.0f, 0.3f),
-        5000.0f));
+        juce::NormalisableRange<float>(1000.0f, 20000.0f, 1.0f, 0.3f), 5000.0f,
+        juce::String(), juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(static_cast<int>(value)) + " Hz"; }));
 
-    addParameter(harmonicsParam = new juce::AudioParameterFloat(
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
         "harmonics", "Harmonics",
-        juce::NormalisableRange<float>(1.0f, 5.0f, 0.1f),
-        2.0f));
+        juce::NormalisableRange<float>(1.0f, 5.0f, 0.1f), 2.0f,
+        juce::String(), juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value, 1); }));
 
-    addParameter(mixParam = new juce::AudioParameterFloat(
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
         "mix", "Mix",
-        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f),
-        50.0f));
-    
-    addParameter(typeParam = new juce::AudioParameterChoice(
+        juce::NormalisableRange<float>(0.0f, 100.0f, 0.1f), 50.0f,
+        juce::String(), juce::AudioProcessorParameter::genericParameter,
+        [](float value, int) { return juce::String(value, 1) + " %"; }));
+
+    parameters.push_back(std::make_unique<juce::AudioParameterChoice>(
         "type", "Type", juce::StringArray("Warm", "Bright"), 0));
 
-    addParameter(bypassParamBool = new juce::AudioParameterBool("bypass", "Bypass", false));
+    parameters.push_back(std::make_unique<juce::AudioParameterBool>("bypass", "Bypass", false));
+
+    return { parameters.begin(), parameters.end() };
 }
 
 HarmonicExciterProcessor::~HarmonicExciterProcessor()
@@ -241,27 +261,37 @@ juce::AudioProcessorEditor* HarmonicExciterProcessor::createEditor()
 
 void HarmonicExciterProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    auto xml = std::make_unique<juce::XmlElement>("HarmonicExciter");
-    
-    xml->setAttribute("drive", driveParam->get());
-    xml->setAttribute("frequency", frequencyParam->get());
-    xml->setAttribute("harmonics", harmonicsParam->get());
-    xml->setAttribute("mix", mixParam->get());
-    xml->setAttribute("type", typeParam->getIndex());
-    
+    auto state = valueTreeState.copyState();
+    std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
 }
 
 void HarmonicExciterProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    auto xmlState = getXmlFromBinary(data, sizeInBytes);
-    
-    if (xmlState != nullptr && xmlState->hasTagName("HarmonicExciter"))
+    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+    if (xmlState == nullptr)
+        return;
+
+    if (xmlState->hasTagName(valueTreeState.state.getType()))
     {
-        *driveParam = xmlState->getDoubleAttribute("drive", driveParam->get());
-        *frequencyParam = xmlState->getDoubleAttribute("frequency", frequencyParam->get());
-        *harmonicsParam = xmlState->getDoubleAttribute("harmonics", harmonicsParam->get());
-        *mixParam = xmlState->getDoubleAttribute("mix", mixParam->get());
-        *typeParam = xmlState->getIntAttribute("type", typeParam->getIndex());
+        valueTreeState.replaceState(juce::ValueTree::fromXml(*xmlState));
+        return;
+    }
+
+    if (xmlState->hasTagName(legacyStateTag))
+    {
+        // Pre-migration session: one attribute per parameter in real units, type as an
+        // index, no bypass (it was never saved). Restore through the parameters so the
+        // APVTS tree, the host and the editor all see the same values.
+        auto setReal = [](juce::RangedAudioParameter* p, double value)
+        {
+            if (p != nullptr)
+                p->setValueNotifyingHost(p->convertTo0to1(static_cast<float>(value)));
+        };
+        setReal(driveParam,     xmlState->getDoubleAttribute("drive",     driveParam->get()));
+        setReal(frequencyParam, xmlState->getDoubleAttribute("frequency", frequencyParam->get()));
+        setReal(harmonicsParam, xmlState->getDoubleAttribute("harmonics", harmonicsParam->get()));
+        setReal(mixParam,       xmlState->getDoubleAttribute("mix",       mixParam->get()));
+        setReal(typeParam,      xmlState->getIntAttribute("type",         typeParam->getIndex()));
     }
 }

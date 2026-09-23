@@ -1216,3 +1216,30 @@ endfunction()
 add_hyperprism_ui_snapshot(HyperPrismCompressor Compressor CompressorProcessor.h CompressorProcessor)
 add_hyperprism_ui_snapshot(HyperPrismChorus     Chorus     ChorusProcessor.h     ChorusProcessor)
 add_hyperprism_ui_snapshot(HyperPrismBandPass   BandPass   BandPassProcessor.h   BandPassProcessor)
+
+# ---- State-migration checks (HarmonicExciter and NoiseGate moved from addParameter to APVTS
+# on 2026-09-23; see tools/state_check/main.cpp). Registered with CTest: HyperPrism's first
+# tests. Same link pattern as add_hyperprism_ui_snapshot().
+enable_testing()
+function(add_hyperprism_state_check plugin_target effect_dir processor_header processor_class flag)
+    set(check_target "hyperprism_state_check_${plugin_target}")
+    juce_add_console_app(${check_target} PRODUCT_NAME "${check_target}")
+    target_sources(${check_target} PRIVATE tools/state_check/main.cpp)
+    target_compile_definitions(${check_target} PRIVATE
+        "HP_CHECK_PROCESSOR_HEADER=\"${processor_header}\""
+        "HP_CHECK_PROCESSOR_CLASS=${processor_class}"
+        "${flag}=1")
+    target_include_directories(${check_target} PRIVATE
+        Source/${effect_dir}
+        Source/Shared
+        $<TARGET_PROPERTY:${plugin_target},JUCE_GENERATED_SOURCES_DIRECTORY>)
+    target_link_libraries(${check_target} PRIVATE
+        ${plugin_target}
+        zqsfx::ui
+        juce::juce_audio_utils
+        juce::juce_dsp)
+    add_test(NAME ${check_target} COMMAND ${check_target})
+endfunction()
+
+add_hyperprism_state_check(HyperPrismHarmonicExciter HarmonicExciter HarmonicExciterProcessor.h HarmonicExciterProcessor HP_CHECK_HARMONIC_EXCITER)
+add_hyperprism_state_check(HyperPrismNoiseGate       NoiseGate       NoiseGateProcessor.h       NoiseGateProcessor       HP_CHECK_NOISE_GATE)

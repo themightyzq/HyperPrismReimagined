@@ -34,16 +34,25 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-    // Parameters
-    juce::AudioParameterFloat* threshold;
-    juce::AudioParameterFloat* attack;
-    juce::AudioParameterFloat* hold;
-    juce::AudioParameterFloat* release;
-    juce::AudioParameterFloat* range;
-    juce::AudioParameterFloat* lookahead;
-    
-    // Value Tree State (for proper parameter management)
-    juce::AudioProcessorValueTreeState* getValueTreeState() { return nullptr; }
+    // Parameters live in the APVTS (migrated 2026-09-23 from addParameter). The raw
+    // pointers are kept, now pointing at the APVTS-owned parameters, because the editor
+    // reads and writes them directly. IDs, ranges, defaults and order are unchanged:
+    // threshold, attack, hold, release, range, lookahead, bypass.
+    juce::AudioParameterFloat* threshold = nullptr;
+    juce::AudioParameterFloat* attack = nullptr;
+    juce::AudioParameterFloat* hold = nullptr;
+    juce::AudioParameterFloat* release = nullptr;
+    juce::AudioParameterFloat* range = nullptr;
+    juce::AudioParameterFloat* lookahead = nullptr;
+
+    juce::AudioProcessorValueTreeState& getValueTreeState() { return valueTreeState; }
+    static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
+    // Old sessions carry an XmlElement tagged "NoiseGateState" with one attribute per
+    // float parameter (bypass was never saved); the APVTS tree is typed "NoiseGate" so
+    // setStateInformation can tell the two apart.
+    static constexpr const char* legacyStateTag = "NoiseGateState";
+    static constexpr const char* stateType = "NoiseGate";
     
     // Get gate status for LED
     bool isGateOpen() const { return gateOpen; }
@@ -70,6 +79,10 @@ private:
 
     // Gate status
     std::atomic<bool> gateOpen;
+
+    // Declared after everything it does not depend on, and last among the members the
+    // constructor initialises, so the init list order matches declaration order.
+    juce::AudioProcessorValueTreeState valueTreeState;
     
     // Helper functions
     float dbToLinear(float db) const;

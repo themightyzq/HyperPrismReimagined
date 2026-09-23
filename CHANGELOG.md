@@ -17,6 +17,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Window Size Standardization** - All 32 plugins now use 700x550 pixel standard window size (previously 650x600)
 - **Resizable Windows** - All plugin windows are now resizable (600x500 to 900x800)
 
+### Changed
+- HarmonicExciter and NoiseGate parameters moved to an AudioProcessorValueTreeState, the same
+  system as the other 30 plugins. Parameter IDs, ranges, defaults and order are unchanged;
+  sessions saved by earlier versions restore through a legacy path covered by a new CTest
+  check (the suite's first tests).
+
 ### Fixed
 - **Audio Buffer Bug (Critical)** - Fixed hardcoded `maximumBlockSize = 512` in FrequencyShifter, SonicDecimator, Vocoder, and MultiDelay processors. These now properly use the `samplesPerBlock` parameter from `prepareToPlay()`, fixing audio artifacts on Linux and DAWs using non-512 buffer sizes.
 - macOS deployment target pinned to 11.0; earlier builds declared 15.0 and would not load on macOS 13/14.
