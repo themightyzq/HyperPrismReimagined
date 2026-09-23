@@ -132,6 +132,30 @@ VocoderMeter::~VocoderMeter()
     stopTimer();
 }
 
+float VocoderMeter::bandCenterFrequency(int bandIndex, int totalBands)
+{
+    // Mirrors VocoderProcessor::setupVocoderBands() (VocoderProcessor.cpp): log-spaced
+    // between the same 80 Hz - 8000 Hz bounds. The processor doesn't expose the
+    // computed per-band frequencies, so the formula is replicated here.
+    constexpr float minFreq = 80.0f;
+    constexpr float maxFreq = 8000.0f;
+
+    if (totalBands <= 1)
+        return minFreq;
+
+    float ratio = static_cast<float>(bandIndex) / static_cast<float>(totalBands - 1);
+    return minFreq * std::pow(maxFreq / minFreq, ratio);
+}
+
+juce::String VocoderMeter::formatBandFrequencyLabel(float frequencyHz)
+{
+    if (frequencyHz >= 10000.0f)
+        return juce::String(juce::roundToInt(frequencyHz / 1000.0f)) + "k";
+    if (frequencyHz >= 1000.0f)
+        return juce::String(frequencyHz / 1000.0f, 1) + "k";
+    return juce::String(juce::roundToInt(frequencyHz));
+}
+
 void VocoderMeter::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
@@ -201,44 +225,109 @@ void VocoderMeter::paint(juce::Graphics& g)
     
     // Main section - Vocoder band visualization
     auto bandsArea = displayArea;
-    
+
+    // Reserve a strip at the bottom for centre-frequency labels. Band identity used to
+    // be carried by a per-band hue sweep, which fails colour-blind users and violates
+    // the house rule that meaning-bearing colour is limited to the five category
+    // colours (../CLAUDE.md section 6). Bands are already ordered left-to-right by
+    // frequency, so position plus these labels now carries identity instead.
+    constexpr float labelStripHeight = 10.0f;
+    auto bandLabelArea = bandsArea.removeFromBottom(labelStripHeight);
+
     // Draw vocoder bands
     if (bandCount > 0)
     {
         float bandWidth = bandsArea.getWidth() / bandCount;
-        
+
+        // Label every 4th band (plus the last), or every 8th when bands are too
+        // narrow for non-overlapping labels (e.g. high band counts at the 600x520
+        // minimum window size).
+        const int labelStride = (bandWidth < 18.0f) ? 8 : 4;
+
+        // Pick which bands get a centre-frequency label: every Nth band, plus always
+        // the last band. If the last band would land closer than half a stride to the
+        // preceding labelled band -- which would crowd two labels together -- drop that
+        // preceding one in favour of the (mandatory) last-band label.
+        std::vector<int> labelIndices;
+        for (int i = 0; i < bandCount; i += labelStride)
+            labelIndices.push_back(i);
+        if (labelIndices.empty() || labelIndices.back() != bandCount - 1)
+        {
+            if (!labelIndices.empty() && (bandCount - 1 - labelIndices.back()) < juce::jmax(1, labelStride / 2))
+                labelIndices.pop_back();
+            labelIndices.push_back(bandCount - 1);
+        }
+
+        auto bandCenterX = [&](int idx) { return bandsArea.getX() + (idx + 0.5f) * bandWidth; };
+
         for (int i = 0; i < bandCount && i < static_cast<int>(smoothedBandLevels.size()); ++i)
         {
-            auto bandArea = juce::Rectangle<float>(bandsArea.getX() + i * bandWidth + 1, 
-                                                  bandsArea.getY(), 
-                                                  bandWidth - 2, 
+            auto bandArea = juce::Rectangle<float>(bandsArea.getX() + i * bandWidth + 1,
+                                                  bandsArea.getY(),
+                                                  bandWidth - 2,
                                                   bandsArea.getHeight());
-            
+
             if (smoothedBandLevels[i] > 0.001f)
             {
-                float levelHeight = bandArea.getHeight() * smoothedBandLevels[i];
-                auto levelRect = juce::Rectangle<float>(bandArea.getX(), 
-                                                       bandArea.getBottom() - levelHeight, 
-                                                       bandArea.getWidth(), 
+                float level = smoothedBandLevels[i];
+                float levelHeight = bandArea.getHeight() * level;
+                auto levelRect = juce::Rectangle<float>(bandArea.getX(),
+                                                       bandArea.getBottom() - levelHeight,
+                                                       bandArea.getWidth(),
                                                        levelHeight);
-                
-                // Color coding based on frequency band (low = red, mid = green, high = blue)
-                float hue = static_cast<float>(i) / bandCount;
-                juce::Colour bandColor = juce::Colour::fromHSV(hue * 0.8f, 0.9f, 0.9f, 1.0f);
+
+                // Level is carried by intensity of a single hue -- the house Output
+                // green (same constant the other plugins' output-level meters use,
+                // e.g. Compressor's GainReductionMeter / most input-output meters:
+                // HyperPrismLookAndFeel::Colors::success) -- not by a different hue
+                // per band.
+                juce::Colour bandColor = HyperPrismLookAndFeel::Colors::success.withAlpha(0.35f + 0.65f * level);
                 g.setColour(bandColor);
                 g.fillRoundedRectangle(levelRect, 1.0f);
-                
-                // Highlight active bands
-                if (smoothedBandLevels[i] > 0.7f)
+
+                // Highlight active bands -- a brighter tint of the same green, never a
+                // different hue.
+                if (level > 0.7f)
                 {
-                    g.setColour(HyperPrismLookAndFeel::Colors::onSurface.withAlpha(0.3f));
+                    g.setColour(HyperPrismLookAndFeel::Colors::success.brighter(0.6f).withAlpha(0.35f));
                     g.fillRoundedRectangle(levelRect.reduced(1), 1.0f);
                 }
             }
-            
+
             // Draw band separators
             g.setColour(HyperPrismLookAndFeel::Colors::outlineVariant.withAlpha(0.3f));
             g.drawVerticalLine(static_cast<int>(bandArea.getRight()), bandsArea.getY(), bandsArea.getBottom());
+        }
+
+        // Draw the centre-frequency labels. A label's text box is sized from the gap to
+        // its neighbouring labels (not the single band's own width, which is often too
+        // narrow to hold text like "1.2k") so labels never overlap each other.
+        g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+        g.setFont(8.0f);
+
+        for (size_t li = 0; li < labelIndices.size(); ++li)
+        {
+            int idx = labelIndices[li];
+            float thisCenter = bandCenterX(idx);
+
+            float gapLeft  = (li > 0) ? (thisCenter - bandCenterX(labelIndices[li - 1])) : -1.0f;
+            float gapRight = (li + 1 < labelIndices.size()) ? (bandCenterX(labelIndices[li + 1]) - thisCenter) : -1.0f;
+
+            float halfWidth;
+            if (gapLeft > 0.0f && gapRight > 0.0f)
+                halfWidth = juce::jmin(gapLeft, gapRight) * 0.45f;
+            else if (gapLeft > 0.0f)
+                halfWidth = gapLeft * 0.45f;
+            else if (gapRight > 0.0f)
+                halfWidth = gapRight * 0.45f;
+            else
+                halfWidth = bandWidth * bandCount * 0.5f;
+
+            float centerFreq = bandCenterFrequency(idx, bandCount);
+            g.drawText(formatBandFrequencyLabel(centerFreq),
+                       juce::Rectangle<float>(thisCenter - halfWidth, bandLabelArea.getY(),
+                                               halfWidth * 2.0f, labelStripHeight),
+                       juce::Justification::centred);
         }
     }
     

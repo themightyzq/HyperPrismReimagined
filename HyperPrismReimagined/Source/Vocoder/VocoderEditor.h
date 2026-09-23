@@ -72,7 +72,15 @@ public:
     
 private:
     void timerCallback() override;
-    
+
+    // Mirrors VocoderProcessor::setupVocoderBands()'s log-spaced band centre-frequency
+    // formula (VocoderProcessor.cpp) -- the processor doesn't expose per-band
+    // frequencies, so this replicates the same math for the position labels drawn
+    // under the meter (band identity now comes from position + label, not per-band
+    // hue -- see ../CLAUDE.md section 6 on meaning-bearing colour).
+    static float bandCenterFrequency(int bandIndex, int totalBands);
+    static juce::String formatBandFrequencyLabel(float frequencyHz);
+
     VocoderProcessor& processor;
     std::vector<float> smoothedBandLevels;
     float carrierLevel = 0.0f;
