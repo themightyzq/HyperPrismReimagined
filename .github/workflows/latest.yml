@@ -64,6 +64,8 @@ jobs:
                - **macOS**: `~/Library/Audio/Plug-Ins/VST3/`
                - **Windows**: `C:\Program Files\Common Files\VST3\`
                - **Linux**: `~/.vst3/`
+               On macOS also copy the `.component` files to `~/Library/Audio/Plug-Ins/Components/`
+               (Logic Pro loads Audio Units only). Requires macOS 11.0 or later.
             3. Rescan plugins in your DAW
 
             **macOS Gatekeeper**: these builds are not notarized — if macOS blocks

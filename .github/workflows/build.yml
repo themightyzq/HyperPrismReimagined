@@ -109,12 +109,19 @@ jobs:
       - name: Verify Universal Binary (macOS)
         if: matrix.os == 'macos-latest'
         run: |
-          for vst in HyperPrismReimagined/build/*_artefacts/Release/VST3/*.vst3; do
-            [ -d "$vst" ] || continue
-            name=$(basename "$vst" .vst3)
-            bin="$vst/Contents/MacOS/$name"
-            [ -f "$bin" ] && echo "  $name: $(lipo -info "$bin" 2>/dev/null | grep -o 'arm64\|x86_64' | tr '\n' ' ')"
+          fail=0
+          for bundle in HyperPrismReimagined/build/*_artefacts/Release/VST3/*.vst3 HyperPrismReimagined/build/*_artefacts/Release/AU/*.component; do
+            [ -d "$bundle" ] || continue
+            name=$(basename "${bundle%.*}")
+            bin="$bundle/Contents/MacOS/$name"
+            [ -f "$bin" ] || continue
+            archs=$(lipo -info "$bin" 2>/dev/null | grep -o 'arm64\|x86_64' | sort | tr '\n' ' ')
+            minos=$(otool -l "$bin" | grep -A3 LC_BUILD_VERSION | grep minos | awk '{print $2}' | sort -u | tr '\n' ' ')
+            echo "  $name: $archs minos $minos"
+            [ "$archs" = "arm64 x86_64 " ] || fail=1
+            [ "$minos" = "11.0 " ] || fail=1
           done
+          [ $fail -eq 0 ] || { echo "a bundle is not universal or not at minos 11.0"; exit 1; }
 
       - name: Package
         shell: bash
@@ -124,11 +131,15 @@ jobs:
           for vst in build/*_artefacts/Release/VST3/*.vst3; do
             [ -d "$vst" ] && cp -R "$vst" dist/
           done
+          # AU bundles exist on macOS only (Logic hosts Audio Units, not VST3).
+          for au in build/*_artefacts/Release/AU/*.component; do
+            [ -d "$au" ] && cp -R "$au" dist/
+          done
           cd dist
           if command -v zip >/dev/null 2>&1; then
-            zip -r "../HyperPrism-Reimagined-${{ matrix.name }}.zip" *.vst3
+            zip -r "../HyperPrism-Reimagined-${{ matrix.name }}.zip" .
           else
-            7z a -tzip "../HyperPrism-Reimagined-${{ matrix.name }}.zip" *.vst3
+            7z a -tzip "../HyperPrism-Reimagined-${{ matrix.name }}.zip" .
           fi
 
       - name: Upload artifact

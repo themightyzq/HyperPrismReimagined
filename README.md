@@ -15,9 +15,8 @@ https://github.com/themightyzq/HyperPrismReimagined/releases:
 `HyperPrism-Reimagined-macOS.zip`, `HyperPrism-Reimagined-Windows.zip`, or
 `HyperPrism-Reimagined-Linux.zip`.
 
-These release builds are VST3 only. AU support was added to the source on 2026-09-22 and is
-not in a release yet. If you need AU, for example to use HyperPrism in Logic Pro, build from
-source (below) until the next release.
+The macOS zip contains both the VST3 bundles and the AU components; copy the `.component`
+files to `~/Library/Audio/Plug-Ins/Components/` for Logic Pro. Windows and Linux zips are VST3.
 
 The binaries are unsigned. On macOS, right-click the plugin and choose Open the first time,
 since Gatekeeper blocks a plain double-click.
@@ -31,8 +30,8 @@ controls: knobs for its parameters, and an XY pad on the right. Right-click the 
 assign any two parameters to its X and Y axes, then drag the pad to control both at once.
 Hover any control to see a tooltip describing it.
 
-Logic Pro hosts Audio Unit plugins only. Use the AU build there once one is available (see
-Install above). Pro Tools is not supported: it requires AAX, which is not built.
+Logic Pro hosts Audio Unit plugins only; use the `.component` files from the macOS zip. Pro
+Tools is not supported: it requires AAX, which is not built.
 
 Compressor, Chorus, and Band-Pass Filter each have a preset bar at the top of the window
 (previous/next arrows, a name list, Save, and a menu for rename, overwrite, delete, and reveal
