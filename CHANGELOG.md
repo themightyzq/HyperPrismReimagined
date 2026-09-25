@@ -66,6 +66,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   spacing above changes again. Verified before/after with
   `hyperprism_ui_snapshot_HyperPrismMultiDelay` renders at both sizes, pluginval strictness 10,
   and `auval -v aufx Hmdl ZQSF`.
+- **Limiter Release parameter had no audible effect** - `processBlock()` used hard-coded
+  `0.999f`/`0.01f` release/attack coefficients regardless of the Release knob; the correct
+  release-time formula existed only in the unused, now-removed `processLimiting()`. Release now
+  drives that same formula (`coeff = exp(-1000 / (release_ms * sampleRate))`), smoothed at block
+  rate, no audio-thread allocation. The Release parameter's default changed from 50ms to 20.8ms
+  -- the release time the old hardcoded `0.999f` implied at 48kHz -- so a freshly-created
+  instance (no saved session) sounds the same as before. A saved session with a non-default
+  Release value will now sound different: that value was previously ignored (every session
+  always got the same ~20.8ms release regardless of what Release was set to), and will now
+  actually be honoured. Verified with a new CTest check, `hp_release_time_Limiter`
+  (`tools/release_time_check/main.cpp`): a -20dB step at Release=50ms vs Release=300ms measures
+  a 90%-gain-recovery-time ratio of 6.0009 against an expected 6.0 (300/50).
+- **BassMaximiser `processBassCompression()` unused `frequency` argument** - investigated and
+  found to be a redundant argument, not an audible defect: the Frequency (crossover) parameter
+  is already applied earlier in the chain, in `updateFilters()`, which builds the
+  low-pass/high-pass filter pair this function's `input` has already passed through. The unused
+  argument is removed; no behaviour change. Verified with a new CTest check,
+  `hp_frequency_sweep_BassMaximiser` (`tools/frequency_sweep_check/main.cpp`): sweeping Frequency
+  from 30Hz to 400Hz with a fixed 40Hz+2000Hz probe signal changes output RMS by 45.2%.
+- **SonicDecimator Anti-Alias/Dither right-click-to-assign did nothing** -
+  `setupToggleButton()` never called `addAndMakeVisible()` on the parameter label or gave it
+  bounds in `resized()`, even though each label's `onClick` handler (`showParameterMenu`) was
+  wired up in the constructor -- the label existed but was invisible and unhittable. Now mirrors
+  `setupSlider()`'s handling of its own label: visible, positioned below its toggle button, 22px
+  tall (house minimum hit target) at both the default (700x550) and minimum (600x520) editor
+  size. Verified with a new CTest check, `hp_label_visibility_SonicDecimator`
+  (`tools/label_visibility_check/main.cpp`): constructs the real editor, finds both labels,
+  asserts visible/non-empty/>=22px bounds at both sizes, and exercises each `onClick` handler
+  directly. Before/after renders via `hyperprism_ui_snapshot_HyperPrismSonicDecimator` (new
+  target, added for this fix) confirm the labels are now drawn.
+
+### Added
+- `HyperPrismReimagined/ThirdParty/signalsmith-stretch/LICENSE.txt` and
+  `HyperPrismReimagined/ThirdParty/signalsmith-stretch/signalsmith-linear/LICENSE.txt`: the
+  bundled Signalsmith Audio `signalsmith-stretch` and `linear` libraries (used by PitchChanger)
+  had no licence file in this repo. Both are MIT-licensed upstream (fetched from
+  github.com/Signalsmith-Audio/signalsmith-stretch and github.com/Signalsmith-Audio/linear),
+  which is compatible with this project's GPL-3.0-or-later. Credited in README.md.
 
 ### Removed
 - Audio Unit (AU) plugin format support

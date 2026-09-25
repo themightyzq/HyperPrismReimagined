@@ -73,13 +73,17 @@ private:
     
     // Smoothing for gain changes
     std::vector<float> smoothedGains;
-    
+
+    // Smooths the Release parameter itself (ms) so changing the knob doesn't step the
+    // release-time coefficient abruptly; advanced once per block via skip(), see
+    // processBlock(). Fix for the "Release parameter has no audible effect" defect.
+    juce::SmoothedValue<float> releaseMsSmoothed;
+
     // Metering
     std::atomic<float> currentGainReduction { 0.0f };
     std::atomic<bool> peakIndicator { false };
-    
+
     // Helper functions
-    float processLimiting(float input, float ceiling, float& envelope, float& smoothedGain, float release);
     float softClip(float input);
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LimiterProcessor)

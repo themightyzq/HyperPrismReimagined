@@ -159,8 +159,9 @@ void BassMaximiserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     // Update filters if frequency changed
     updateFilters();
     
-    // Get current parameter values
-    float frequency = frequencyParam->get();
+    // Get current parameter values. Frequency (the bass/high crossover point) is applied by
+    // updateFilters() just above -- it configures bassFilter/highPassFilter, which the per-
+    // sample loop below reads from -- so it is not re-read here.
     float boost = boostParam->get();
     float harmonics = harmonicsParam->get() / 100.0f;
     float tightness = tightnessParam->get() / 100.0f;
@@ -197,8 +198,8 @@ void BassMaximiserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
             subHarmonicData[static_cast<size_t>(sample)] = subHarmonic;
             
             // Apply bass compression/limiting (tightness)
-            float processedBass = processBassCompression(boostedBass, bassEnvelopes[static_cast<size_t>(channel)], 
-                                                       bassGainReduction[static_cast<size_t>(channel)], tightness, frequency);
+            float processedBass = processBassCompression(boostedBass, bassEnvelopes[static_cast<size_t>(channel)],
+                                                       bassGainReduction[static_cast<size_t>(channel)], tightness);
             
             // Apply phase invert if enabled
             if (phaseInvert)
@@ -297,14 +298,18 @@ float BassMaximiserProcessor::generateSubHarmonic(float input, float& phase, flo
 }
 
 float BassMaximiserProcessor::processBassCompression(float input, float& envelope, float& gainReduction,
-                                                   float tightness, float frequency)
+                                                   float tightness)
 {
-    // POSSIBLE BUG (flagged, not fixed -- fixing would change behaviour, out of scope for a
-    // warning-only pass): `frequency` is the crossover frequency passed in by the caller but is
-    // never used below -- attack/release/threshold are all fixed constants regardless of it.
-    // If frequency-dependent envelope timing was intended, it was never implemented. Kept
-    // (not deleted) and marked explicitly so the warning doesn't recur; see STATUS.md/CHANGELOG.
-    juce::ignoreUnused(frequency);
+    // INVESTIGATED (was flagged as a possible bug: this function used to take an unused
+    // `frequency` argument). No audible defect: the crossover frequency IS applied to the
+    // sound -- updateFilters() (called at the top of processBlock(), every block) builds
+    // bassFilter/highPassFilter from the Frequency parameter, and the `input` this function
+    // receives (boostedBass) is already the output of that low-pass-filtered bass band. The
+    // Frequency control's tooltip ("Crossover frequency -- bass below this point is boosted",
+    // see BassMaximiserEditor.cpp) is satisfied by that band split; this function's own
+    // attack/release/threshold constants govern the tightness (compression) shaping applied
+    // after the crossover, and were never meant to vary with it. The redundant argument is
+    // removed; see CHANGELOG.
 
     if (tightness <= 0.0f)
         return input;

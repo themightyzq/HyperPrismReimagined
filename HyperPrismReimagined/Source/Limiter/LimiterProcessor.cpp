@@ -10,10 +10,15 @@ static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
         juce::NormalisableRange<float>(-30.0f, 0.0f, 0.1f), 
         -0.3f));
     
+    // Default is 20.8 ms, not a round number: it is the release time that the old
+    // hardcoded-0.999f-per-sample release coefficient (see the processBlock() fix note)
+    // implied at 48 kHz, computed from the same coeff = exp(-1000 / (release_ms * fs))
+    // formula the Release parameter now actually drives. Kept close to that value so a
+    // freshly-created instance (no saved session) sounds the same as it did before the fix.
     layout.add(std::make_unique<juce::AudioParameterFloat>(
-        "release", "Release", 
-        juce::NormalisableRange<float>(1.0f, 1000.0f, 0.1f, 0.5f), 
-        50.0f));
+        "release", "Release",
+        juce::NormalisableRange<float>(1.0f, 1000.0f, 0.1f, 0.5f),
+        20.8f));
     
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         "lookahead", "Lookahead", 
@@ -116,6 +121,11 @@ void LimiterProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     // Initialize envelope followers and smoothed gains
     envelopeFollowers.resize(2, 0.0f);
     smoothedGains.resize(2, 1.0f);
+
+    // 50ms ramp so turning the Release knob doesn't step the release-time coefficient
+    // abruptly; advanced per block in processBlock() via skip(), not per sample.
+    releaseMsSmoothed.reset(sampleRate, 0.05);
+    releaseMsSmoothed.setCurrentAndTargetValue(releaseParam->get());
 }
 
 void LimiterProcessor::releaseResources()
@@ -137,44 +147,6 @@ float LimiterProcessor::softClip(float input)
     return std::tanh(input * 0.7f) / 0.7f;
 }
 
-float LimiterProcessor::processLimiting(float input, float ceiling, float& envelope, 
-                                       float& smoothedGain, float release)
-{
-    // Peak detection
-    float inputAbs = std::abs(input);
-    
-    // Attack is instant for limiting
-    if (inputAbs > envelope)
-    {
-        envelope = inputAbs;
-    }
-    else
-    {
-        // Release
-        float releaseCoeff = static_cast<float>(std::exp(-1000.0f / (release * currentSampleRate)));
-        envelope = inputAbs + releaseCoeff * (envelope - inputAbs);
-    }
-    
-    // Calculate gain reduction
-    float targetGain = 1.0f;
-    if (envelope > ceiling)
-    {
-        targetGain = ceiling / envelope;
-    }
-    
-    // Smooth gain changes to prevent clicks
-    float attackTime = 0.1f; // 0.1ms attack for limiting
-    float attackCoeff = static_cast<float>(std::exp(-1000.0f / (attackTime * currentSampleRate)));
-    float releaseCoeff = static_cast<float>(std::exp(-1000.0f / (release * currentSampleRate)));
-    
-    if (targetGain < smoothedGain)
-        smoothedGain = targetGain + attackCoeff * (smoothedGain - targetGain);
-    else
-        smoothedGain = targetGain + releaseCoeff * (smoothedGain - targetGain);
-    
-    return smoothedGain;
-}
-
 void LimiterProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ignoreUnused(midiMessages);
@@ -192,25 +164,31 @@ void LimiterProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     // Get parameter values
     float ceilingDB = ceilingParam->get();
     float ceilingLinear = juce::Decibels::decibelsToGain(ceilingDB);
-    // POSSIBLE BUG (flagged, not fixed -- fixing would change behaviour, out of scope for a
-    // warning-only pass): the Release parameter is read here but never applied. The envelope/
-    // gain-smoothing below uses fixed coefficients (0.999f release, 0.01f attack) instead of
-    // processLimiting()'s correct release-time-based coefficient (which takes a `release` arg
-    // and IS otherwise unused dead code in this file). The Release knob currently has no audible
-    // effect. Kept (not deleted) and marked explicitly; see STATUS.md/CHANGELOG.
     float releaseTime = releaseParam->get();
-    juce::ignoreUnused(releaseTime);
     float lookaheadMs = lookaheadParam->get();
     bool useSoftClip = softClipParam->get();
     float inputGainDB = inputGainParam->get();
     float inputGainLinear = juce::Decibels::decibelsToGain(inputGainDB);
-    
+
     // Calculate lookahead samples
     lookaheadSamples = static_cast<int>(lookaheadMs * currentSampleRate / 1000.0);
-    
+
     const int numChannels = buffer.getNumChannels();
     const int numSamples = buffer.getNumSamples();
-    
+
+    // FIX (was: hard-coded 0.999f release / 0.01f attack coefficients below, so the Release
+    // parameter was read above but never used -- see CHANGELOG). Release now drives the same
+    // coefficient formula the previously-dead processLimiting() used
+    // (coeff = exp(-1000 / (release_ms * sampleRate))), smoothed at block rate (skip()) so the
+    // knob can't step it abruptly, computed once per block (no allocation, sample-rate
+    // correct). The 0.1ms fixed attack is unchanged -- there is no Attack parameter, and an
+    // effectively-instant attack is the intended behaviour for a limiter.
+    releaseMsSmoothed.setTargetValue(releaseTime);
+    const float smoothedReleaseMs = releaseMsSmoothed.skip(numSamples);
+    const float releaseCoeff = static_cast<float>(
+        std::exp(-1000.0 / (static_cast<double>(smoothedReleaseMs) * currentSampleRate)));
+    constexpr float attackCoeff = 0.01f; // fixed ~0.1ms-equivalent fast attack, unchanged
+
     float maxGainReduction = 1.0f;
     bool hitCeiling = false;
     
@@ -232,17 +210,17 @@ void LimiterProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
             if (inputAbs > envelope)
                 envelope = inputAbs; // Instant attack
             else
-                envelope = inputAbs + 0.999f * (envelope - inputAbs); // Fast release
-            
+                envelope = inputAbs + releaseCoeff * (envelope - inputAbs); // Release, now Release-controlled
+
             // Calculate gain reduction
             float& smoothedGain = smoothedGains[static_cast<size_t>(channel)];
             float targetGain = (envelope > ceilingLinear) ? ceilingLinear / envelope : 1.0f;
-            
+
             // Simple gain smoothing
             if (targetGain < smoothedGain)
-                smoothedGain = targetGain + 0.01f * (smoothedGain - targetGain); // Fast attack
+                smoothedGain = targetGain + attackCoeff * (smoothedGain - targetGain); // Fast attack, fixed
             else
-                smoothedGain = targetGain + 0.999f * (smoothedGain - targetGain); // Slow release
+                smoothedGain = targetGain + releaseCoeff * (smoothedGain - targetGain); // Release, now Release-controlled
             
             // Apply limiting to original input (no delay for performance)
             float output = input * smoothedGain;

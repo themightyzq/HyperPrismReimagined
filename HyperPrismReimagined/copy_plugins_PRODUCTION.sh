@@ -37,7 +37,7 @@ detect_platform() {
 get_vst3_directory() {
     local platform="$1"
     case "$platform" in
-        macos)   echo "/Users/$(whoami)/Library/Audio/Plug-Ins/VST3";;
+        macos)   echo "$HOME/Library/Audio/Plug-Ins/VST3";;
         linux)   echo "$HOME/.vst3";;
         windows) echo "$APPDATA/VST3";;
         *)       return 1;;

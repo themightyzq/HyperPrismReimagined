@@ -36,8 +36,8 @@ HyperPrismLookAndFeel::HyperPrismLookAndFeel()
     // that. rotarySliderFillColourId / rotarySliderOutlineColourId / thumbColourId /
     // trackColourId are gone too: the house's filmstrip knobs carry their own pointer and
     // consult no per-slider colour ID at all (zqsfx::ui::LookAndFeel::drawRotarySlider /
-    // drawVectorKnob) -- see each editor's remaining `rotarySliderFillColourId` cleanup in
-    // docs/ui_migration_report.md.
+    // drawVectorKnob) -- each editor's remaining `rotarySliderFillColourId` cleanup is
+    // documented internally.
 }
 
 // ---------------------------------------------------------------------- Toggle buttons

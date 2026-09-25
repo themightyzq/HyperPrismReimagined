@@ -494,10 +494,14 @@ void SonicDecimatorEditor::resized()
     centerKnob(bitDepthSlider, bitDepthLabel, col1.getX(), colWidth, y1, knobDiam);
     centerKnob(sampleRateSlider, sampleRateLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
 
-    // Toggle buttons below knobs in column
+    // Toggle buttons below knobs in column, each followed by its ParameterLabel (right-click
+    // target for XY-pad assignment, same role as a knob's label in centerKnob() above). Each
+    // label is 22px tall to meet the house 22px minimum hit target (../../CLAUDE.md section 6).
     int toggleY = y1 + vSpace + knobDiam / 2 + 36;
     antiAliasButton.setBounds(col1.getX(), toggleY, colWidth, 25);
-    ditherButton.setBounds(col1.getX(), toggleY + 45, colWidth, 25);
+    antiAliasLabel.setBounds(col1.getX(), toggleY + 27, colWidth, 22);
+    ditherButton.setBounds(col1.getX(), toggleY + 55, colWidth, 25);
+    ditherLabel.setBounds(col1.getX(), toggleY + 82, colWidth, 22);
 
     // --- Right side: XY pad + output ---
     auto rightSide = bounds;
@@ -549,13 +553,11 @@ void SonicDecimatorEditor::setupSlider(juce::Slider& slider, ParameterLabel& lab
 void SonicDecimatorEditor::setupToggleButton(juce::ToggleButton& button, ParameterLabel& label,
                                             const juce::String& text)
 {
-    // POSSIBLE BUG (flagged, not fixed -- out of scope for a warning-only pass): unlike
-    // setupSlider() above, this never calls addAndMakeVisible(label) or gives it bounds in
-    // resized(), even though antiAliasLabel/ditherLabel each have a working onClick handler
-    // (showParameterMenu) set up in the constructor. Right-click-to-assign-to-XY-pad on the
-    // Anti-Alias/Dither toggles therefore has no visible/hittable target and cannot work.
-    juce::ignoreUnused(label);
-
+    // FIX (was: never called addAndMakeVisible(label) or gave it bounds in resized(), even
+    // though antiAliasLabel/ditherLabel each have a working onClick handler (showParameterMenu)
+    // set up in the constructor -- right-click-to-assign-to-XY-pad on the Anti-Alias/Dither
+    // toggles had no visible/hittable target and could not work). Now mirrors setupSlider()'s
+    // handling of its own ParameterLabel; see resized() for the label's bounds.
     button.setButtonText(text);
     button.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     button.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
@@ -563,6 +565,11 @@ void SonicDecimatorEditor::setupToggleButton(juce::ToggleButton& button, Paramet
     button.setTitle(text);
     button.setDescription(text);
     addAndMakeVisible(button);
+
+    label.setText(text, juce::dontSendNotification);
+    label.setJustificationType(juce::Justification::centred);
+    label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
+    addAndMakeVisible(label);
 }
 
 void SonicDecimatorEditor::updateParameterColors()

@@ -47,8 +47,8 @@ public:
                            float sliderPosProportional, float rotaryStartAngle,
                            float rotaryEndAngle, juce::Slider&) override;
 
-    // Colour Scheme -- every member below is now a house token (see docs/ui_migration_report.md
-    // for the full remap table). Member NAMES are unchanged on purpose: none of the 32 editors
+    // Colour Scheme -- every member below is now a house token (the full remap table is
+    // documented internally). Member NAMES are unchanged on purpose: none of the 32 editors
     // need to change which Colors::x they read, only what that name now resolves to.
     struct Colors
     {

@@ -10,7 +10,7 @@ echo "=== HyperPrism Reimagined Mac Build Script (CMake) ==="
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="$PROJECT_ROOT/build"
 OUTPUT_DIR="$PROJECT_ROOT/Distribution/Mac"
-CODESIGN_IDENTITY="TEAMID"  # Your identity
+CODESIGN_IDENTITY="${CODESIGN_IDENTITY:-}"  # Set via env var, e.g. CODESIGN_IDENTITY=<your Developer ID> ./build_mac_cmake.sh
 
 # Colors for output
 RED='\033[0;31m'

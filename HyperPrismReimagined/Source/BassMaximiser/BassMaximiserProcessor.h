@@ -84,8 +84,8 @@ private:
     // Helper functions
     void updateFilters();
     float generateSubHarmonic(float input, float& phase, float harmonicsAmount);
-    float processBassCompression(float input, float& envelope, float& gainReduction, 
-                               float tightness, float frequency);
+    float processBassCompression(float input, float& envelope, float& gainReduction,
+                               float tightness);
     float calculateRMS(const float* buffer, int numSamples);
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BassMaximiserProcessor)

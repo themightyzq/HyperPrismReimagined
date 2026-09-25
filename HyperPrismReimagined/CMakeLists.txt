@@ -1507,7 +1507,7 @@ configure_hyperprism_plugin(HyperPrismEcho)
 # All 32 HyperPrism plugins are now implemented!
 
 # ---- UI snapshot tool (headless before/after render gate for the zqsfx_ui house-UI migration;
-# see tools/ui_snapshot/main.cpp and docs/ui_migration_report.md). Piloted for three plugins:
+# see tools/ui_snapshot/main.cpp). Piloted for three plugins:
 # Compressor (XY pad + dynamics), Chorus (modulation), BandPass (frequency). See
 # tools/ui_snapshot/main.cpp's header comment for why this is one function per plugin rather
 # than a single "hyperprism_ui_snapshot" binary.
@@ -1521,7 +1521,7 @@ function(add_hyperprism_ui_snapshot plugin_target effect_dir processor_header pr
     # juce_generate_juce_header(${plugin_target})'s generated JuceHeader.h is only added to the
     # plugin target's OWN include path as PRIVATE (see JUCEUtils.cmake), so it does not
     # propagate through target_link_libraries; added back explicitly here (the LFlOw migration's
-    # "JUCE_GENERATED_SOURCES_DIRECTORY propagation trick", see its docs/ui_migration_report.md).
+    # "JUCE_GENERATED_SOURCES_DIRECTORY propagation trick", documented internally).
     target_include_directories(${snapshot_target} PRIVATE
         Source/${effect_dir}
         Source/Shared
@@ -1541,10 +1541,13 @@ function(add_hyperprism_ui_snapshot plugin_target effect_dir processor_header pr
     endif()
 endfunction()
 
-add_hyperprism_ui_snapshot(HyperPrismCompressor Compressor CompressorProcessor.h CompressorProcessor)
-add_hyperprism_ui_snapshot(HyperPrismChorus     Chorus     ChorusProcessor.h     ChorusProcessor)
-add_hyperprism_ui_snapshot(HyperPrismBandPass   BandPass   BandPassProcessor.h   BandPassProcessor)
-add_hyperprism_ui_snapshot(HyperPrismMultiDelay MultiDelay MultiDelayProcessor.h MultiDelayProcessor)
+add_hyperprism_ui_snapshot(HyperPrismCompressor    Compressor     CompressorProcessor.h     CompressorProcessor)
+add_hyperprism_ui_snapshot(HyperPrismChorus        Chorus         ChorusProcessor.h         ChorusProcessor)
+add_hyperprism_ui_snapshot(HyperPrismBandPass      BandPass       BandPassProcessor.h       BandPassProcessor)
+add_hyperprism_ui_snapshot(HyperPrismMultiDelay    MultiDelay     MultiDelayProcessor.h     MultiDelayProcessor)
+# Added with the SonicDecimator Anti-Alias/Dither ParameterLabel visibility fix (see
+# hp_label_visibility_SonicDecimator below and CHANGELOG) as the before/after render gate.
+add_hyperprism_ui_snapshot(HyperPrismSonicDecimator SonicDecimator SonicDecimatorProcessor.h SonicDecimatorProcessor)
 
 # ---- State-migration checks (HarmonicExciter and NoiseGate moved from addParameter to APVTS
 # on 2026-09-23; see tools/state_check/main.cpp). Registered with CTest: HyperPrism's first
@@ -1650,3 +1653,14 @@ add_hyperprism_console_check(stereo_null_check HyperPrismSonicDecimator SonicDec
 add_hyperprism_console_check(oversampling_check HyperPrismSonicDecimator     SonicDecimator     SonicDecimatorProcessor.h     SonicDecimatorProcessor     HP_CHECK_SONICDECIMATOR)
 add_hyperprism_console_check(oversampling_check HyperPrismTubeTapeSaturation TubeTapeSaturation TubeTapeSaturationProcessor.h TubeTapeSaturationProcessor HP_CHECK_TUBETAPE)
 add_hyperprism_console_check(oversampling_check HyperPrismHarmonicExciter    HarmonicExciter    HarmonicExciterProcessor.h    HarmonicExciterProcessor    HP_CHECK_HARMONICEXCITER)
+
+# ---- Defect-fix regression checks (this pass): hp_release_time_Limiter proves the Release
+# parameter now actually controls release time (tools/release_time_check/main.cpp);
+# hp_frequency_sweep_BassMaximiser proves the Frequency crossover is audible, i.e. that removing
+# processBassCompression()'s unused `frequency` argument was a true no-op refactor
+# (tools/frequency_sweep_check/main.cpp); hp_label_visibility_SonicDecimator proves the
+# Anti-Alias/Dither ParameterLabels are now visible with a real hit target
+# (tools/label_visibility_check/main.cpp). Same link pattern as add_hyperprism_state_check().
+add_hyperprism_console_check(release_time_check     HyperPrismLimiter        Limiter        LimiterProcessor.h        LimiterProcessor        HP_CHECK_LIMITER)
+add_hyperprism_console_check(frequency_sweep_check   HyperPrismBassMaximiser  BassMaximiser  BassMaximiserProcessor.h  BassMaximiserProcessor  HP_CHECK_BASSMAXIMISER)
+add_hyperprism_console_check(label_visibility_check  HyperPrismSonicDecimator SonicDecimator SonicDecimatorProcessor.h SonicDecimatorProcessor HP_CHECK_SONICDECIMATOR)

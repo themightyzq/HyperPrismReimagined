@@ -6,8 +6,7 @@
 //      pass 600 520 to check the minimum resize floor from setResizeLimits(600, 520, 900, 750))
 //
 // The look-and-feel regression gate for the ZQ SFX house-UI migration (see
-// ../../../docs/ZQSFX_UI_STYLE_GUIDE.md and docs/ui_migration_report.md). Render before a UI
-// change, render after, compare.
+// ../../../docs/ZQSFX_UI_STYLE_GUIDE.md). Render before a UI change, render after, compare.
 //
 // HyperPrism has 32 separate plugin targets and no single shared "core" library the way
 // LFlOw/DePump do: each `HyperPrismXxx` target produced by juce_add_plugin() IS that plugin's
@@ -25,7 +24,7 @@
 // constructor) never actually fires before the snapshot is taken immediately after
 // construction -- JUCE dispatches timer callbacks through the message queue, not directly from
 // its background timer thread. Two successive renders of unchanged code are therefore
-// byte-identical (verified in docs/ui_migration_report.md).
+// byte-identical (verified internally).
 
 #include HP_SNAPSHOT_PROCESSOR_HEADER
 #include <iostream>

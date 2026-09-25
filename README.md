@@ -108,4 +108,10 @@ The macOS build produces a universal binary (Apple Silicon and Intel) and instal
 GPL-3.0-or-later. Built with JUCE. Releases before 2026-09-21 were offered under CC BY-NC 4.0;
 that licence still applies to those copies.
 
+### Third-party code
+
+PitchChanger uses Signalsmith Audio's `signalsmith-stretch` and `linear` libraries
+(`HyperPrismReimagined/ThirdParty/signalsmith-stretch/`), by Geraint Luff / Signalsmith Audio,
+MIT licensed (see the `LICENSE.txt` in each folder).
+
 ZQ SFX, https://www.zq-sfx.com, connect@zq-sfx.com.
