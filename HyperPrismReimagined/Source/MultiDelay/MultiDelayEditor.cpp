@@ -315,7 +315,7 @@ MultiDelayEditor::MultiDelayEditor(MultiDelayProcessor& p)
     {
         // Group label
         delayGroupLabels[static_cast<size_t>(i)].setText("Delay " + juce::String(i + 1), juce::dontSendNotification);
-        delayGroupLabels[static_cast<size_t>(i)].setFont(juce::Font(12.0f, juce::Font::bold));
+        delayGroupLabels[static_cast<size_t>(i)].setFont(juce::Font(juce::FontOptions(12.0f).withStyle("Bold")));
         delayGroupLabels[static_cast<size_t>(i)].setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::primary);
         delayGroupLabels[static_cast<size_t>(i)].setJustificationType(juce::Justification::centred);
         addAndMakeVisible(delayGroupLabels[static_cast<size_t>(i)]);
@@ -528,8 +528,9 @@ void MultiDelayEditor::paint(juce::Graphics& g)
                           HyperPrismLookAndFeel::Colors::timing);
     }
 
-    // GLOBAL header
-    paintColumnHeader(globalFeedbackSlider.getX() - 2, globalFeedbackSlider.getY() - 55, 120,
+    // GLOBAL header (position computed in resized(), anchored to the tap column's actual
+    // label bottom -- see the comment there for why this replaced a hard-coded offset)
+    paintColumnHeader(globalHeaderX, globalHeaderY, 120,
                       "GLOBAL", HyperPrismLookAndFeel::Colors::timing);
 
     // OUTPUT header
@@ -608,10 +609,17 @@ void MultiDelayEditor::resized()
     centerKnob(delayLevelSliders[static_cast<size_t>(t)], delayLevelLabels[static_cast<size_t>(t)], col2.getX(), colWidth, y1, knobDiam);
     centerKnob(delayFeedbackSliders[static_cast<size_t>(t)], delayFeedbackLabels[static_cast<size_t>(t)], col2.getX(), colWidth, y1 + vSpace, knobDiam);
 
+    // GLOBAL header goes in the gap between the tap row's labels and the global knob below.
+    // Anchored to the Pan label's real bottom edge (rather than a hard-coded offset from the
+    // slider's position) so it tracks the layout and can't drift back into the label if the
+    // knob/label spacing above ever changes again.
+    globalHeaderY = delayPanLabels[static_cast<size_t>(t)].getBottom() + 4;
+
     // Global Feedback below tap knobs
     int globalY = y1 + vSpace * 2 + 20;
     centerKnob(globalFeedbackSlider, globalFeedbackLabel,
                col1.getX() + 55, colWidth, globalY, knobDiam);
+    globalHeaderX = globalFeedbackSlider.getX() - 2;
 
     // --- Right side: XY pad + output + meter ---
     auto rightSide = bounds;
@@ -653,7 +661,7 @@ void MultiDelayEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
     label.setText(text, juce::dontSendNotification);
     label.setJustificationType(juce::Justification::centred);
     label.setColour(juce::Label::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
-    label.setFont(10.0f);
+    label.setFont(juce::Font(juce::FontOptions(10.0f)));
     addAndMakeVisible(label);
 }
 

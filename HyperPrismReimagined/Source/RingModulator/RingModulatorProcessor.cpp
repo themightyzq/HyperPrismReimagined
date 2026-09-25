@@ -62,6 +62,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout RingModulatorProcessor::crea
 
 void RingModulatorProcessor::prepareToPlay(double sampleRate, int)
 {
+    // Not cached: processBlock() reads getSampleRate() fresh every block instead (see the
+    // carrierPhaseInc/modulatorPhaseInc calculation there), so there is nothing to precompute here.
+    juce::ignoreUnused(sampleRate);
+
     // Reset phases
     carrierPhase = 0.0f;
     modulatorPhase = 0.0f;
@@ -115,6 +119,7 @@ float RingModulatorProcessor::generateWaveform(float phase, int waveformType)
 
 void RingModulatorProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
 
     if (bypassParam->load() > 0.5f)

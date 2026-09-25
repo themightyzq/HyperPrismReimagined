@@ -104,7 +104,6 @@ private:
     void updateXYPadFromParameters();
     void updateParametersFromXYPad(float x, float y);
     void showParameterMenu(juce::Component* target, const juce::String& parameterID);
-    void assignParameterToXYPad(const juce::String& parameterID, bool assignToX);
     void updateParameterColors();
     void updateXYPadLabel();
     

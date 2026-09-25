@@ -151,7 +151,7 @@ float LimiterProcessor::processLimiting(float input, float ceiling, float& envel
     else
     {
         // Release
-        float releaseCoeff = std::exp(-1000.0f / (release * currentSampleRate));
+        float releaseCoeff = static_cast<float>(std::exp(-1000.0f / (release * currentSampleRate)));
         envelope = inputAbs + releaseCoeff * (envelope - inputAbs);
     }
     
@@ -164,8 +164,8 @@ float LimiterProcessor::processLimiting(float input, float ceiling, float& envel
     
     // Smooth gain changes to prevent clicks
     float attackTime = 0.1f; // 0.1ms attack for limiting
-    float attackCoeff = std::exp(-1000.0f / (attackTime * currentSampleRate));
-    float releaseCoeff = std::exp(-1000.0f / (release * currentSampleRate));
+    float attackCoeff = static_cast<float>(std::exp(-1000.0f / (attackTime * currentSampleRate)));
+    float releaseCoeff = static_cast<float>(std::exp(-1000.0f / (release * currentSampleRate)));
     
     if (targetGain < smoothedGain)
         smoothedGain = targetGain + attackCoeff * (smoothedGain - targetGain);
@@ -192,7 +192,14 @@ void LimiterProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     // Get parameter values
     float ceilingDB = ceilingParam->get();
     float ceilingLinear = juce::Decibels::decibelsToGain(ceilingDB);
+    // POSSIBLE BUG (flagged, not fixed -- fixing would change behaviour, out of scope for a
+    // warning-only pass): the Release parameter is read here but never applied. The envelope/
+    // gain-smoothing below uses fixed coefficients (0.999f release, 0.01f attack) instead of
+    // processLimiting()'s correct release-time-based coefficient (which takes a `release` arg
+    // and IS otherwise unused dead code in this file). The Release knob currently has no audible
+    // effect. Kept (not deleted) and marked explicitly; see STATUS.md/CHANGELOG.
     float releaseTime = releaseParam->get();
+    juce::ignoreUnused(releaseTime);
     float lookaheadMs = lookaheadParam->get();
     bool useSoftClip = softClipParam->get();
     float inputGainDB = inputGainParam->get();

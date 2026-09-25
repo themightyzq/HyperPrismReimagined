@@ -103,15 +103,15 @@ void NoiseGateProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     
     // Initialize per-channel states
     const int numChannels = getTotalNumInputChannels();
-    envelopeState.resize(numChannels, 0.0f);
-    gateState.resize(numChannels, 0.0f);
-    holdCounter.resize(numChannels, 0);
-    
+    envelopeState.resize(static_cast<size_t>(numChannels), 0.0f);
+    gateState.resize(static_cast<size_t>(numChannels), 0.0f);
+    holdCounter.resize(static_cast<size_t>(numChannels), 0);
+
     // Prepare lookahead buffer
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = samplesPerBlock;
-    spec.numChannels = numChannels;
+    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
+    spec.numChannels = static_cast<juce::uint32>(numChannels);
     
     lookaheadBuffer.prepare(spec);
     lookaheadBuffer.setMaximumDelayInSamples(static_cast<int>(sampleRate * 0.01)); // 10ms max
@@ -163,8 +163,8 @@ void NoiseGateProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
     const float lookaheadMs = lookahead->get();
     
     // Calculate time constants
-    const float attackCoeff = 1.0f - std::exp(-1.0f / (attackMs * 0.001f * currentSampleRate));
-    const float releaseCoeff = 1.0f - std::exp(-1.0f / (releaseMs * 0.001f * currentSampleRate));
+    const float attackCoeff = static_cast<float>(1.0 - std::exp(-1.0 / (attackMs * 0.001 * currentSampleRate)));
+    const float releaseCoeff = static_cast<float>(1.0 - std::exp(-1.0 / (releaseMs * 0.001 * currentSampleRate)));
     const int holdSamples = static_cast<int>(holdMs * 0.001f * currentSampleRate);
     const int lookaheadSamples = static_cast<int>(lookaheadMs * 0.001f * currentSampleRate);
     
@@ -190,7 +190,7 @@ void NoiseGateProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
             
             if (lookaheadIndex < numSamples)
             {
-                inputLevel = std::abs(lookaheadData[lookaheadIndex]);
+                inputLevel = std::abs(lookaheadData[static_cast<size_t>(lookaheadIndex)]);
             }
             else
             {
@@ -198,29 +198,29 @@ void NoiseGateProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
             }
             
             // Envelope follower
-            if (inputLevel > envelopeState[channel])
+            if (inputLevel > envelopeState[static_cast<size_t>(channel)])
             {
                 // Attack
-                envelopeState[channel] += attackCoeff * (inputLevel - envelopeState[channel]);
+                envelopeState[static_cast<size_t>(channel)] += attackCoeff * (inputLevel - envelopeState[static_cast<size_t>(channel)]);
             }
             else
             {
                 // Release
-                envelopeState[channel] += releaseCoeff * (inputLevel - envelopeState[channel]);
+                envelopeState[static_cast<size_t>(channel)] += releaseCoeff * (inputLevel - envelopeState[static_cast<size_t>(channel)]);
             }
             
             // Gate logic
             float targetGate = 0.0f;
             
-            if (envelopeState[channel] > thresholdLinear)
+            if (envelopeState[static_cast<size_t>(channel)] > thresholdLinear)
             {
                 targetGate = 1.0f;
-                holdCounter[channel] = holdSamples;
+                holdCounter[static_cast<size_t>(channel)] = holdSamples;
             }
-            else if (holdCounter[channel] > 0)
+            else if (holdCounter[static_cast<size_t>(channel)] > 0)
             {
                 targetGate = 1.0f;
-                holdCounter[channel]--;
+                holdCounter[static_cast<size_t>(channel)]--;
             }
             else
             {
@@ -228,26 +228,26 @@ void NoiseGateProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
             }
             
             // Smooth gate transitions
-            if (targetGate > gateState[channel])
+            if (targetGate > gateState[static_cast<size_t>(channel)])
             {
                 // Opening
-                gateState[channel] += attackCoeff * (targetGate - gateState[channel]);
+                gateState[static_cast<size_t>(channel)] += attackCoeff * (targetGate - gateState[static_cast<size_t>(channel)]);
             }
             else
             {
                 // Closing
-                gateState[channel] += releaseCoeff * (targetGate - gateState[channel]);
+                gateState[static_cast<size_t>(channel)] += releaseCoeff * (targetGate - gateState[static_cast<size_t>(channel)]);
             }
             
             // Apply gate
-            float gateGain = rangeLinear + (1.0f - rangeLinear) * gateState[channel];
+            float gateGain = rangeLinear + (1.0f - rangeLinear) * gateState[static_cast<size_t>(channel)];
             
             // Process through lookahead buffer
             lookaheadBuffer.pushSample(channel, channelData[sample]);
             channelData[sample] = lookaheadBuffer.popSample(channel) * gateGain;
             
             // Update gate status
-            if (gateState[channel] > 0.5f)
+            if (gateState[static_cast<size_t>(channel)] > 0.5f)
                 anyGateOpen = true;
         }
     }

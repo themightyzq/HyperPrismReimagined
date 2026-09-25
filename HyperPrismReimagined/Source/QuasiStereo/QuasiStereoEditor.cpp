@@ -200,9 +200,9 @@ void StereoWidthMeter::paint(juce::Graphics& g)
     // Labels
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(10.0f);
-    g.drawText("L", centerX - radius - 15, centerY - 8, 15, 16, juce::Justification::centred);
-    g.drawText("R", centerX + radius, centerY - 8, 15, 16, juce::Justification::centred);
-    g.drawText("MONO", centerX - 15, centerY - radius - 20, 30, 16, juce::Justification::centred);
+    g.drawText("L", static_cast<int>(centerX - radius - 15), static_cast<int>(centerY - 8), 15, 16, juce::Justification::centred);
+    g.drawText("R", static_cast<int>(centerX + radius), static_cast<int>(centerY - 8), 15, 16, juce::Justification::centred);
+    g.drawText("MONO", static_cast<int>(centerX - 15), static_cast<int>(centerY - radius - 20), 30, 16, juce::Justification::centred);
 }
 
 void StereoWidthMeter::timerCallback()

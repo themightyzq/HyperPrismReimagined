@@ -100,7 +100,7 @@ private:
     
     // Helper functions
     float calculateAllpassCoefficient(float frequency);
-    float processPeakNotchDepth(float input, float depth);
+    float processPeakNotchDepth(float depth);
     
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

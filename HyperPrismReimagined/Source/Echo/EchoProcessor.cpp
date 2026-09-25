@@ -106,6 +106,7 @@ bool EchoProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 
 void EchoProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
     const int totalNumInputChannels = getTotalNumInputChannels();
     const int totalNumOutputChannels = getTotalNumOutputChannels();

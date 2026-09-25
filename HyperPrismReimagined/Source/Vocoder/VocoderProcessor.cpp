@@ -279,7 +279,7 @@ void VocoderProcessor::processVocoding(juce::AudioBuffer<float>& buffer)
     
     // Update release time for all bands
     for (int i = 0; i < currentBandCount; ++i)
-        vocoderBands[i].setReleaseTime(releaseTime);
+        vocoderBands[static_cast<size_t>(i)].setReleaseTime(releaseTime);
     
     float carrierLevelSum = 0.0f;
     float modulatorLevelSum = 0.0f;
@@ -308,15 +308,15 @@ void VocoderProcessor::processVocoding(juce::AudioBuffer<float>& buffer)
             for (int i = 0; i < currentBandCount; ++i)
             {
                 // Process carrier and modulator through band filters
-                vocoderBands[i].processCarrier(carrier);
-                vocoderBands[i].processModulator(modulator);
+                vocoderBands[static_cast<size_t>(i)].processCarrier(carrier);
+                vocoderBands[static_cast<size_t>(i)].processModulator(modulator);
                 
                 // Get band output and accumulate
-                float bandOutput = vocoderBands[i].getOutput();
+                float bandOutput = vocoderBands[static_cast<size_t>(i)].getOutput();
                 output += bandOutput;
                 
                 // Accumulate band levels for metering
-                bandLevelSums[i] += vocoderBands[i].getEnvelopeLevel();
+                bandLevelSums[static_cast<size_t>(i)] += vocoderBands[static_cast<size_t>(i)].getEnvelopeLevel();
             }
             
             // Apply output level
@@ -336,9 +336,9 @@ void VocoderProcessor::processVocoding(juce::AudioBuffer<float>& buffer)
     for (int i = 0; i < maxBands; ++i)
     {
         if (i < currentBandCount)
-            bandLevels[i] = bandLevelSums[i] / numSamples;
+            bandLevels[static_cast<size_t>(i)] = bandLevelSums[static_cast<size_t>(i)] / numSamples;
         else
-            bandLevels[i] = 0.0f;
+            bandLevels[static_cast<size_t>(i)] = 0.0f;
     }
 }
 
@@ -350,7 +350,7 @@ void VocoderProcessor::setupVocoderBands()
     
     // Calculate logarithmically spaced band frequencies
     bandFrequencies.clear();
-    bandFrequencies.resize(currentBandCount);
+    bandFrequencies.resize(static_cast<size_t>(currentBandCount));
     
     const float minFreq = 80.0f;   // Lowest band frequency
     const float maxFreq = 8000.0f; // Highest band frequency
@@ -358,13 +358,13 @@ void VocoderProcessor::setupVocoderBands()
     for (int i = 0; i < currentBandCount; ++i)
     {
         float ratio = static_cast<float>(i) / (currentBandCount - 1);
-        bandFrequencies[i] = minFreq * std::pow(maxFreq / minFreq, ratio);
+        bandFrequencies[static_cast<size_t>(i)] = minFreq * std::pow(maxFreq / minFreq, ratio);
     }
     
     // Setup each band with appropriate frequency and bandwidth
     for (int i = 0; i < currentBandCount; ++i)
     {
-        float centerFreq = bandFrequencies[i];
+        float centerFreq = bandFrequencies[static_cast<size_t>(i)];
         float bandwidth;
         
         if (i == 0)
@@ -375,15 +375,15 @@ void VocoderProcessor::setupVocoderBands()
         else if (i == currentBandCount - 1)
         {
             // Last band
-            bandwidth = (centerFreq - bandFrequencies[i - 1]) * 0.8f;
+            bandwidth = (centerFreq - bandFrequencies[static_cast<size_t>(i - 1)]) * 0.8f;
         }
         else
         {
             // Middle bands
-            bandwidth = (bandFrequencies[i + 1] - bandFrequencies[i - 1]) * 0.4f;
+            bandwidth = (bandFrequencies[static_cast<size_t>(i + 1)] - bandFrequencies[static_cast<size_t>(i - 1)]) * 0.4f;
         }
         
-        vocoderBands[i].setFrequency(centerFreq, bandwidth);
+        vocoderBands[static_cast<size_t>(i)].setFrequency(centerFreq, bandwidth);
     }
 }
 

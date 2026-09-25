@@ -76,9 +76,9 @@ private:
     class LFO
     {
     public:
-        void prepare(double sampleRate)
+        void prepare(double newSampleRate)
         {
-            this->sampleRate = static_cast<float>(sampleRate);
+            sampleRate = static_cast<float>(newSampleRate);
             phase = 0.0f;
         }
         

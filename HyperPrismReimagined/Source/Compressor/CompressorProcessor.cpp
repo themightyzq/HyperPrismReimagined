@@ -102,16 +102,17 @@ bool CompressorProcessor::isBusesLayoutSupported(const BusesLayout& layouts) con
 
 float CompressorProcessor::calculateAttackCoeff(float attackTimeMs)
 {
-    return std::exp(-1.0f / (attackTimeMs * 0.001f * currentSampleRate));
+    return static_cast<float>(std::exp(-1.0f / (attackTimeMs * 0.001f * currentSampleRate)));
 }
 
 float CompressorProcessor::calculateReleaseCoeff(float releaseTimeMs)
 {
-    return std::exp(-1.0f / (releaseTimeMs * 0.001f * currentSampleRate));
+    return static_cast<float>(std::exp(-1.0f / (releaseTimeMs * 0.001f * currentSampleRate)));
 }
 
 void CompressorProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();

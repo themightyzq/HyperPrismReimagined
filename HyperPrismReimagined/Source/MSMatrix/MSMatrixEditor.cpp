@@ -175,8 +175,8 @@ void MSMeter::paint(juce::Graphics& g)
     // Labels
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(10.0f);
-    g.drawText("M", centerX - 5, centerY - radius - 25, 10, 15, juce::Justification::centred);
-    g.drawText("S", centerX + radius + 5, centerY - 7, 15, 15, juce::Justification::left);
+    g.drawText("M", static_cast<int>(centerX - 5), static_cast<int>(centerY - radius - 25), 10, 15, juce::Justification::centred);
+    g.drawText("S", static_cast<int>(centerX + radius + 5), static_cast<int>(centerY - 7), 15, 15, juce::Justification::left);
 }
 
 void MSMeter::timerCallback()

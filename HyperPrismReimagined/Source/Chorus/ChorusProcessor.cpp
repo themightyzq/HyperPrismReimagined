@@ -254,9 +254,9 @@ void ChorusProcessor::setStateInformation(const void* data, int sizeInBytes)
 }
 
 // ChorusDelayLine implementation
-void ChorusProcessor::ChorusDelayLine::prepare(double sampleRate, float maxDelayMs)
+void ChorusProcessor::ChorusDelayLine::prepare(double newSampleRate, float maxDelayMs)
 {
-    this->sampleRate = sampleRate;
+    sampleRate = newSampleRate;
     maxDelaySamples = static_cast<int>((maxDelayMs / 1000.0f) * sampleRate) + 1;
     buffer.setSize(1, maxDelaySamples);
     reset();

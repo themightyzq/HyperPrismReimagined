@@ -71,10 +71,10 @@ private:
     class AllPassFilter
     {
     public:
-        void prepare(double sampleRate)
+        void prepare(double newSampleRate)
         {
             delay = 0.0f;
-            this->sampleRate = static_cast<float>(sampleRate);
+            sampleRate = static_cast<float>(newSampleRate);
         }
         
         float process(float input, float frequency)

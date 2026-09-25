@@ -546,9 +546,16 @@ void SonicDecimatorEditor::setupSlider(juce::Slider& slider, ParameterLabel& lab
     addAndMakeVisible(label);
 }
 
-void SonicDecimatorEditor::setupToggleButton(juce::ToggleButton& button, ParameterLabel& label, 
+void SonicDecimatorEditor::setupToggleButton(juce::ToggleButton& button, ParameterLabel& label,
                                             const juce::String& text)
 {
+    // POSSIBLE BUG (flagged, not fixed -- out of scope for a warning-only pass): unlike
+    // setupSlider() above, this never calls addAndMakeVisible(label) or gives it bounds in
+    // resized(), even though antiAliasLabel/ditherLabel each have a working onClick handler
+    // (showParameterMenu) set up in the constructor. Right-click-to-assign-to-XY-pad on the
+    // Anti-Alias/Dither toggles therefore has no visible/hittable target and cannot work.
+    juce::ignoreUnused(label);
+
     button.setButtonText(text);
     button.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     button.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);

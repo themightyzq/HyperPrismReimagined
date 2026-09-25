@@ -752,7 +752,6 @@ void AutoPanEditor::updateXYPadLabel()
     xyPadLabel.setText(xLabel + " / " + yLabel, juce::dontSendNotification);
 }
 
-void AutoPanEditor::assignParameterToXYPad(const juce::String& parameterID, bool assignToX)
-{
-    // This method is no longer used - replaced by toggle functionality in showParameterMenu
-}
+// assignParameterToXYPad() removed: it was dead code (never called from anywhere in this
+// file), replaced by the toggle functionality in showParameterMenu(). Removing it fixed an
+// unused-parameter warning without behaviour change.

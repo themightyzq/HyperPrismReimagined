@@ -72,7 +72,7 @@ private:
     class ChorusDelayLine
     {
     public:
-        void prepare(double sampleRate, float maxDelayMs);
+        void prepare(double newSampleRate, float maxDelayMs);
         void reset();
         float processSample(float input, float delayMs, float feedback);
         

@@ -223,7 +223,7 @@ void DelayMeter::timerCallback()
     // Update delay buffer visualization (simplified sine wave for demonstration)
     for (size_t i = 0; i < delayBuffer.size(); ++i)
     {
-        float phase = (bufferPosition + i) * 0.1f;
+        float phase = (static_cast<size_t>(bufferPosition) + i) * 0.1f;
         delayBuffer[i] = std::sin(phase) * inputLevel;
     }
     bufferPosition++;

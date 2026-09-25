@@ -1544,6 +1544,7 @@ endfunction()
 add_hyperprism_ui_snapshot(HyperPrismCompressor Compressor CompressorProcessor.h CompressorProcessor)
 add_hyperprism_ui_snapshot(HyperPrismChorus     Chorus     ChorusProcessor.h     ChorusProcessor)
 add_hyperprism_ui_snapshot(HyperPrismBandPass   BandPass   BandPassProcessor.h   BandPassProcessor)
+add_hyperprism_ui_snapshot(HyperPrismMultiDelay MultiDelay MultiDelayProcessor.h MultiDelayProcessor)
 
 # ---- State-migration checks (HarmonicExciter and NoiseGate moved from addParameter to APVTS
 # on 2026-09-23; see tools/state_check/main.cpp). Registered with CTest: HyperPrism's first

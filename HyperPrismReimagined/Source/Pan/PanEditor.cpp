@@ -158,9 +158,9 @@ void PanMeter::paint(juce::Graphics& g)
     // L/R indicators
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(12.0f);
-    g.drawText("L", centerX - radius - 20, centerY - 10, 20, 20, juce::Justification::centred);
-    g.drawText("R", centerX + radius, centerY - 10, 20, 20, juce::Justification::centred);
-    g.drawText("C", centerX - 10, centerY - radius - 20, 20, 20, juce::Justification::centred);
+    g.drawText("L", static_cast<int>(centerX - radius - 20), static_cast<int>(centerY - 10), 20, 20, juce::Justification::centred);
+    g.drawText("R", static_cast<int>(centerX + radius), static_cast<int>(centerY - 10), 20, 20, juce::Justification::centred);
+    g.drawText("C", static_cast<int>(centerX - 10), static_cast<int>(centerY - radius - 20), 20, 20, juce::Justification::centred);
     
     // Pan position indicator
     float panAngle = -juce::MathConstants<float>::halfPi + (panPosition * juce::MathConstants<float>::halfPi);

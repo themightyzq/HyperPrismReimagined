@@ -35,6 +35,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 - **Audio Buffer Bug (Critical)** - Fixed hardcoded `maximumBlockSize = 512` in FrequencyShifter, SonicDecimator, Vocoder, and MultiDelay processors. These now properly use the `samplesPerBlock` parameter from `prepareToPlay()`, fixing audio artifacts on Linux and DAWs using non-512 buffer sizes.
 - macOS deployment target pinned to 11.0; earlier builds declared 15.0 and would not load on macOS 13/14.
+- **Compiler warnings (107 to 0)** - Resolved every remaining first-party warning left over from
+  the earlier mechanical pass: float/double-to-float narrowing made explicit with
+  `static_cast<float>`, signed-to-unsigned array-index conversions made explicit with
+  `static_cast<size_t>`/`static_cast<juce::uint32>` (NoiseGate and Vocoder had the bulk of
+  these), parameter names that shadowed a member renamed in Chorus/Vibrato/Tremolo/Phaser's
+  delay-line and filter `prepare()` methods, two genuinely dead methods removed
+  (`AutoPanEditor`/`ChorusEditor::assignParameterToXYPad`, superseded by `showParameterMenu`),
+  one genuinely-unused local removed (`TubeTapeSaturationEditor`'s `col2`), one genuinely-unused
+  function parameter removed (`HyperPhaserProcessor::processPeakNotchDepth`'s `input` -- the
+  caller already applies the returned gain itself), and a deprecated two-argument `juce::Font`
+  constructor pair replaced with `Font(FontOptions(...))` in `MultiDelayEditor`. Verified with a
+  full rebuild: 0 first-party warnings, 0 build errors, `ctest` 9/9, pluginval strictness 10 on
+  every plugin touched by more than a cast or rename.
+  Two of the warnings turned out to flag real, pre-existing behaviour bugs; left in place with
+  an explanatory comment instead of being silently fixed or deleted, since fixing them changes
+  audible behaviour and is out of scope here: Limiter's Release parameter is read every block
+  but never applied (`processLimiting()`, which correctly turns it into a release coefficient,
+  is dead code -- `processBlock()` uses hardcoded `0.01f`/`0.999f` coefficients instead), and
+  BassMaximiser's `processBassCompression()` takes the crossover `frequency` but never uses it
+  (attack/release/threshold are fixed constants). Also found, and left for the same reason:
+  `SonicDecimatorEditor::setupToggleButton()` never makes the Anti-Alias/Dither labels visible
+  or positions them, so right-click-to-assign-to-XY-pad silently does nothing for those two
+  parameters even though their `onClick` handlers are wired up.
+- **MultiDelay GLOBAL/Pan label collision** - The GLOBAL section heading was positioned at a
+  hard-coded `slider.getY() - 55` offset that no longer matched the current knob/label spacing,
+  overlapping the Tap column's Pan label at both the default (700x550) and minimum (600x520)
+  editor size. Re-anchored the header to the Pan label's actual bottom edge (the same pattern
+  already used for this editor's OUTPUT header), so it can't drift back into the label if the
+  spacing above changes again. Verified before/after with
+  `hyperprism_ui_snapshot_HyperPrismMultiDelay` renders at both sizes, pluginval strictness 10,
+  and `auval -v aufx Hmdl ZQSF`.
 
 ### Removed
 - Audio Unit (AU) plugin format support

@@ -204,7 +204,7 @@ void TremoloMeter::paint(juce::Graphics& g)
     g.drawVerticalLine(static_cast<int>(phaseX), displayArea.getY(), displayArea.getBottom());
 
     // Draw phase circle
-    float phaseY = displayArea.getCentreY() - lfoWaveform[static_cast<int>(currentPhase * (lfoWaveform.size() - 1))] * waveformHeight * 0.4f * depth;
+    float phaseY = displayArea.getCentreY() - lfoWaveform[static_cast<size_t>(currentPhase * static_cast<float>(lfoWaveform.size() - 1))] * waveformHeight * 0.4f * depth;
     g.fillEllipse(phaseX - 4, phaseY - 4, 8, 8);
 }
 

@@ -180,9 +180,9 @@ void EnhancedStereoMeter::paint(juce::Graphics& g)
     // Labels
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(10.0f);
-    g.drawText("L", centerX - radius - 25, centerY - 7, 15, 15, juce::Justification::right);
-    g.drawText("R", centerX + radius + 10, centerY - 7, 15, 15, juce::Justification::left);
-    g.drawText("AMB", centerX - 20, centerY - radius - 25, 40, 15, juce::Justification::centred);
+    g.drawText("L", static_cast<int>(centerX - radius - 25), static_cast<int>(centerY - 7), 15, 15, juce::Justification::right);
+    g.drawText("R", static_cast<int>(centerX + radius + 10), static_cast<int>(centerY - 7), 15, 15, juce::Justification::left);
+    g.drawText("AMB", static_cast<int>(centerX - 20), static_cast<int>(centerY - radius - 25), 40, 15, juce::Justification::centred);
 }
 
 void EnhancedStereoMeter::timerCallback()

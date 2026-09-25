@@ -175,6 +175,11 @@ private:
     int outputSectionX = 0;
     int outputSectionY = 0;
 
+    // GLOBAL section header position, anchored in resized() to the actual bottom of the
+    // tap column labels (see resized()/paint()) so it can never overlap them.
+    int globalHeaderX = 0;
+    int globalHeaderY = 0;
+
     juce::TooltipWindow tooltipWindow { this, 500 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MultiDelayEditor)

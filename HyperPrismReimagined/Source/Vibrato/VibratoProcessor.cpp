@@ -200,9 +200,9 @@ void VibratoProcessor::setStateInformation(const void* data, int sizeInBytes)
 }
 
 // VibratoDelayLine implementation
-void VibratoProcessor::VibratoDelayLine::prepare(double sampleRate, float maxDelayMs)
+void VibratoProcessor::VibratoDelayLine::prepare(double newSampleRate, float maxDelayMs)
 {
-    this->sampleRate = sampleRate;
+    sampleRate = newSampleRate;
     maxDelaySamples = static_cast<int>((maxDelayMs / 1000.0f) * sampleRate) + 1;
     buffer.setSize(1, maxDelaySamples);
     reset();

@@ -267,9 +267,9 @@ void VocoderMeter::paint(juce::Graphics& g)
                                                   bandWidth - 2,
                                                   bandsArea.getHeight());
 
-            if (smoothedBandLevels[i] > 0.001f)
+            if (smoothedBandLevels[static_cast<size_t>(i)] > 0.001f)
             {
-                float level = smoothedBandLevels[i];
+                float level = smoothedBandLevels[static_cast<size_t>(i)];
                 float levelHeight = bandArea.getHeight() * level;
                 auto levelRect = juce::Rectangle<float>(bandArea.getX(),
                                                        bandArea.getBottom() - levelHeight,

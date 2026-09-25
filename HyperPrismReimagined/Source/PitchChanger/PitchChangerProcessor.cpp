@@ -19,14 +19,14 @@ void PitchChangerProcessor::PitchShifter::prepare(double sampleRate, int blockSi
     maxBlockSize = blockSize;
     
     // Use presetDefault for high-quality pitch shifting
-    stretcher->presetDefault(2, sampleRate); // 2 channels for stereo
+    stretcher->presetDefault(2, static_cast<float>(sampleRate)); // 2 channels for stereo
     stretcher->setTransposeFactor(1.0f); // Default to no pitch change
     
     // Prepare buffers for de-interleaved audio
-    leftInputBuffer.resize(blockSize);
-    rightInputBuffer.resize(blockSize);
-    leftOutputBuffer.resize(blockSize);
-    rightOutputBuffer.resize(blockSize);
+    leftInputBuffer.resize(static_cast<size_t>(blockSize));
+    rightInputBuffer.resize(static_cast<size_t>(blockSize));
+    leftOutputBuffer.resize(static_cast<size_t>(blockSize));
+    rightOutputBuffer.resize(static_cast<size_t>(blockSize));
 }
 
 void PitchChangerProcessor::PitchShifter::reset()

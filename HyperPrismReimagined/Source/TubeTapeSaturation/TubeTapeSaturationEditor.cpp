@@ -552,7 +552,8 @@ void TubeTapeSaturationEditor::resized()
     int colWidth = (columnsArea.getWidth() - 10) / 2;
     auto col1 = columnsArea.removeFromLeft(colWidth);
     columnsArea.removeFromLeft(10);
-    auto col2 = columnsArea;
+    // Column 2 is intentionally empty for this plugin (reserved for the saturation type area);
+    // removed the unused `col2` local that used to alias it.
 
     int knobDiam = 80;
     int vSpace = 107;

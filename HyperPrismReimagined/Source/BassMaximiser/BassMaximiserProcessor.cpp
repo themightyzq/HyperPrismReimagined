@@ -103,7 +103,7 @@ void BassMaximiserProcessor::prepareToPlay(double sampleRate, int samplesPerBloc
     // Initialize filters
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = samplesPerBlock;
+    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
     spec.numChannels = 2;
     
     for (int ch = 0; ch < 2; ++ch)
@@ -145,6 +145,7 @@ bool BassMaximiserProcessor::isBusesLayoutSupported(const BusesLayout& layouts) 
 
 void BassMaximiserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
@@ -285,7 +286,7 @@ float BassMaximiserProcessor::generateSubHarmonic(float input, float& phase, flo
     // This creates a more musical sub-harmonic effect
     if ((input > 0.0f && phase < 0.0f) || (input < 0.0f && phase > 0.0f))
     {
-        phase += juce::MathConstants<float>::pi / currentSampleRate * 2.0f;
+        phase += static_cast<float>(juce::MathConstants<float>::pi / currentSampleRate * 2.0f);
     }
     
     // Keep phase in range
@@ -295,12 +296,19 @@ float BassMaximiserProcessor::generateSubHarmonic(float input, float& phase, flo
     return subHarmonic;
 }
 
-float BassMaximiserProcessor::processBassCompression(float input, float& envelope, float& gainReduction, 
+float BassMaximiserProcessor::processBassCompression(float input, float& envelope, float& gainReduction,
                                                    float tightness, float frequency)
 {
+    // POSSIBLE BUG (flagged, not fixed -- fixing would change behaviour, out of scope for a
+    // warning-only pass): `frequency` is the crossover frequency passed in by the caller but is
+    // never used below -- attack/release/threshold are all fixed constants regardless of it.
+    // If frequency-dependent envelope timing was intended, it was never implemented. Kept
+    // (not deleted) and marked explicitly so the warning doesn't recur; see STATUS.md/CHANGELOG.
+    juce::ignoreUnused(frequency);
+
     if (tightness <= 0.0f)
         return input;
-    
+
     // Simple envelope follower
     float absInput = std::abs(input);
     float attack = 0.01f;  // Fast attack

@@ -173,7 +173,7 @@ void GainReductionMeter::paint(juce::Graphics& g)
         if (db % 10 == 0)
         {
             g.setFont(10.0f);
-            g.drawText(juce::String(db), x - 5, bounds.getY() + 7, 10, 20, 
+            g.drawText(juce::String(db), static_cast<int>(x - 5), static_cast<int>(bounds.getY() + 7), 10, 20,
                       juce::Justification::centred);
         }
     }

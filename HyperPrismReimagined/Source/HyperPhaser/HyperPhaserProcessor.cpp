@@ -131,9 +131,12 @@ float HyperPhaserProcessor::calculateAllpassCoefficient(float frequency)
     return (1.0f - tanArg) / (1.0f + tanArg);
 }
 
-float HyperPhaserProcessor::processPeakNotchDepth(float input, float depth)
+float HyperPhaserProcessor::processPeakNotchDepth(float depth)
 {
-    // Process the peak/notch depth parameter
+    // Process the peak/notch depth parameter -- returns a gain factor computed purely from
+    // depth; the caller (below) multiplies it into the signal itself, so this never needed
+    // the sample value. Removed the unused `input` parameter (was genuinely dead, not a bug:
+    // confirmed the caller already does `processedSample *= depthGain`).
     // Positive values create notches, negative create peaks
     const float normalizedDepth = depth / 100.0f;
     
@@ -151,6 +154,7 @@ float HyperPhaserProcessor::processPeakNotchDepth(float input, float depth)
 
 void HyperPhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
+    juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
     const int totalNumInputChannels = getTotalNumInputChannels();
     const int totalNumOutputChannels = getTotalNumOutputChannels();
@@ -204,11 +208,11 @@ void HyperPhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
             
             for (int stage = 0; stage < activeStages && stage < ChannelState::NUM_STAGES; ++stage)
             {
-                processedSample = state.stages[stage].process(processedSample, coefficient);
+                processedSample = state.stages[static_cast<size_t>(stage)].process(processedSample, coefficient);
             }
             
             // Apply peak/notch depth processing
-            const float depthGain = processPeakNotchDepth(processedSample, depth);
+            const float depthGain = processPeakNotchDepth(depth);
             processedSample *= depthGain;
             
             // Apply feedback (with limiting for stability)

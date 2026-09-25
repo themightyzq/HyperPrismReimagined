@@ -114,8 +114,8 @@ void HarmonicExciterProcessor::prepareToPlay(double sampleRate, int samplesPerBl
     
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = samplesPerBlock;
-    spec.numChannels = getTotalNumOutputChannels();
+    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
+    spec.numChannels = static_cast<juce::uint32>(getTotalNumOutputChannels());
     
     // Initialize filters
     highPassFilter.prepare(spec);

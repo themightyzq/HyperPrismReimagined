@@ -180,7 +180,7 @@ void GainReductionMeter::paint(juce::Graphics& g)
     for (int db = 0; db <= 20; db += 5)
     {
         float y = meterArea.getBottom() - (db / 20.0f * meterArea.getHeight());
-        g.drawText(juce::String(-db), bounds.getX() - 25, y - 6, 20, 12, 
+        g.drawText(juce::String(-db), static_cast<int>(bounds.getX() - 25), static_cast<int>(y - 6), 20, 12,
                    juce::Justification::centredRight);
     }
 }

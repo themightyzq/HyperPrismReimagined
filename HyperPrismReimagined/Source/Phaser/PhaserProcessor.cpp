@@ -215,7 +215,7 @@ void PhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
             // Process through stages
             for (int stage = 0; stage < stages; ++stage)
             {
-                output = filters[stage].process(output, modulatedFreq);
+                output = filters[static_cast<size_t>(stage)].process(output, modulatedFreq);
             }
             
             feedbackMemory = output;
