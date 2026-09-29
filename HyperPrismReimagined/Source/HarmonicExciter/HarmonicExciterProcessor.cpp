@@ -111,37 +111,44 @@ void HarmonicExciterProcessor::changeProgramName(int index, const juce::String& 
 void HarmonicExciterProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
+    preparedBlockSize = juce::jmax(1, samplesPerBlock);
     
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
+    spec.maximumBlockSize = static_cast<juce::uint32>(preparedBlockSize);
     spec.numChannels = static_cast<juce::uint32>(getTotalNumOutputChannels());
     
-    // Initialize filters
+    // Initialize filter. The exciter works on the band ABOVE Frequency; JUCE's
+    // LinkwitzRileyFilter would otherwise stay at its default lowpass type.
+    highPassFilter.setType(juce::dsp::LinkwitzRileyFilterType::highpass);
     highPassFilter.prepare(spec);
-    lowPassFilter.prepare(spec);
-    
-    // Set initial filter frequencies
     highPassFilter.setCutoffFrequency(frequencyParam->get());
-    lowPassFilter.setCutoffFrequency(frequencyParam->get());
 
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
-    highFreqBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    highFreqBuffer.setSize(getTotalNumInputChannels(), preparedBlockSize);
 
+    int latency = 0;
 #if HP_HARMONICEXCITER_FORCE_1X
     oversampling.reset();
-    setLatencySamples(0);
 #else
     static_assert(kOversamplingFactor == 4, "oversampling stage count below assumes 4x (2 half-band stages)");
     oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
         (size_t) juce::jmax(1, getTotalNumInputChannels()),
         (size_t) 2, // log2(kOversamplingFactor)
         juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR,
-        true);
-    oversampling->initProcessing((size_t) samplesPerBlock);
+        true,
+        true); // integer latency, so the dry delay below can match it exactly
+    oversampling->initProcessing((size_t) preparedBlockSize);
     oversampling->reset();
-    setLatencySamples((int) std::round(oversampling->getLatencyInSamples()));
+    latency = juce::roundToInt(oversampling->getLatencyInSamples());
 #endif
+
+    // setDelay asserts against the maximum, so the maximum is set first.
+    dryDelay.setMaximumDelayInSamples(juce::jmax(1, latency));
+    dryDelay.prepare(spec);
+    dryDelay.setDelay(static_cast<float>(latency));
+    dryDelay.reset();
+
+    setLatencySamples(latency);
 }
 
 void HarmonicExciterProcessor::releaseResources()
@@ -165,38 +172,86 @@ void HarmonicExciterProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
+    const int numSamples = buffer.getNumSamples();
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
+        buffer.clear(i, 0, numSamples);
 
-    if (bypassParamBool->get())
+    if (numSamples == 0 || preparedBlockSize <= 0)
         return;
 
+    // Only the input channels carry audio (and only they have filter/oversampler state).
+    juce::dsp::AudioBlock<float> fullBlock(buffer.getArrayOfWritePointers(),
+                                           static_cast<size_t>(juce::jmin(totalNumInputChannels, buffer.getNumChannels())),
+                                           static_cast<size_t>(numSamples));
+
     // Get parameter values
+    const bool bypassed = bypassParamBool->get();
     const float drive = driveParam->get() / 100.0f;
     const float frequency = frequencyParam->get();
     const float harmonics = harmonicsParam->get();
     const float mix = mixParam->get() / 100.0f;
     const int type = typeParam->getIndex();
 
-    // Update filter frequencies
+    // Update filter frequency
     highPassFilter.setCutoffFrequency(frequency);
-    lowPassFilter.setCutoffFrequency(frequency);
 
-    // Use pre-allocated buffers for processing
-    dryBuffer.setSize(totalNumInputChannels, buffer.getNumSamples(), false, false, true);
-    highFreqBuffer.setSize(totalNumInputChannels, buffer.getNumSamples(), false, false, true);
-    
-    // Copy original signal to dry buffer
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-        dryBuffer.copyFrom(channel, 0, buffer, channel, 0, buffer.getNumSamples());
+    // The filters, buffer and oversampler are sized for preparedBlockSize; a host that
+    // sends a bigger block gets it processed in chunks of at most that size.
+    for (int start = 0; start < numSamples; start += preparedBlockSize)
+    {
+        const int chunk = juce::jmin(preparedBlockSize, numSamples - start);
+        auto block = fullBlock.getSubBlock(static_cast<size_t>(start), static_cast<size_t>(chunk));
+
+        // Bypass still runs the dry delay so timing does not jump while latency stays
+        // reported.
+        if (bypassed)
+            delayDryOnly(block);
+        else
+            processChunk(block, drive, harmonics, mix, type);
+    }
+
+    if (bypassed)
+        return;
+
+    // Calculate output level for metering
+    float maxLevel = 0.0f;
+    for (int channel = 0; channel < totalNumOutputChannels; ++channel)
+    {
+        auto channelLevel = buffer.getMagnitude(channel, 0, numSamples);
+        maxLevel = std::max(maxLevel, channelLevel);
+    }
+    outputLevel.store(maxLevel);
+}
+
+void HarmonicExciterProcessor::delayDryOnly(juce::dsp::AudioBlock<float> block)
+{
+    for (size_t channel = 0; channel < block.getNumChannels(); ++channel)
+    {
+        auto* data = block.getChannelPointer(channel);
+        const int ch = static_cast<int>(channel);
+
+        for (size_t sample = 0; sample < block.getNumSamples(); ++sample)
+        {
+            dryDelay.pushSample(ch, data[sample]);
+            data[sample] = dryDelay.popSample(ch);
+        }
+    }
+}
+
+void HarmonicExciterProcessor::processChunk(juce::dsp::AudioBlock<float> block, float drive,
+                                            float harmonics, float mix, int type)
+{
+    const size_t numChannels = block.getNumChannels();
+    const size_t numSamples = block.getNumSamples();
 
     // Copy original to high frequency buffer for filtering
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-        highFreqBuffer.copyFrom(channel, 0, buffer, channel, 0, buffer.getNumSamples());
+    auto highFreqBlock = juce::dsp::AudioBlock<float>(highFreqBuffer)
+                             .getSubsetChannelBlock(0, numChannels)
+                             .getSubBlock(0, numSamples);
+    highFreqBlock.copyFrom(block);
 
     // Apply high-pass filter to extract high frequencies
-    juce::dsp::AudioBlock<float> highFreqBlock(highFreqBuffer);
     juce::dsp::ProcessContextReplacing<float> highFreqContext(highFreqBlock);
     highPassFilter.process(highFreqContext);
 
@@ -205,11 +260,11 @@ void HarmonicExciterProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     // downsampling half-band filter removes them (HP_HARMONICEXCITER_FORCE_1X=1
     // disables this for an A/B comparison).
 #if HP_HARMONICEXCITER_FORCE_1X
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    for (size_t channel = 0; channel < numChannels; ++channel)
     {
-        auto* highFreqData = highFreqBuffer.getWritePointer(channel);
+        auto* highFreqData = highFreqBlock.getChannelPointer(channel);
 
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        for (size_t sample = 0; sample < numSamples; ++sample)
         {
             highFreqData[sample] = (type == 0)
                 ? generateWarmHarmonics(highFreqData[sample], drive, harmonics)
@@ -235,28 +290,19 @@ void HarmonicExciterProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
     oversampling->processSamplesDown(highFreqBlock);
 #endif
 
-    // Process each channel
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    // Mix the dry signal, delayed by the oversampler latency, with the harmonic signal
+    for (size_t channel = 0; channel < numChannels; ++channel)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        auto* highFreqData = highFreqBuffer.getReadPointer(channel);
-        auto* dryData = dryBuffer.getReadPointer(channel);
+        auto* channelData = block.getChannelPointer(channel);
+        const auto* highFreqData = highFreqBlock.getChannelPointer(channel);
+        const int ch = static_cast<int>(channel);
 
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        for (size_t sample = 0; sample < numSamples; ++sample)
         {
-            // Mix dry and processed (now-oversampled) harmonic signal
-            channelData[sample] = dryData[sample] + (highFreqData[sample] * mix);
+            dryDelay.pushSample(ch, channelData[sample]);
+            channelData[sample] = dryDelay.popSample(ch) + (highFreqData[sample] * mix);
         }
     }
-
-    // Calculate output level for metering
-    float maxLevel = 0.0f;
-    for (int channel = 0; channel < totalNumOutputChannels; ++channel)
-    {
-        auto channelLevel = buffer.getMagnitude(channel, 0, buffer.getNumSamples());
-        maxLevel = std::max(maxLevel, channelLevel);
-    }
-    outputLevel.store(maxLevel);
 }
 
 float HarmonicExciterProcessor::generateWarmHarmonics(float input, float drive, float harmonics)

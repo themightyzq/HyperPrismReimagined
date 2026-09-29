@@ -48,7 +48,17 @@ function(configure_hyperprism_plugin target_name)
             JUCE_DISPLAY_SPLASH_SCREEN=0
             JUCE_REPORT_APP_USAGE=0
     )
-    
+
+    # v1.0.0 and the old nightly shipped with manufacturer code ZQFX; the plugin codes are
+    # unchanged. Declaring the old VST3 class as compatible lets hosts that support
+    # IPluginCompatibility (e.g. Cubase/Nuendo) swap this build into old sessions. PUBLIC
+    # because the VST3 wrapper is compiled in the _VST3 format target.
+    get_target_property(hp_plugin_code ${target_name} JUCE_PLUGIN_CODE)
+    target_compile_definitions(${target_name}
+        PUBLIC
+            "JUCE_VST3_COMPATIBLE_CLASSES=VST3Interface::jucePluginId('ZQFX','${hp_plugin_code}')"
+    )
+
     # Platform-specific audio system definitions
     # Disable JACK/ALSA on CI environments or Windows
     if(DEFINED ENV{CI} OR WIN32)
@@ -1664,3 +1674,7 @@ add_hyperprism_console_check(oversampling_check HyperPrismHarmonicExciter    Har
 add_hyperprism_console_check(release_time_check     HyperPrismLimiter        Limiter        LimiterProcessor.h        LimiterProcessor        HP_CHECK_LIMITER)
 add_hyperprism_console_check(frequency_sweep_check   HyperPrismBassMaximiser  BassMaximiser  BassMaximiserProcessor.h  BassMaximiserProcessor  HP_CHECK_BASSMAXIMISER)
 add_hyperprism_console_check(label_visibility_check  HyperPrismSonicDecimator SonicDecimator SonicDecimatorProcessor.h SonicDecimatorProcessor HP_CHECK_SONICDECIMATOR)
+
+# ---- MultiDelay echo timing (tools/echo_timing_check/main.cpp): every tap is read once per
+# sample, so each echo lands at its configured delay and renders are block-size invariant.
+add_hyperprism_console_check(echo_timing_check HyperPrismMultiDelay MultiDelay MultiDelayProcessor.h MultiDelayProcessor HP_CHECK_MULTIDELAY)

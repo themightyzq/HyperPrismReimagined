@@ -203,57 +203,17 @@ HarmonicExciterEditor::HarmonicExciterEditor(HarmonicExciterProcessor& p)
     addAndMakeVisible(logo);
     logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
-    // Set slider ranges with proper step sizes
-    driveSlider.setRange(0.0, 100.0, 0.1);
-    driveSlider.setNumDecimalPlacesToDisplay(1);
-    driveSlider.setTextValueSuffix(" %");
-
-    frequencySlider.setRange(1000.0, 20000.0, 1.0);
-    frequencySlider.setSkewFactor(0.3);
-    frequencySlider.setNumDecimalPlacesToDisplay(0);
-    frequencySlider.setTextValueSuffix(" Hz");
-
-    harmonicsSlider.setRange(1.0, 5.0, 0.1);
-    harmonicsSlider.setNumDecimalPlacesToDisplay(1);
-
-    mixSlider.setRange(0.0, 100.0, 0.1);
-    mixSlider.setNumDecimalPlacesToDisplay(1);
-    mixSlider.setTextValueSuffix(" %");
-
-    // Set initial values from processor parameters
-    driveSlider.setValue(audioProcessor.driveParam->get());
-    frequencySlider.setValue(audioProcessor.frequencyParam->get());
-    harmonicsSlider.setValue(audioProcessor.harmonicsParam->get());
-    mixSlider.setValue(audioProcessor.mixParam->get());
-    typeComboBox.setSelectedId(audioProcessor.typeParam->getIndex() + 1);
-
-    // Add listeners to update processor parameters
-    // Use convertTo0to1/convertFrom0to1 pattern for proper normalization
-    driveSlider.onValueChange = [this] {
-        float normalized = static_cast<float>(driveSlider.getValue()) / 100.0f;
-        audioProcessor.driveParam->setValueNotifyingHost(normalized);
-        updateXYPadFromParameters();
-    };
-    frequencySlider.onValueChange = [this] {
-        auto& range = audioProcessor.frequencyParam->getNormalisableRange();
-        float normalized = range.convertTo0to1(static_cast<float>(frequencySlider.getValue()));
-        audioProcessor.frequencyParam->setValueNotifyingHost(normalized);
-        updateXYPadFromParameters();
-    };
-    harmonicsSlider.onValueChange = [this] {
-        auto& range = audioProcessor.harmonicsParam->getNormalisableRange();
-        float normalized = range.convertTo0to1(static_cast<float>(harmonicsSlider.getValue()));
-        audioProcessor.harmonicsParam->setValueNotifyingHost(normalized);
-        updateXYPadFromParameters();
-    };
-    mixSlider.onValueChange = [this] {
-        float normalized = static_cast<float>(mixSlider.getValue()) / 100.0f;
-        audioProcessor.mixParam->setValueNotifyingHost(normalized);
-        updateXYPadFromParameters();
-    };
-    typeComboBox.onChange = [this] {
-        audioProcessor.typeParam->setValueNotifyingHost(typeComboBox.getSelectedId() - 1);
-    };
+    // Attachments give each control the parameter's range, skew and value text, keep it in
+    // step with automation and presets, and send begin/end gestures to the host. The combo
+    // items above must exist before its attachment is created.
+    using APVTS = juce::AudioProcessorValueTreeState;
+    auto& apvts = audioProcessor.getValueTreeState();
+    driveAttachment     = std::make_unique<APVTS::SliderAttachment>(apvts, DRIVE_ID, driveSlider);
+    frequencyAttachment = std::make_unique<APVTS::SliderAttachment>(apvts, FREQUENCY_ID, frequencySlider);
+    harmonicsAttachment = std::make_unique<APVTS::SliderAttachment>(apvts, HARMONICS_ID, harmonicsSlider);
+    mixAttachment       = std::make_unique<APVTS::SliderAttachment>(apvts, MIX_ID, mixSlider);
+    typeAttachment      = std::make_unique<APVTS::ComboBoxAttachment>(apvts, TYPE_ID, typeComboBox);
+    bypassAttachment    = std::make_unique<APVTS::ButtonAttachment>(apvts, BYPASS_ID, bypassButton);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -271,7 +231,9 @@ HarmonicExciterEditor::HarmonicExciterEditor(HarmonicExciterProcessor& p)
     updateXYPadFromParameters();
     updateParameterColors();
     
-    // Listen for parameter changes - update XY pad when any parameter changes
+    // Listen for parameter changes - update XY pad when any parameter changes. The
+    // attachments drive the sliders through Slider::Listener, so these callbacks do not
+    // replace them.
     driveSlider.onValueChange = [this] { updateXYPadFromParameters(); };
     frequencySlider.onValueChange = [this] { updateXYPadFromParameters(); };
     harmonicsSlider.onValueChange = [this] { updateXYPadFromParameters(); };
@@ -482,105 +444,33 @@ void HarmonicExciterEditor::updateParameterColors()
 void HarmonicExciterEditor::updateXYPadFromParameters()
 {
     // For multiple parameters, use the average of their normalized values
-    float xValue = 0.0f;
-    float yValue = 0.0f;
-    
-    // Calculate average X value
-    if (!xParameterIDs.isEmpty())
+    auto& apvts = audioProcessor.getValueTreeState();
+    auto averageNormalised = [&apvts](const juce::StringArray& ids)
     {
-        for (const auto& paramID : xParameterIDs)
-        {
-            float normalizedValue = 0.0f;
-            if (paramID == DRIVE_ID)
-                normalizedValue = audioProcessor.driveParam->get();
-            else if (paramID == FREQUENCY_ID)
-                normalizedValue = (audioProcessor.frequencyParam->get() - 1000.0f) / 19000.0f;
-            else if (paramID == HARMONICS_ID)
-                normalizedValue = audioProcessor.harmonicsParam->get();
-            else if (paramID == MIX_ID)
-                normalizedValue = audioProcessor.mixParam->get();
-                
-            xValue += normalizedValue;
-        }
-        xValue /= xParameterIDs.size();
-    }
+        float sum = 0.0f;
+        for (const auto& paramID : ids)
+            if (auto* param = apvts.getParameter(paramID))
+                sum += param->getValue();
+        return ids.isEmpty() ? 0.0f : sum / static_cast<float>(ids.size());
+    };
     
-    // Calculate average Y value
-    if (!yParameterIDs.isEmpty())
-    {
-        for (const auto& paramID : yParameterIDs)
-        {
-            float normalizedValue = 0.0f;
-            if (paramID == DRIVE_ID)
-                normalizedValue = audioProcessor.driveParam->get();
-            else if (paramID == FREQUENCY_ID)
-                normalizedValue = (audioProcessor.frequencyParam->get() - 1000.0f) / 19000.0f;
-            else if (paramID == HARMONICS_ID)
-                normalizedValue = audioProcessor.harmonicsParam->get();
-            else if (paramID == MIX_ID)
-                normalizedValue = audioProcessor.mixParam->get();
-                
-            yValue += normalizedValue;
-        }
-        yValue /= yParameterIDs.size();
-    }
-    
-    xyPad.setValues(xValue, yValue);
+    xyPad.setValues(averageNormalised(xParameterIDs), averageNormalised(yParameterIDs));
 }
 
 void HarmonicExciterEditor::updateParametersFromXYPad(float x, float y)
 {
-    // Update all assigned X parameters
-    for (const auto& paramID : xParameterIDs)
-    {
-        if (paramID == DRIVE_ID)
-        {
-            audioProcessor.driveParam->setValueNotifyingHost(x);
-            driveSlider.setValue(x * 100.0, juce::dontSendNotification);
-        }
-        else if (paramID == FREQUENCY_ID)
-        {
-            float freq = 1000.0f + (x * 19000.0f);
-            audioProcessor.frequencyParam->setValueNotifyingHost(freq);
-            frequencySlider.setValue(freq, juce::dontSendNotification);
-        }
-        else if (paramID == HARMONICS_ID)
-        {
-            audioProcessor.harmonicsParam->setValueNotifyingHost(x);
-            harmonicsSlider.setValue(x * 100.0, juce::dontSendNotification);
-        }
-        else if (paramID == MIX_ID)
-        {
-            audioProcessor.mixParam->setValueNotifyingHost(x);
-            mixSlider.setValue(x * 100.0, juce::dontSendNotification);
-        }
-    }
+    // The pad's 0-1 axes are normalised values, so they go straight to the parameters
+    // (each parameter's NormalisableRange maps them, skew included); the attachments then
+    // move the knobs.
+    auto& apvts = audioProcessor.getValueTreeState();
     
-    // Update all assigned Y parameters
+    for (const auto& paramID : xParameterIDs)
+        if (auto* param = apvts.getParameter(paramID))
+            param->setValueNotifyingHost(x);
+    
     for (const auto& paramID : yParameterIDs)
-    {
-        if (paramID == DRIVE_ID)
-        {
-            audioProcessor.driveParam->setValueNotifyingHost(y);
-            driveSlider.setValue(y * 100.0, juce::dontSendNotification);
-        }
-        else if (paramID == FREQUENCY_ID)
-        {
-            float freq = 1000.0f + (y * 19000.0f);
-            audioProcessor.frequencyParam->setValueNotifyingHost(freq);
-            frequencySlider.setValue(freq, juce::dontSendNotification);
-        }
-        else if (paramID == HARMONICS_ID)
-        {
-            audioProcessor.harmonicsParam->setValueNotifyingHost(y);
-            harmonicsSlider.setValue(y * 100.0, juce::dontSendNotification);
-        }
-        else if (paramID == MIX_ID)
-        {
-            audioProcessor.mixParam->setValueNotifyingHost(y);
-            mixSlider.setValue(y * 100.0, juce::dontSendNotification);
-        }
-    }
+        if (auto* param = apvts.getParameter(paramID))
+            param->setValueNotifyingHost(y);
 }
 
 

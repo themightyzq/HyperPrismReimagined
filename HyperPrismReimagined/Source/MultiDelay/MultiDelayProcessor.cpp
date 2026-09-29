@@ -211,8 +211,6 @@ void MultiDelayProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     // Reset metering
     inputLevel.store(0.0f);
     outputLevel.store(0.0f);
-
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
 }
 
 void MultiDelayProcessor::releaseResources()
@@ -250,7 +248,7 @@ void MultiDelayProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
 
 void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
 {
-    const int numChannels = buffer.getNumChannels();
+    const int numChannels = juce::jmin(buffer.getNumChannels(), 2);
     const int numSamples = buffer.getNumSamples();
     
     const float masterMix = masterMixParam->load() / 100.0f;
@@ -262,99 +260,91 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
         inputRMS = std::max(inputRMS, buffer.getRMSLevel(1, 0, numSamples));
     inputLevel.store(inputRMS);
     
-    // Create copies for dry signal
-    dryBuffer.makeCopyOf(buffer);
+    // Per-tap settings, read once per block
+    std::array<bool, NUM_DELAYS> tapActive {};
+    std::array<float, NUM_DELAYS> tapDelaySamples {};
+    std::array<float, NUM_DELAYS> tapLevel {};
+    std::array<float, NUM_DELAYS> tapFeedback {};
+    std::array<float, NUM_DELAYS> tapLeftGain {};
+    std::array<float, NUM_DELAYS> tapRightGain {};
+    std::array<float, NUM_DELAYS> tapLevelSum {};
     
-    // Clear output buffer for wet signal accumulation
-    buffer.clear();
-    
-    // Process each delay line
-    for (int delayIndex = 0; delayIndex < NUM_DELAYS; ++delayIndex)
+    for (size_t d = 0; d < static_cast<size_t>(NUM_DELAYS); ++d)
     {
-        const float delayTimeMs = delayTimeParams[static_cast<size_t>(delayIndex)]->load();
-        const float delayLevel = delayLevelParams[static_cast<size_t>(delayIndex)]->load() / 100.0f;
-        const float delayPan = delayPanParams[static_cast<size_t>(delayIndex)]->load() / 100.0f; // -1 to +1
-        const float delayFeedback = delayFeedbackParams[static_cast<size_t>(delayIndex)]->load() / 100.0f;
+        const float delayTimeMs = delayTimeParams[d]->load();
+        const float delayPan = delayPanParams[d]->load() / 100.0f; // -1 to +1
         
-        if (delayLevel < 0.001f) // Skip if level is essentially zero
-            continue;
-            
-        float delaySamples = (delayTimeMs / 1000.0f) * static_cast<float>(currentSampleRate);
+        tapLevel[d] = delayLevelParams[d]->load() / 100.0f;
+        tapFeedback[d] = delayFeedbackParams[d]->load() / 100.0f;
+        // A tap whose level is essentially zero is silent: it adds nothing to the output
+        // or the global feedback, but its line keeps running (below) so that raising the
+        // level later echoes recent input, not audio left over from when it was last on.
+        tapActive[d] = tapLevel[d] >= 0.001f;
+        tapDelaySamples[d] = (delayTimeMs / 1000.0f) * static_cast<float>(currentSampleRate);
         
-        // Calculate pan coefficients
-        float leftPanGain = 1.0f;
-        float rightPanGain = 1.0f;
-        
-        if (delayPan < 0.0f) // Pan left
-        {
-            rightPanGain = 1.0f + delayPan; // Reduce right channel
-        }
-        else if (delayPan > 0.0f) // Pan right
-        {
-            leftPanGain = 1.0f - delayPan; // Reduce left channel
-        }
-        
-        auto& delayLine = delayLines[static_cast<size_t>(delayIndex)];
-        float delayLevelSum = 0.0f;
-        
-        for (int channel = 0; channel < numChannels; ++channel)
-        {
-            const auto* dryData = dryBuffer.getReadPointer(channel);
-            auto* wetData = buffer.getWritePointer(channel);
-            auto& currentDelayLine = (channel == 0) ? delayLine.leftDelay : delayLine.rightDelay;
-            
-            float panGain = (channel == 0) ? leftPanGain : rightPanGain;
-            
-            for (int sample = 0; sample < numSamples; ++sample)
-            {
-                float input = dryData[static_cast<size_t>(sample)];
-                
-                // Get delayed sample
-                float delayedSample = currentDelayLine.popSample(0, delaySamples, true);
-                
-                // Apply local feedback + global feedback from all delays
-                float feedbackSum = delayedSample * delayFeedback;
-                
-                // Add global feedback from all other delay lines
-                for (int otherDelay = 0; otherDelay < NUM_DELAYS; ++otherDelay)
-                {
-                    if (otherDelay != delayIndex)
-                    {
-                        auto& otherDelayLine = (channel == 0) ? delayLines[static_cast<size_t>(otherDelay)].leftDelay : delayLines[static_cast<size_t>(otherDelay)].rightDelay;
-                        float otherDelayTime = (delayTimeParams[static_cast<size_t>(otherDelay)]->load() / 1000.0f) * static_cast<float>(currentSampleRate);
-                        float otherDelayedSample = otherDelayLine.popSample(0, otherDelayTime, true);
-                        feedbackSum += otherDelayedSample * globalFeedback * 0.25f; // Attenuated global feedback
-                    }
-                }
-                
-                float feedbackInput = input + feedbackSum;
-                
-                // Push to delay line
-                currentDelayLine.pushSample(0, feedbackInput);
-                
-                // Add to output with level, pan, and master mix
-                wetData[static_cast<size_t>(sample)] += delayedSample * delayLevel * panGain;
-                
-                // Accumulate for level metering
-                delayLevelSum += std::abs(delayedSample) * delayLevel;
-            }
-        }
-        
-        // Update delay line meter
-        delayLine.levelMeter.store(delayLevelSum / (numSamples * numChannels));
+        // Pan coefficients: panning left reduces the right channel and vice versa
+        tapLeftGain[d] = delayPan > 0.0f ? 1.0f - delayPan : 1.0f;
+        tapRightGain[d] = delayPan < 0.0f ? 1.0f + delayPan : 1.0f;
     }
     
-    // Mix dry and wet signals
     for (int channel = 0; channel < numChannels; ++channel)
     {
-        const auto* dryData = dryBuffer.getReadPointer(channel);
-        auto* outputData = buffer.getWritePointer(channel);
+        auto* data = buffer.getWritePointer(channel);
         
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            outputData[static_cast<size_t>(sample)] = (dryData[static_cast<size_t>(sample)] * (1.0f - masterMix)) + (outputData[static_cast<size_t>(sample)] * masterMix);
+            const float input = data[sample];
+            
+            // Read every tap exactly once per sample. popSample(..., true) advances that
+            // line's read pointer, so a second read of the same tap (as the old global
+            // feedback sum did) would shift its echo time.
+            std::array<float, NUM_DELAYS> delayed {};
+            float delayedSum = 0.0f;
+            
+            for (size_t d = 0; d < static_cast<size_t>(NUM_DELAYS); ++d)
+            {
+                auto& line = (channel == 0) ? delayLines[d].leftDelay : delayLines[d].rightDelay;
+                delayed[d] = line.popSample(0, tapDelaySamples[d], true);
+                
+                if (tapActive[d])
+                    delayedSum += delayed[d];
+            }
+            
+            float wet = 0.0f;
+            
+            for (size_t d = 0; d < static_cast<size_t>(NUM_DELAYS); ++d)
+            {
+                auto& line = (channel == 0) ? delayLines[d].leftDelay : delayLines[d].rightDelay;
+                
+                if (! tapActive[d])
+                {
+                    // Keep recording the dry input only, so no feedback builds up unheard.
+                    line.pushSample(0, input);
+                    continue;
+                }
+                
+                // Local feedback + attenuated global feedback from the other taps
+                const float feedbackSum = delayed[d] * tapFeedback[d]
+                                        + (delayedSum - delayed[d]) * globalFeedback * 0.25f;
+                
+                line.pushSample(0, input + feedbackSum);
+                
+                const float panGain = (channel == 0) ? tapLeftGain[d] : tapRightGain[d];
+                wet += delayed[d] * tapLevel[d] * panGain;
+                
+                // Accumulate for level metering
+                tapLevelSum[d] += std::abs(delayed[d]) * tapLevel[d];
+            }
+            
+            // Mix dry and wet signals
+            data[sample] = (input * (1.0f - masterMix)) + (wet * masterMix);
         }
     }
+    
+    // Update delay line meters (inactive taps read 0)
+    const float meterScale = 1.0f / static_cast<float>(juce::jmax(1, numSamples * numChannels));
+    for (size_t d = 0; d < static_cast<size_t>(NUM_DELAYS); ++d)
+        delayLines[d].levelMeter.store(tapLevelSum[d] * meterScale);
     
     // Output level metering
     float outputRMS = buffer.getRMSLevel(0, 0, numSamples);

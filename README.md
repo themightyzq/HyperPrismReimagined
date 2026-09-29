@@ -23,6 +23,14 @@ since Gatekeeper blocks a plain double-click.
 
 Requires macOS 11.0 or later.
 
+## Upgrading from v1.0.0
+
+Sessions saved with v1.0.0 or the old nightly build used a different manufacturer code, so
+hosts see the current plugins as different plugins. VST3 hosts that support plugin
+compatibility (for example Cubase and Nuendo) substitute the new plugin automatically. Other
+VST3 hosts, and all AU hosts, show the old plugin as missing: insert the current plugin in its
+place and re-apply the settings.
+
 ## Use
 
 Load any of the 32 plugins as an effect on a track in your DAW. Every plugin has the same

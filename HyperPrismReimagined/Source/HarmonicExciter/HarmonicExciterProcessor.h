@@ -43,9 +43,9 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     // Parameters live in the APVTS (migrated 2026-09-23 from addParameter). The raw
-    // pointers are kept, now pointing at the APVTS-owned parameters, because the editor
-    // reads and writes them directly at many call sites. IDs, ranges, defaults and order
-    // are unchanged: drive, frequency, harmonics, mix, type, bypass.
+    // pointers are kept, pointing at the APVTS-owned parameters, for the audio thread and
+    // tools/state_check; the editor binds through APVTS attachments. IDs, ranges, defaults
+    // and order are unchanged: drive, frequency, harmonics, mix, type, bypass.
     juce::AudioParameterFloat* driveParam = nullptr;
     juce::AudioParameterFloat* frequencyParam = nullptr;
     juce::AudioParameterFloat* harmonicsParam = nullptr;
@@ -73,9 +73,9 @@ public:
 private:
     juce::AudioProcessorValueTreeState valueTreeState;
 
-    // Processing components
+    // Processing components. LinkwitzRileyFilter defaults to lowpass, so prepareToPlay
+    // sets the type explicitly.
     juce::dsp::LinkwitzRileyFilter<float> highPassFilter;
-    juce::dsp::LinkwitzRileyFilter<float> lowPassFilter;
     
     // Output level for metering
     std::atomic<float> outputLevel { 0.0f };
@@ -83,16 +83,27 @@ private:
     // Sample rate storage
     double currentSampleRate = 44100.0;
 
-    // Pre-allocated buffers
-    juce::AudioBuffer<float> dryBuffer;
+    // Largest chunk processBlock hands to the filters and the oversampler; host blocks
+    // bigger than the prepared size are split into chunks of at most this many samples.
+    int preparedBlockSize = 0;
+
+    // Pre-allocated buffer (sized to preparedBlockSize)
     juce::AudioBuffer<float> highFreqBuffer;
+
+    // Delays the dry path (and bypassed audio) by the oversampler's integer latency so it
+    // lines up with the wet path and with what setLatencySamples reports.
+    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::None> dryDelay;
+
+    void processChunk(juce::dsp::AudioBlock<float> block, float drive, float harmonics, float mix, int type);
+    void delayDryOnly(juce::dsp::AudioBlock<float> block);
 
     // Harmonic generation functions
     float generateWarmHarmonics(float input, float drive, float harmonics);
     float generateBrightHarmonics(float input, float drive, float harmonics);
 
     // 4x oversampling around the harmonic generator only (see HP_HARMONICEXCITER_FORCE_1X
-    // above). Rebuilt in prepareToPlay; never touched from processBlock.
+    // above). Rebuilt in prepareToPlay (never from processBlock) with integer latency, so
+    // the dry path can be delayed by a whole number of samples to match.
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampling;
 
     // Editor size persistence, read/written from the message thread only.

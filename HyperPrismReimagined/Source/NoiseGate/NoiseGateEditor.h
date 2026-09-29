@@ -139,6 +139,9 @@ private:
     juce::Slider lookaheadSlider;
     ParameterLabel lookaheadLabel;
     
+    // Declared after bypassButton so it is destroyed first
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
+    
     // XY Pad
     XYPad xyPad;
     juce::Label xyPadLabel;

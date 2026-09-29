@@ -299,7 +299,10 @@ NoiseGateEditor::NoiseGateEditor(NoiseGateProcessor& p)
     addAndMakeVisible(logo);
     logo.onClick = [] { HyperPrismAbout::show(JucePlugin_Name); };
     
-    // No bypass parameter in this processor, so we'll leave it unconnected
+    // Bypass drives the processor's "bypass" parameter; the attachment keeps the button in
+    // step with automation and presets.
+    bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        audioProcessor.getValueTreeState(), "bypass", bypassButton);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);

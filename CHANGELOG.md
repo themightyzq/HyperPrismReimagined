@@ -17,12 +17,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   three CTest round-trip checks (`ctest --test-dir build`, 9/9 with the state, null and
   oversampling checks).
 
+- **Upgrading from v1.0.0** - v1.0.0 and the old nightly build used manufacturer code `ZQFX`;
+  current builds use `ZQSF`, so hosts treat them as different plugins. Each VST3 now declares
+  its v1.0.0 class as compatible (`JUCE_VST3_COMPATIBLE_CLASSES`, listed in the bundle's
+  `moduleinfo.json`), so VST3 hosts that support plugin compatibility (for example Cubase and
+  Nuendo) substitute the new plugin automatically. Other VST3 hosts, and all AU hosts, show the
+  old plugin as missing: insert the current plugin in its place and re-apply the settings.
+  Plugin codes and parameter IDs are unchanged.
+
 ### Removed
 - 12 orphaned VST3 SDK example symlinks from user plugin folder
 - Stray `HyperPrism_VST3_Plugins.txt` from Desktop
 
 ### Changed
-- **VST3-Only Distribution** - Removed Audio Unit (AU) format entirely. Project now builds VST3 exclusively across all platforms.
+- **Audio Unit restored** - macOS builds ship VST3, AU and Standalone for all 32 plugins. An
+  earlier unreleased change had removed AU, which made the suite unloadable in Logic Pro (it
+  hosts Audio Units only). Windows and Linux builds are VST3 and Standalone.
 - **Window Size Standardization** - All 32 plugins now use 700x550 pixel standard window size (previously 650x600)
 - **Resizable Windows** - All plugin windows are now resizable (600x500 to 900x800)
 
@@ -97,6 +107,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   directly. Before/after renders via `hyperprism_ui_snapshot_HyperPrismSonicDecimator` (new
   target, added for this fix) confirm the labels are now drawn.
 
+- **MultiDelay echoes landed at the wrong times** - the global feedback sum read every other
+  tap with `popSample(..., true)`, which advances that tap's read pointer, so each tap's read
+  position drifted several samples per sample and echo times smeared, even with Global
+  Feedback at 0. Each tap is now read exactly once per sample and the other taps' feedback
+  uses those values; gains and topology (including the 0.25 global attenuation) are unchanged.
+  A tap at level 0 is silent and adds nothing to global feedback; its line keeps recording
+  the dry input, so raising its level echoes recent input rather than stale audio.
+  The per-block dry-buffer copy, which reallocated when the block size changed, is gone.
+  Verified by a new CTest check, `hp_echo_timing_MultiDelay`.
+- **Harmonic Exciter knobs did nothing** - the editor replaced the knobs' parameter callbacks
+  with XY-pad-only callbacks, so Drive, Frequency, Harmonics and Mix never reached the
+  processor, and the Bypass button was not connected. All controls now use APVTS attachments
+  (they follow automation and presets), and the XY pad reads and writes normalised parameter
+  values, so its Frequency axis covers 1-20 kHz instead of pinning Frequency at the maximum.
+- **Harmonic Exciter band filter was a low-pass** - the filter named `highPassFilter` never had
+  its type set and ran as JUCE's default low-pass; it is now a high-pass, so harmonics are
+  generated from the band above Frequency as the control describes.
+- **Harmonic Exciter comb filtering** - the dry signal was added undelayed to the oversampled
+  (delayed) harmonic signal. The oversampler now uses integer latency and the dry path is
+  delayed by exactly the reported latency; bypass goes through the same delay, so timing no
+  longer jumps when toggling bypass. Host blocks larger than the prepared size are processed
+  in chunks instead of overrunning the oversampler's buffers.
+- **Noise Gate Bypass button did nothing** - now attached to the `bypass` parameter.
+- The HarmonicExciter changes are covered by new checks in `hp_oversampling_HarmonicExciter`
+  (dry alignment at mix 0, bypass latency, impulse peak at the reported latency, high-pass
+  behaviour, 64 vs 1000 block-size invariance, 4096-sample host block into a 512-sample
+  preparation).
+
 ### Added
 - `HyperPrismReimagined/ThirdParty/signalsmith-stretch/LICENSE.txt` and
   `HyperPrismReimagined/ThirdParty/signalsmith-stretch/signalsmith-linear/LICENSE.txt`: the
@@ -106,10 +144,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   which is compatible with this project's GPL-3.0-or-later. Credited in README.md.
 
 ### Removed
-- Audio Unit (AU) plugin format support
 - `notarize_au_plugins.sh` script
-- AU artifact upload from GitHub Actions workflow
-- AU references from all documentation
 
 ---
 
