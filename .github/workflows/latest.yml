@@ -46,7 +46,14 @@ jobs:
             # HyperPrism Reimagined — Latest Build
 
             Auto-published from the latest `main` commit
-            (`${{ github.sha }}`). 32 professional VST3 audio effect plugins.
+            (`${{ github.sha }}`). The `latest` tag itself is not moved; this commit is the
+            one these downloads were built from. 32 audio effect plugins: VST3 on every
+            platform, plus AU and Standalone on macOS.
+
+            **Upgrading from v1.0.0:** v1.0.0 used a different manufacturer code. VST3 hosts that
+            support plugin compatibility (for example Cubase and Nuendo) load these builds in
+            place of v1.0.0 in saved sessions; other hosts, and AU, show the old plugin as
+            missing, so insert the new one and re-apply its settings.
 
             > This rolling build always tracks the newest stable code on `main`.
             > For pinned, versioned downloads see the tagged releases.
@@ -69,5 +76,5 @@ jobs:
             3. Rescan plugins in your DAW
 
             **macOS Gatekeeper**: these builds are not notarized — if macOS blocks
-            them, run `xattr -cr *.vst3` on the extracted plugins before installing.
+            them, run `xattr -cr *.vst3 *.component` on the extracted plugins before installing.
           files: artifacts/**/*.zip
