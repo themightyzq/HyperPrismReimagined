@@ -127,7 +127,7 @@ int main (int argc, char** argv)
     juce::String err;
     expect ("saveUser succeeds", manager.saveUser ("roundtrip test", err));
 
-    const int savedIndex = manager.getCurrentIndex();
+    int savedIndex = manager.getCurrentIndex();
     expect ("saved preset is current", savedIndex >= 0 && manager.getCurrentName() == "roundtrip test");
     const auto savedFile = savedIndex >= 0 ? manager.getEntries()[(size_t) savedIndex].file : juce::File();
     expect ("preset file exists on disk", savedFile.existsAsFile());
@@ -159,6 +159,34 @@ int main (int argc, char** argv)
     expect ("preset name survives getState/setState without load()",
             manager2.getCurrentName() == "roundtrip test");
 
+    // A preset file whose root tag belongs to a different plugin must be refused, leaving the
+    // state (root type, parameters, preset name) exactly as it was.
+    {
+        const auto foreignFile = tempDir.getChildFile ("foreign root.hppreset");
+        expect ("write foreign-root preset file",
+                foreignFile.replaceWithText ("<NotThisPluginState presetName=\"foreign root\"/>"));
+        manager.rescan();
+
+        int foreignIndex = -1;
+        for (size_t i = 0; i < manager.getEntries().size(); ++i)
+            if (manager.getEntries()[i].name == "foreign root")
+                foreignIndex = (int) i;
+        expect ("foreign-root preset is listed", foreignIndex >= 0);
+
+        const auto stateBefore = apvts.state.toXmlString();
+        const auto rootTypeBefore = apvts.state.getType();
+        juce::String foreignErr;
+        expect ("load of foreign-root preset fails", ! manager.load (foreignIndex, foreignErr));
+        expect ("foreign-root load reports an error", foreignErr.isNotEmpty());
+        expect ("state root type unchanged after foreign-root load", apvts.state.getType() == rootTypeBefore);
+        expect ("state unchanged after foreign-root load", apvts.state.toXmlString() == stateBefore);
+        expect ("current name unchanged after foreign-root load", manager.getCurrentName() == "roundtrip test");
+        foreignFile.deleteFile();
+        manager.rescan();
+    }
+
+    // rescan() above may have re-sorted the list; the saved preset's index is not assumed stable.
+    savedIndex = manager.getCurrentIndex();
     expect ("deleteUser succeeds", manager.deleteUser (savedIndex, err));
     expect ("preset file removed from disk", ! savedFile.existsAsFile());
 

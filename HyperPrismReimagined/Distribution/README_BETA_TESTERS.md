@@ -18,8 +18,8 @@ feedback. The public release is a rolling `latest` build; there is no separate b
 
 Requires macOS 11.0 or later.
 
-AU is not in this release yet; it was added to the source after the last build. To use
-HyperPrism in Logic Pro or another AU-only host today, build the AU target from source.
+The macOS download includes Audio Unit (.component) versions, installed to
+~/Library/Audio/Plug-Ins/Components.
 
 ### Windows
 
@@ -36,8 +36,8 @@ HyperPrism in Logic Pro or another AU-only host today, build the AU target from 
 
 ## DAW-specific notes
 
-- Logic Pro: does not host VST3. It needs the AU build, which is not in this release yet;
-  build it from source (see Install above).
+- Logic Pro: does not host VST3. It hosts Audio Units (AU), which the macOS download includes;
+  install the .component bundles to ~/Library/Audio/Plug-Ins/Components.
 - Ableton Live: Preferences > Plug-ins > Rescan. Look under the ZQ SFX manufacturer, not
   "HyperPrism Reimagined".
 - Cubase/Nuendo: Studio > VST Plug-in Manager > Refresh. Check the blocklist if plugins do

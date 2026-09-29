@@ -343,9 +343,6 @@ void DelayEditor::resized()
     logo.setBounds(header.getRight() - 28, 8, 24, 24);
     bypassButton.setBounds(header.getRight() - 90 - 34, 36, 80, 26);
 
-    // Tempo Sync toggle (top left)
-    tempoSyncButton.setBounds(12, 8, 100, 24);
-
     // === FOOTER ===
     bounds.removeFromBottom(20);
 
@@ -362,7 +359,7 @@ void DelayEditor::resized()
     auto col2 = columnsArea;
 
     int knobDiam = 80;
-    int vSpace = 107;
+    int vSpace = 127; // 20 px more than the sibling editors: room for the Tempo Sync toggle under Delay Time
     int colTop = col1.getY() + 20;
 
     auto centerKnob = [&](juce::Slider& slider, juce::Label& label,
@@ -377,6 +374,7 @@ void DelayEditor::resized()
     // Column 1: TIMING -- Delay Time, Feedback, Stereo Offset
     int y1 = colTop + knobDiam / 2;
     centerKnob(delayTimeSlider, delayTimeLabel, col1.getX(), colWidth, y1, knobDiam);
+    tempoSyncButton.setBounds(col1.getX() + 5, y1 + knobDiam / 2 + 20, colWidth - 10, 22);
     centerKnob(feedbackSlider, feedbackLabel, col1.getX(), colWidth, y1 + vSpace, knobDiam);
     centerKnob(stereoOffsetSlider, stereoOffsetLabel, col1.getX(), colWidth, y1 + vSpace * 2, knobDiam);
 

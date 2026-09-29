@@ -171,6 +171,15 @@ bool PresetManager::load (int index, juce::String& errorOut)
         return false;
     }
 
+    // A preset for a different plugin has a different root tag; replaceState() would swap the
+    // state for the wrong root type, and the next session save would then be rejected by
+    // setStateInformation() on reload.
+    if (! xml->hasTagName (apvts.state.getType().toString()))
+    {
+        errorOut = "Preset \"" + entry.name + "\" is not a preset for this plugin.";
+        return false;
+    }
+
     auto tree = juce::ValueTree::fromXml (*xml);
     if (! tree.isValid())
     {
