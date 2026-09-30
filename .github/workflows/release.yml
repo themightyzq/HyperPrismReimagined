@@ -33,7 +33,7 @@ jobs:
           body: |
             # HyperPrism Reimagined ${{ github.ref_name }}
 
-            32 audio effect plugins: VST3 on every platform, plus AU and Standalone on macOS.
+            32 audio effect plugins: VST3 on every platform, plus AU on macOS.
 
             **Upgrading from v1.0.0:** v1.0.0 used a different manufacturer code. VST3 hosts that
             support plugin compatibility (for example Cubase and Nuendo) load these builds in

@@ -36,9 +36,10 @@ First versioned release since v1.0.0. It includes every change listed below, inc
 - Stray `HyperPrism_VST3_Plugins.txt` from Desktop
 
 ### Changed
-- **Audio Unit restored** - macOS builds ship VST3, AU and Standalone for all 32 plugins. An
+- **Audio Unit restored** - the macOS download ships VST3 and AU for all 32 plugins. An
   earlier unreleased change had removed AU, which made the suite unloadable in Logic Pro (it
-  hosts Audio Units only). Windows and Linux builds are VST3 and Standalone.
+  hosts Audio Units only). The Windows and Linux downloads are VST3. Standalone apps are
+  built from source only.
 - **Window Size Standardization** - All 32 plugins now use 700x550 pixel standard window size (previously 650x600)
 - **Resizable Windows** - All plugin windows are now resizable (600x500 to 900x800)
 

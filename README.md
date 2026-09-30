@@ -2,9 +2,9 @@
 
 HyperPrism Reimagined is a suite of 32 audio effect plugins that recreate the 1990s Arboretum
 HyperPrism suite: dynamics, modulation, filters, delay and reverb, stereo and spatial tools,
-pitch and frequency effects, and distortion and enhancement. It ships as VST3, AU, and
-Standalone on macOS (a universal binary covering Apple Silicon and Intel), and VST3 and
-Standalone on Windows and Linux. Every plugin shares the same layout: parameter knobs, an XY
+pitch and frequency effects, and distortion and enhancement. The release downloads
+are VST3 and AU on macOS (a universal binary covering Apple Silicon and Intel) and VST3 on
+Windows and Linux; a build from source also produces a Standalone app for each plugin. Every plugin shares the same layout: parameter knobs, an XY
 pad you can assign any two parameters to, and a tooltip on every control. Built with JUCE. The
 original HyperPrism concept is by Arboretum Systems.
 
