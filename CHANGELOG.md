@@ -8,7 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-29
+
+First versioned release since v1.0.0. It includes every change listed below, including the
+[1.0.0-beta] section.
+
 ### Added
+- Plugin window footers show the build's version instead of a hard-coded v1.0.0.
 - Preset system (`hp::PresetManager` / `hp::PresetBar`, `Source/Shared/`): Init, per-plugin
   factory presets compiled from `Source/<Effect>/Presets/*.hppreset`, and user presets saved to
   `~/Library/Audio/Presets/ZQ SFX/HyperPrism Reimagined/<Effect>/`. Wired into all 32 editors

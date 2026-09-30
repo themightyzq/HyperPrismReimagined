@@ -306,7 +306,7 @@ void DelayEditor::paint(juce::Graphics& g)
     // Version
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
-    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70), juce::Justification::centredRight);
+    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).removeFromRight(70), juce::Justification::centredRight);
 
     // Column section headers
     auto paintColumnHeader = [&](int x, int y, int width,

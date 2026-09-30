@@ -271,7 +271,7 @@ void BandRejectEditor::paint(juce::Graphics& g)
     g.fillRect(12, 4, getWidth() - 24, 2);
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
-    g.drawText("v1.0.0", getLocalBounds().removeFromBottom(20).removeFromRight(70),
+    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).removeFromRight(70),
                juce::Justification::centredRight);
 
     auto paintColumnHeader = [&](int x, int y, int width,
