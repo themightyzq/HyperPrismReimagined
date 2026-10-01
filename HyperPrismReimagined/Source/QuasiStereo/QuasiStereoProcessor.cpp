@@ -89,7 +89,8 @@ void QuasiStereoProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
     
-    // Prepare delay line
+    // Prepare delay line (cover the 50 ms maximum at any sample rate)
+    delayLine.setMaximumDelayInSamples(juce::jmax(4800, static_cast<int>(std::ceil(0.05 * sampleRate)) + 2));
     delayLine.prepare({ sampleRate, static_cast<juce::uint32>(samplesPerBlock), 1 });
     delayLine.reset();
     
@@ -97,9 +98,24 @@ void QuasiStereoProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     allPassFilter.prepare({ sampleRate, static_cast<juce::uint32>(samplesPerBlock), 2 });
     allPassFilter.reset();
     
-    // Initialize filters
-    previousHighFreqEnhance = -1.0f;
+    // Initialize filters and smoothers from the current parameter values
     phaseAccumulator = 0.0f;
+
+    smoothedWidth.reset(sampleRate, 0.03);
+    smoothedWidth.setCurrentAndTargetValue(widthParam->load() / 100.0f);
+    smoothedDelayMs.reset(sampleRate, 0.03);
+    smoothedDelayMs.setCurrentAndTargetValue(delayTimeParam->load());
+    smoothedPhaseShift.reset(sampleRate, 0.03);
+    smoothedPhaseShift.setCurrentAndTargetValue(phaseShiftParam->load() * juce::MathConstants<float>::pi / 180.0f);
+    smoothedHighFreqEnhance.reset(sampleRate, 0.03);
+    smoothedHighFreqEnhance.setCurrentAndTargetValue(highFreqEnhanceParam->load() / 100.0f);
+    smoothedOutputGain.reset(sampleRate, 0.03);
+    smoothedOutputGain.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
+
+    highFreqFilterLeft.reset();
+    highFreqFilterRight.reset();
+    updateHighFreqFilters(smoothedHighFreqEnhance.getTargetValue());
+    highFreqCoefCountdown = 0;
     
     // Reset metering
     leftLevel.store(0.0f);
@@ -156,33 +172,31 @@ void QuasiStereoProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
     calculateStereoWidth(buffer);
 }
 
+void QuasiStereoProcessor::updateHighFreqFilters(float highFreqEnhance)
+{
+    // IIRCoefficients is a plain value type (no heap allocation)
+    const float gain = 1.0f + highFreqEnhance * 2.0f; // Up to +6dB boost
+    const auto highShelfCoeffs = juce::IIRCoefficients::makeHighShelf(currentSampleRate, 4000.0, 0.7, gain);
+    highFreqFilterLeft.setCoefficients(highShelfCoeffs);
+    highFreqFilterRight.setCoefficients(highShelfCoeffs);
+    previousHighFreqEnhance = highFreqEnhance;
+}
+
 void QuasiStereoProcessor::processQuasiStereo(juce::AudioBuffer<float>& buffer)
 {
     const int numSamples = buffer.getNumSamples();
     
-    const float width = widthParam->load() / 100.0f;
-    const float delayTimeMs = delayTimeParam->load();
     const float frequencyShift = frequencyShiftParam->load();
-    const float phaseShift = phaseShiftParam->load() * juce::MathConstants<float>::pi / 180.0f;
-    const float highFreqEnhance = highFreqEnhanceParam->load() / 100.0f;
-    const float outputLevel = juce::Decibels::decibelsToGain(outputLevelParam->load());
-    
-    // Update high frequency enhancement filter if needed
-    if (std::abs(highFreqEnhance - previousHighFreqEnhance) > 0.001f)
-    {
-        float gain = 1.0f + highFreqEnhance * 2.0f; // Up to +6dB boost
-        auto highShelfCoeffs = juce::IIRCoefficients::makeHighShelf(currentSampleRate, 4000.0, 0.7, gain);
-        highFreqFilterLeft.setCoefficients(highShelfCoeffs);
-        highFreqFilterRight.setCoefficients(highShelfCoeffs);
-        previousHighFreqEnhance = highFreqEnhance;
-    }
-    
-    // Update all-pass filter for phase shifting
-    float allPassFreq = 1000.0f + frequencyShift * 50.0f; // Vary filter frequency
-    auto allPassCoeffs = juce::dsp::IIR::Coefficients<float>::makeAllPass(currentSampleRate, allPassFreq);
-    allPassFilter.state = *allPassCoeffs;
-    
-    float delaySamples = (delayTimeMs / 1000.0f) * static_cast<float>(currentSampleRate);
+
+    smoothedWidth.setTargetValue(widthParam->load() / 100.0f);
+    smoothedDelayMs.setTargetValue(delayTimeParam->load());
+    smoothedPhaseShift.setTargetValue(phaseShiftParam->load() * juce::MathConstants<float>::pi / 180.0f);
+    smoothedHighFreqEnhance.setTargetValue(highFreqEnhanceParam->load() / 100.0f);
+    smoothedOutputGain.setTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
+
+    // (The all-pass filter that used to be rebuilt here was never applied to the
+    // signal; its per-block coefficient allocation has been removed.)
+    const float samplesPerMs = static_cast<float>(currentSampleRate) * 0.001f;
     
     auto* leftData = buffer.getWritePointer(0);
     auto* rightData = buffer.getWritePointer(1);
@@ -192,6 +206,21 @@ void QuasiStereoProcessor::processQuasiStereo(juce::AudioBuffer<float>& buffer)
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
+        const float width = smoothedWidth.getNextValue();
+        const float delaySamples = smoothedDelayMs.getNextValue() * samplesPerMs;
+        const float phaseShift = smoothedPhaseShift.getNextValue();
+        const float highFreqEnhance = smoothedHighFreqEnhance.getNextValue();
+        const float outputLevel = smoothedOutputGain.getNextValue();
+
+        // Refresh the high shelf every 16 samples while its parameter is moving
+        // (and once more after it settles); no allocation.
+        if (--highFreqCoefCountdown <= 0)
+        {
+            highFreqCoefCountdown = 16;
+            if (highFreqEnhance != previousHighFreqEnhance)
+                updateHighFreqFilters(highFreqEnhance);
+        }
+
         float input = (leftData[static_cast<size_t>(sample)] + rightData[static_cast<size_t>(sample)]) * 0.5f; // Mix to mono first
         
         // Create delayed version

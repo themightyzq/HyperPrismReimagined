@@ -19,6 +19,7 @@ const juce::Colour HyperPrismLookAndFeel::Colors::outlineVariant   = tok::ruleIn
 const juce::Colour HyperPrismLookAndFeel::Colors::error            = tok::warn;
 const juce::Colour HyperPrismLookAndFeel::Colors::warning          = tok::meterHot;
 const juce::Colour HyperPrismLookAndFeel::Colors::success          = tok::lcdText;
+const juce::Colour HyperPrismLookAndFeel::Colors::xyPadBorder      = tok::silkCaption;
 
 // Parameter-group colours -- the five colour-blind-safe complementary channels.
 const juce::Colour HyperPrismLookAndFeel::Colors::dynamics   = zqsfx::ui::comp::sky;

@@ -56,7 +56,7 @@ void XYPad::paint(juce::Graphics& g)
     }
     
     // Border
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::xyPadBorder);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
 
     
@@ -189,7 +189,10 @@ DelayEditor::DelayEditor(DelayProcessor& p)
     tempoSyncButton.setButtonText("Tempo Sync");
     tempoSyncButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     tempoSyncButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
-    addAndMakeVisible(tempoSyncButton);
+    // Hidden: the processor has no note-division parameter, so "sync to host tempo" has no
+    // defined delay time and the switch never affected the sound. The tempoSync parameter
+    // and this attachment stay (the ID is in saved sessions and presets).
+    addChildComponent(tempoSyncButton);
     tempoSyncButton.setTitle("Tempo Sync");
     tempoSyncButton.setDescription("Sync delay time to host tempo");
     
@@ -306,7 +309,7 @@ void DelayEditor::paint(juce::Graphics& g)
     // Version
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
-    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).removeFromRight(70), juce::Justification::centredRight);
+    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).withTrimmedRight(20).removeFromRight(70), juce::Justification::centredRight);
 
     // Column section headers
     auto paintColumnHeader = [&](int x, int y, int width,

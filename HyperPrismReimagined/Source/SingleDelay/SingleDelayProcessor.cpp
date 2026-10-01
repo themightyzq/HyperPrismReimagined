@@ -99,8 +99,19 @@ void SingleDelayProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     delayLineLeft.reset();
     delayLineRight.reset();
     
+    // Smoothers start at the current parameter values
+    delayTimeSmoothed.reset (sampleRate, 0.03);    delayTimeSmoothed.setCurrentAndTargetValue (delayTimeParam->load());
+    feedbackSmoothed.reset (sampleRate, 0.03);     feedbackSmoothed.setCurrentAndTargetValue (feedbackParam->load());
+    wetDryMixSmoothed.reset (sampleRate, 0.03);    wetDryMixSmoothed.setCurrentAndTargetValue (wetDryMixParam->load());
+    stereoSpreadSmoothed.reset (sampleRate, 0.03); stereoSpreadSmoothed.setCurrentAndTargetValue (stereoSpreadParam->load());
+    highCutSmoothed.reset (sampleRate, 0.03);      highCutSmoothed.setCurrentAndTargetValue (highCutParam->load());
+    lowCutSmoothed.reset (sampleRate, 0.03);       lowCutSmoothed.setCurrentAndTargetValue (lowCutParam->load());
+
     // Initialize filters
-    updateFilters();
+    previousHighCut = -1.0f;
+    previousLowCut = -1.0f;
+    filterUpdateCounter = 0;
+    updateFilters(highCutSmoothed.getCurrentValue(), lowCutSmoothed.getCurrentValue());
     
     // Reset metering
     inputLevel.store(0.0f);
@@ -141,7 +152,6 @@ void SingleDelayProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
-    updateFilters();
     processDelay(buffer);
 }
 
@@ -150,17 +160,14 @@ void SingleDelayProcessor::processDelay(juce::AudioBuffer<float>& buffer)
     const int numChannels = buffer.getNumChannels();
     const int numSamples = buffer.getNumSamples();
     
-    const float delayTimeMs = delayTimeParam->load();
-    const float feedback = feedbackParam->load() / 100.0f;
-    const float wetDryMix = wetDryMixParam->load() / 100.0f;
-    const float stereoSpread = stereoSpreadParam->load() / 100.0f;
+    delayTimeSmoothed.setTargetValue(delayTimeParam->load());
+    feedbackSmoothed.setTargetValue(feedbackParam->load());
+    wetDryMixSmoothed.setTargetValue(wetDryMixParam->load());
+    stereoSpreadSmoothed.setTargetValue(stereoSpreadParam->load());
+    highCutSmoothed.setTargetValue(highCutParam->load());
+    lowCutSmoothed.setTargetValue(lowCutParam->load());
     
-    // Calculate delay time in samples
-    float delaySamples = (delayTimeMs / 1000.0f) * static_cast<float>(currentSampleRate);
-    
-    // Apply stereo spread (different delay times for L/R)
-    float delayLeft = delaySamples;
-    float delayRight = delaySamples * (1.0f + stereoSpread * 0.1f); // Up to 10% difference
+    updateFilters(highCutSmoothed.getCurrentValue(), lowCutSmoothed.getCurrentValue());
     
     // Input level metering
     float inputRMS = buffer.getRMSLevel(0, 0, numSamples);
@@ -168,17 +175,41 @@ void SingleDelayProcessor::processDelay(juce::AudioBuffer<float>& buffer)
         inputRMS = std::max(inputRMS, buffer.getRMSLevel(1, 0, numSamples));
     inputLevel.store(inputRMS);
     
-    for (int channel = 0; channel < numChannels; ++channel)
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        auto& delayLine = (channel == 0) ? delayLineLeft : delayLineRight;
-        auto& highCutFilter = (channel == 0) ? highCutFilterLeft : highCutFilterRight;
-        auto& lowCutFilter = (channel == 0) ? lowCutFilterLeft : lowCutFilterRight;
+        const float delayTimeMs = delayTimeSmoothed.getNextValue();
+        const float feedback = feedbackSmoothed.getNextValue() / 100.0f;
+        const float wetDryMix = wetDryMixSmoothed.getNextValue() / 100.0f;
+        const float stereoSpread = stereoSpreadSmoothed.getNextValue() / 100.0f;
+        const float highCut = highCutSmoothed.getNextValue();
+        const float lowCut = lowCutSmoothed.getNextValue();
         
-        float currentDelay = (channel == 0) ? delayLeft : delayRight;
-        
-        for (int sample = 0; sample < numSamples; ++sample)
+        // Re-derive the filter coefficients every 16 samples while a cutoff is moving
+        if (++filterUpdateCounter >= 16)
         {
+            filterUpdateCounter = 0;
+            updateFilters(highCut, lowCut);
+        }
+        
+        // Smoothed (fractional) delay time in samples
+        const float delaySamples = (delayTimeMs / 1000.0f) * static_cast<float>(currentSampleRate);
+        
+        // Apply stereo spread (different delay times for L/R)
+        const float delayLeft = delaySamples;
+        const float delayRight = delaySamples * (1.0f + stereoSpread * 0.1f); // Up to 10% difference
+        
+        const float dryLevel = 1.0f - wetDryMix;
+        const float wetLevel = wetDryMix;
+        
+        for (int channel = 0; channel < numChannels; ++channel)
+        {
+            auto* channelData = buffer.getWritePointer(channel);
+            auto& delayLine = (channel == 0) ? delayLineLeft : delayLineRight;
+            auto& highCutFilter = (channel == 0) ? highCutFilterLeft : highCutFilterRight;
+            auto& lowCutFilter = (channel == 0) ? lowCutFilterLeft : lowCutFilterRight;
+            
+            const float currentDelay = (channel == 0) ? delayLeft : delayRight;
+            
             float input = channelData[sample];
             
             // Get delayed sample
@@ -195,12 +226,12 @@ void SingleDelayProcessor::processDelay(juce::AudioBuffer<float>& buffer)
             delayLine.pushSample(0, feedbackInput);
             
             // Mix wet and dry signals
-            float dryLevel = 1.0f - wetDryMix;
-            float wetLevel = wetDryMix;
-            
             channelData[sample] = (input * dryLevel) + (delayedSample * wetLevel);
         }
     }
+    
+    // Make sure the filters end the block exactly on the current cutoffs
+    updateFilters(highCutSmoothed.getCurrentValue(), lowCutSmoothed.getCurrentValue());
     
     // Output level metering
     float outputRMS = buffer.getRMSLevel(0, 0, numSamples);
@@ -209,13 +240,9 @@ void SingleDelayProcessor::processDelay(juce::AudioBuffer<float>& buffer)
     outputLevel.store(outputRMS);
 }
 
-void SingleDelayProcessor::updateFilters()
+void SingleDelayProcessor::updateFilters(float highCut, float lowCut)
 {
-    const float highCut = highCutParam->load();
-    const float lowCut = lowCutParam->load();
-    
-    if (std::abs(highCut - previousHighCut) > 1.0f ||
-        std::abs(lowCut - previousLowCut) > 1.0f)
+    if (highCut != previousHighCut || lowCut != previousLowCut)
     {
         // High cut filter (low-pass)
         auto highCutCoeffs = juce::IIRCoefficients::makeLowPass(currentSampleRate, highCut);

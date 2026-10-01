@@ -56,7 +56,7 @@ void XYPad::paint(juce::Graphics& g)
     }
     
     // Border
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::xyPadBorder);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
 
     
@@ -266,7 +266,8 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
     matrixModeComboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
     addAndMakeVisible(matrixModeComboBox);
     matrixModeComboBox.setTitle("Matrix Mode");
-    matrixModeComboBox.setDescription("Matrix Mode");
+    matrixModeComboBox.setTooltip("L/R to M/S turns stereo into mid/side, M/S to L/R turns mid/side back into stereo, M/S Through adjusts a signal that is already mid/side");
+    matrixModeComboBox.setDescription("L/R to M/S turns stereo into mid/side, M/S to L/R turns mid/side back into stereo, M/S Through adjusts a signal that is already mid/side");
     
     matrixModeLabel.setText("Matrix Mode", juce::dontSendNotification);
     matrixModeLabel.setJustificationType(juce::Justification::centred);
@@ -279,14 +280,16 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
     midSoloButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     addAndMakeVisible(midSoloButton);
     midSoloButton.setTitle("Mid Solo");
-    midSoloButton.setDescription("Solo the mid (sum) channel");
+    midSoloButton.setTooltip("Listen to the mid (L+R) signal only");
+    midSoloButton.setDescription("Listen to the mid (L+R) signal only");
     
     sideSoloButton.setButtonText("Side Solo");
     sideSoloButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     sideSoloButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     addAndMakeVisible(sideSoloButton);
     sideSoloButton.setTitle("Side Solo");
-    sideSoloButton.setDescription("Solo the side (difference) channel");
+    sideSoloButton.setTooltip("Listen to the side (L-R) signal only");
+    sideSoloButton.setDescription("Listen to the side (L-R) signal only");
     
     // Bypass button (top right like AutoPan)
     // Bypass button
@@ -397,7 +400,7 @@ void MSMatrixEditor::paint(juce::Graphics& g)
     // Version
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
-    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).removeFromRight(70),
+    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).withTrimmedRight(20).removeFromRight(70),
                juce::Justification::centredRight);
 
     // Column section headers

@@ -161,6 +161,8 @@ void StereoDynamicsProcessor::prepareToPlay(double sampleRate, int samplesPerBlo
     smoothedSideGain.reset(sampleRate, 0.01);
     smoothedMidGain.setCurrentAndTargetValue(1.0f);
     smoothedSideGain.setCurrentAndTargetValue(1.0f);
+    smoothedOutputLevel.reset(sampleRate, 0.03);
+    smoothedOutputLevel.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
     
     // Reset metering
     leftLevel.store(0.0f);
@@ -218,7 +220,7 @@ void StereoDynamicsProcessor::processStereoDynamics(juce::AudioBuffer<float>& bu
     const float sideRatio = sideRatioParam->load();
     const float attackTime = attackTimeParam->load();
     const float releaseTime = releaseTimeParam->load();
-    const float outputLevel = juce::Decibels::decibelsToGain(outputLevelParam->load());
+    smoothedOutputLevel.setTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
     
     // Update envelope follower parameters
     midEnvelopeFollower.setAttackTime(attackTime);
@@ -281,7 +283,8 @@ void StereoDynamicsProcessor::processStereoDynamics(juce::AudioBuffer<float>& bu
         float processedLeft, processedRight;
         decodeMSToLR(mid, side, processedLeft, processedRight);
         
-        // Apply output level
+        // Apply output level (smoothed, one value per sample)
+        const float outputLevel = smoothedOutputLevel.getNextValue();
         processedLeft *= outputLevel;
         processedRight *= outputLevel;
         

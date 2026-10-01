@@ -56,7 +56,7 @@ void XYPad::paint(juce::Graphics& g)
     }
     
     // Border
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::xyPadBorder);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
 
     
@@ -280,9 +280,11 @@ PanEditor::PanEditor(PanProcessor& p)
     outputLevelSlider.setRange(-20.0, 20.0, 0.1);
     
     // Pan law dropdown
+    // Same names and order as the panLaw parameter's choices (the box used to list -3dB,
+    // -4.5dB, -6dB for choices that are Equal Power, -3dB, -6dB).
     panLawComboBox.addItem("Linear", 1);
-    panLawComboBox.addItem("-3dB", 2);
-    panLawComboBox.addItem("-4.5dB", 3);
+    panLawComboBox.addItem("Equal Power", 2);
+    panLawComboBox.addItem("-3dB", 3);
     panLawComboBox.addItem("-6dB", 4);
     panLawComboBox.setColour(juce::ComboBox::backgroundColourId, HyperPrismLookAndFeel::Colors::surfaceVariant);
     panLawComboBox.setColour(juce::ComboBox::textColourId, HyperPrismLookAndFeel::Colors::onSurface);
@@ -290,7 +292,8 @@ PanEditor::PanEditor(PanProcessor& p)
     panLawComboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
     addAndMakeVisible(panLawComboBox);
     panLawComboBox.setTitle("Pan Law");
-    panLawComboBox.setDescription("Pan Law");
+    panLawComboBox.setTooltip("How the left and right levels change as the sound is panned: Linear, Equal Power, -3 dB or -6 dB");
+    panLawComboBox.setDescription("How the left and right levels change as the sound is panned: Linear, Equal Power, -3 dB or -6 dB");
     
     panLawLabel.setText("Pan Law", juce::dontSendNotification);
     panLawLabel.setJustificationType(juce::Justification::centred);
@@ -413,7 +416,7 @@ void PanEditor::paint(juce::Graphics& g)
     // Version
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
-    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).removeFromRight(70),
+    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).withTrimmedRight(20).removeFromRight(70),
                juce::Justification::centredRight);
 
     // Column section headers

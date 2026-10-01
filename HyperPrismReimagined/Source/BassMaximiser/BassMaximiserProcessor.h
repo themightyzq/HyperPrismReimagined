@@ -62,13 +62,18 @@ private:
     double currentSampleRate = 44100.0;
     int currentBlockSize = 512;
     
-    // Bass enhancement filters
-    juce::dsp::IIR::Filter<float> bassFilter[2];  // Low-pass filter for bass isolation
-    juce::dsp::IIR::Filter<float> highPassFilter[2];  // High-pass for everything else
-    
-    // Sub-harmonic generation
-    juce::AudioBuffer<float> subHarmonicBuffer;
-    float subHarmonicPhase[2] = {0.0f, 0.0f};
+    // Band split at the Frequency parameter: a 4th-order Linkwitz-Riley crossover, whose low
+    // and high outputs sum to a flat (all-pass) response. The old split summed a Butterworth
+    // low-pass and high-pass at the same frequency, which cancels exactly at the crossover
+    // (a notch: 80 Hz with Boost at 0 dB, about 113 Hz at the default +6 dB).
+    juce::dsp::LinkwitzRileyFilter<float> crossover;
+
+    // Sub-harmonic (one octave down) generation: an octave divider per channel (a flip-flop
+    // toggled on each upward zero crossing of the bass band, with hysteresis), then a
+    // low-pass at the crossover frequency to keep only the sub-octave.
+    juce::dsp::LinkwitzRileyFilter<float> subFilter;
+    float subFlipFlop[2] = { 1.0f, 1.0f };
+    bool subArmed[2] = { false, false };
     
     // Bass compression/limiting (tightness control)
     std::vector<float> bassEnvelopes;  // One per channel
@@ -80,10 +85,15 @@ private:
     
     // Output gain smoothing
     juce::LinearSmoothedValue<float> outputGainSmoother;
+
+    // Frequency, Boost and Harmonics smoothing (30 ms). Frequency moves the crossover
+    // per sample while it ramps.
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> frequencySmoother;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> boostGainSmoother;
+    juce::LinearSmoothedValue<float> harmonicsSmoother;
     
     // Helper functions
-    void updateFilters();
-    float generateSubHarmonic(float input, float& phase, float harmonicsAmount);
+    float generateSubHarmonic(float input, int channel);
     float processBassCompression(float input, float& envelope, float& gainReduction,
                                float tightness);
     float calculateRMS(const float* buffer, int numSamples);

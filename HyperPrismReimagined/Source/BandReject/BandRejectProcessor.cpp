@@ -97,30 +97,34 @@ void BandRejectProcessor::changeProgramName(int, const juce::String&)
 void BandRejectProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
-    
+    preparedBlockSize = juce::jmax(1, samplesPerBlock);
+
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
+    spec.maximumBlockSize = static_cast<juce::uint32>(preparedBlockSize);
     spec.numChannels = static_cast<juce::uint32>(getTotalNumOutputChannels());
-    
+
+    // Give the filter real order-2 coefficients BEFORE prepare(), so the filter order never
+    // changes (which would reallocate filter state) on the audio thread.
+    updateFilter(valueTreeState.getRawParameterValue(CENTER_FREQ_ID)->load(), valueTreeState.getRawParameterValue(Q_ID)->load());
+
     notchFilter.prepare(spec);
-    
-    // Initialize smoothed values
-    const float smoothTime = 0.005f; // 5ms smoothing for real-time response
+
+    // Initialize smoothed values (30 ms ramps)
+    const double smoothTime = 0.03; // 30 ms (the old 5 ms smoothers were never read)
     centerFreqSmoothed.reset(sampleRate, smoothTime);
     qSmoothed.reset(sampleRate, smoothTime);
     gainSmoothed.reset(sampleRate, smoothTime);
     mixSmoothed.reset(sampleRate, smoothTime);
-    
+
     // Set initial values
     centerFreqSmoothed.setCurrentAndTargetValue(valueTreeState.getRawParameterValue(CENTER_FREQ_ID)->load());
     qSmoothed.setCurrentAndTargetValue(valueTreeState.getRawParameterValue(Q_ID)->load());
-    gainSmoothed.setCurrentAndTargetValue(valueTreeState.getRawParameterValue(GAIN_ID)->load());
-    mixSmoothed.setCurrentAndTargetValue(valueTreeState.getRawParameterValue(MIX_ID)->load());
-    
-    updateFilter();
+    gainSmoothed.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(valueTreeState.getRawParameterValue(GAIN_ID)->load()));
+    mixSmoothed.setCurrentAndTargetValue(valueTreeState.getRawParameterValue(MIX_ID)->load() * 0.01f);
 
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    dryBuffer.setSize(juce::jmax(1, juce::jmax(getTotalNumInputChannels(), getTotalNumOutputChannels())),
+                      preparedBlockSize);
 }
 
 void BandRejectProcessor::releaseResources()
@@ -165,41 +169,56 @@ void BandRejectProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     // Update smoothed parameters
     centerFreqSmoothed.setTargetValue(valueTreeState.getRawParameterValue(CENTER_FREQ_ID)->load());
     qSmoothed.setTargetValue(valueTreeState.getRawParameterValue(Q_ID)->load());
-    gainSmoothed.setTargetValue(valueTreeState.getRawParameterValue(GAIN_ID)->load());
-    mixSmoothed.setTargetValue(valueTreeState.getRawParameterValue(MIX_ID)->load());
+    gainSmoothed.setTargetValue(juce::Decibels::decibelsToGain(valueTreeState.getRawParameterValue(GAIN_ID)->load()));
+    mixSmoothed.setTargetValue(valueTreeState.getRawParameterValue(MIX_ID)->load() * 0.01f); // percentage to ratio
+
+    // Split host blocks larger than the prepared size so dryBuffer is never outgrown
+    const int numSamples = buffer.getNumSamples();
+    for (int start = 0; start < numSamples; start += preparedBlockSize)
+    {
+        const int len = juce::jmin(preparedBlockSize, numSamples - start);
+        juce::AudioBuffer<float> chunk(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), start, len);
+        processChunk(chunk);
+    }
+}
+
+void BandRejectProcessor::processChunk(juce::AudioBuffer<float>& chunk)
+{
+    const int numSamples = chunk.getNumSamples();
+    const int numChannels = juce::jmin(chunk.getNumChannels(), dryBuffer.getNumChannels());
 
     // Store dry signal for mixing
-    dryBuffer.makeCopyOf(buffer);
+    for (int ch = 0; ch < numChannels; ++ch)
+        dryBuffer.copyFrom(ch, 0, chunk, ch, 0, numSamples);
 
-    // Always update filter to ensure real-time parameter changes
-    updateFilter();
+    juce::dsp::AudioBlock<float> chunkBlock(chunk);
+    auto fullBlock = chunkBlock.getSubsetChannelBlock(0, static_cast<size_t>(numChannels));
 
-    // Apply notch filter
-    juce::dsp::AudioBlock<float> block(buffer);
-    juce::dsp::ProcessContextReplacing<float> context(block);
-    notchFilter.process(context);
-
-    // Apply gain
-    float currentGain = juce::Decibels::decibelsToGain(valueTreeState.getRawParameterValue(GAIN_ID)->load());
-    for (int channel = 0; channel < totalNumOutputChannels; ++channel)
+    constexpr int subBlockSize = 16;
+    for (int pos = 0; pos < numSamples; pos += subBlockSize)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
-        {
-            channelData[static_cast<size_t>(sample)] *= currentGain;
-        }
-    }
+        const int len = juce::jmin(subBlockSize, numSamples - pos);
 
-    // Mix dry and wet signals
-    float mixValue = valueTreeState.getRawParameterValue(MIX_ID)->load() * 0.01f; // Convert percentage to ratio
-    for (int channel = 0; channel < totalNumOutputChannels; ++channel)
-    {
-        auto* wetData = buffer.getWritePointer(channel);
-        auto* dryData = dryBuffer.getReadPointer(channel);
-        
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        // Recompute coefficients from the smoothed values while they are moving
+        if (centerFreqSmoothed.isSmoothing() || qSmoothed.isSmoothing())
+            updateFilter(centerFreqSmoothed.skip(len), qSmoothed.skip(len));
+
+        auto subBlock = fullBlock.getSubBlock(static_cast<size_t>(pos), static_cast<size_t>(len));
+        juce::dsp::ProcessContextReplacing<float> context(subBlock);
+        notchFilter.process(context);
+
+        // Apply gain and dry/wet mix, one smoothed value per sample
+        for (int i = 0; i < len; ++i)
         {
-            wetData[static_cast<size_t>(sample)] = dryData[static_cast<size_t>(sample)] * (1.0f - mixValue) + wetData[static_cast<size_t>(sample)] * mixValue;
+            const float gain = gainSmoothed.getNextValue();
+            const float mixValue = mixSmoothed.getNextValue();
+
+            for (int ch = 0; ch < numChannels; ++ch)
+            {
+                auto* wet = chunk.getWritePointer(ch);
+                const auto* dry = dryBuffer.getReadPointer(ch);
+                wet[pos + i] = dry[pos + i] * (1.0f - mixValue) + wet[pos + i] * gain * mixValue;
+            }
         }
     }
 }
@@ -240,17 +259,13 @@ void BandRejectProcessor::setStateInformation(const void* data, int sizeInBytes)
 }
 
 //==============================================================================
-void BandRejectProcessor::updateFilter()
+void BandRejectProcessor::updateFilter(float centerFreq, float q)
 {
-    float centerFreq = valueTreeState.getRawParameterValue(CENTER_FREQ_ID)->load();
-    float q = valueTreeState.getRawParameterValue(Q_ID)->load();
-    
     // Clamp frequency to valid range
     centerFreq = juce::jlimit(20.0f, static_cast<float>(currentSampleRate * 0.45), centerFreq);
-    
-    // Create notch filter coefficients
-    auto coefficients = CoefficientsType::makeNotch(currentSampleRate, centerFreq, q);
-    *notchFilter.state = *coefficients;
+
+    // Write notch coefficients in place; no allocation
+    *notchFilter.state = juce::dsp::IIR::ArrayCoefficients<float>::makeNotch(currentSampleRate, centerFreq, q);
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout BandRejectProcessor::createParameterLayout()

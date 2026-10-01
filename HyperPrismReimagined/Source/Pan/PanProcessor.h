@@ -77,6 +77,7 @@ private:
     
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void processPanning(juce::AudioBuffer<float>& buffer);
+    void processPanningChunk(juce::AudioBuffer<float>& chunk);
     void calculatePanGains(float panValue, int panLawType, float& leftGain, float& rightGain);
     
     juce::AudioProcessorValueTreeState valueTreeState;
@@ -94,7 +95,10 @@ private:
     juce::SmoothedValue<float> smoothedLeftGain;
     juce::SmoothedValue<float> smoothedRightGain;
     
+    juce::SmoothedValue<float> smoothedWidth; // 0..2, 30 ms
+
     juce::AudioBuffer<float> originalBuffer;
+    int preparedBlockSize = 512;
 
     // Metering
     std::atomic<float> leftLevel { 0.0f };

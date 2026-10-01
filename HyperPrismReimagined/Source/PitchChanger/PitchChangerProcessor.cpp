@@ -276,8 +276,16 @@ void PitchChangerProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     pitchShifter->prepare(sampleRate, samplesPerBlock);
     pitchDetector.prepare(sampleRate);
     
-    // Prepare dry buffer for mixing
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    // Prepare dry buffer for mixing. Host blocks larger than preparedBlockSize are
+    // processed in chunks, so neither this buffer nor the shifter's buffers grow.
+    preparedBlockSize = juce::jmax(1, samplesPerBlock);
+    dryBuffer.setSize(juce::jmax(2, getTotalNumInputChannels()), preparedBlockSize);
+    dryBuffer.clear();
+
+    smoothedMix.reset(sampleRate, 0.03);
+    smoothedMix.setCurrentAndTargetValue(mixParam->load() * 0.01f);
+    smoothedOutputGain.reset(sampleRate, 0.03);
+    smoothedOutputGain.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
     
     // Reset metering
     inputLevel.store(0.0f);
@@ -319,7 +327,15 @@ void PitchChangerProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
     if (buffer.getNumChannels() < 1)
         return;
 
-    processPitchShifting(buffer);
+    // Split oversized host blocks into prepared-size chunks (no heap: the chunk
+    // buffer just references the host's channel pointers).
+    const int totalSamples = buffer.getNumSamples();
+    for (int start = 0; start < totalSamples; start += preparedBlockSize)
+    {
+        const int len = juce::jmin(preparedBlockSize, totalSamples - start);
+        juce::AudioBuffer<float> chunk(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), start, len);
+        processPitchShifting(chunk);
+    }
 }
 
 void PitchChangerProcessor::processPitchShifting(juce::AudioBuffer<float>& buffer)
@@ -330,8 +346,8 @@ void PitchChangerProcessor::processPitchShifting(juce::AudioBuffer<float>& buffe
     const float pitchShift = pitchShiftParam->load();
     const float fineTune = fineTuneParam->load();
     const float formantShift = formantShiftParam->load();
-    const float mix = mixParam->load() * 0.01f; // Convert percentage to 0-1
-    const float outputGain = juce::Decibels::decibelsToGain(outputLevelParam->load());
+    smoothedMix.setTargetValue(mixParam->load() * 0.01f); // Convert percentage to 0-1
+    smoothedOutputGain.setTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
     
     // Calculate pitch ratio from semitones
     float totalPitchShift = pitchShift + (fineTune * 0.01f); // Convert cents to semitones
@@ -345,8 +361,10 @@ void PitchChangerProcessor::processPitchShifting(juce::AudioBuffer<float>& buffe
         pitchShifter->setFormantShift(formantRatio);
     }
     
-    // Store dry signal for mixing
-    dryBuffer.makeCopyOf(buffer);
+    // Store dry signal for mixing (pre-allocated buffer, never resized)
+    const int dryChannels = juce::jmin(numChannels, dryBuffer.getNumChannels());
+    for (int channel = 0; channel < dryChannels; ++channel)
+        dryBuffer.copyFrom(channel, 0, buffer, channel, 0, numSamples);
     
     float inputLevelSum = 0.0f;
     float outputLevelSum = 0.0f;
@@ -363,27 +381,30 @@ void PitchChangerProcessor::processPitchShifting(juce::AudioBuffer<float>& buffe
     if (pitchShifter)
         pitchShifter->processBlock(buffer);
     
-    // Mix dry and wet signals
-    for (int channel = 0; channel < numChannels; ++channel)
+    // Mix dry and wet signals. Smoothed values advance once per sample, shared by all channels.
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        auto* dryData = dryBuffer.getReadPointer(channel);
-        
-        for (int sample = 0; sample < numSamples; ++sample)
+        const float mix = smoothedMix.getNextValue();
+        const float outputGain = smoothedOutputGain.getNextValue();
+
+        for (int channel = 0; channel < numChannels; ++channel)
         {
+            auto* channelData = buffer.getWritePointer(channel);
+            auto* dryData = dryBuffer.getReadPointer(channel);
+
             float dry = dryData[static_cast<size_t>(sample)];
             float wet = channelData[static_cast<size_t>(sample)];
-            
+
             inputLevelSum += std::abs(dry);
-            
+
             // Mix and apply output level
             float output = (dry * (1.0f - mix) + wet * mix) * outputGain;
             channelData[static_cast<size_t>(sample)] = output;
-            
+
             outputLevelSum += std::abs(output);
         }
     }
-    
+
     // Update metering
     inputLevel.store(inputLevelSum / (numSamples * numChannels));
     outputLevel.store(outputLevelSum / (numSamples * numChannels));

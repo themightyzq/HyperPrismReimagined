@@ -50,6 +50,9 @@ private:
     // Bypass
     std::atomic<float>* bypassParam = nullptr;
 
+    // Mix (0-1), smoothed over 30 ms
+    juce::SmoothedValue<float> smoothedMix;
+
     // Helper functions for waveform generation
     float generateWaveform(float phase, int waveformType);
 

@@ -228,6 +228,11 @@ void FrequencyShifterProcessor::prepareToPlay(double sampleRate, int samplesPerB
 
     oscillator.prepare(sampleRate);
 
+    smoothedMix.reset(sampleRate, 0.03);
+    smoothedMix.setCurrentAndTargetValue(mixParam->load() * 0.01f);
+    smoothedOutputGain.reset(sampleRate, 0.03);
+    smoothedOutputGain.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
+
     // Report the analytic-path latency so the host can compensate.
     setLatencySamples(latency);
 
@@ -282,8 +287,8 @@ void FrequencyShifterProcessor::processFrequencyShifting(juce::AudioBuffer<float
     
     const float frequencyShift = frequencyShiftParam->load();
     const float fineShift = fineShiftParam->load();
-    const float mix = mixParam->load() * 0.01f; // Convert percentage to 0-1
-    const float outputLevelGain = juce::Decibels::decibelsToGain(outputLevelParam->load());
+    smoothedMix.setTargetValue(mixParam->load() * 0.01f); // Convert percentage to 0-1
+    smoothedOutputGain.setTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
     
     // Calculate total frequency shift (coarse + fine)
     float totalShift = frequencyShift + (fineShift * 0.01f * frequencyShift); // Fine as percentage of coarse
@@ -304,6 +309,10 @@ void FrequencyShifterProcessor::processFrequencyShifting(juce::AudioBuffer<float
         auto oscValues = oscillator.getNextSample();
         const float cosShift = oscValues.first;
         const float sinShift = oscValues.second;
+
+        // Smoothed values advance once per sample, shared by all channels
+        const float mix = smoothedMix.getNextValue();
+        const float outputLevelGain = smoothedOutputGain.getNextValue();
 
         for (int channel = 0; channel < activeChannels; ++channel)
         {

@@ -56,7 +56,7 @@ void XYPad::paint(juce::Graphics& g)
     }
     
     // Border
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::xyPadBorder);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
 
     
@@ -314,7 +314,10 @@ AutoPanEditor::AutoPanEditor(AutoPanProcessor& p)
     syncButton.setColour(juce::ToggleButton::textColourId, HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     syncButton.setColour(juce::ToggleButton::tickColourId, HyperPrismLookAndFeel::Colors::primary);
     syncButton.setColour(juce::ToggleButton::tickDisabledColourId, HyperPrismLookAndFeel::Colors::surfaceVariant);
-    addAndMakeVisible(syncButton);
+    // Hidden: the processor has no note-division parameter, so "sync to host tempo" has no
+    // defined rate and the switch never affected the sound. The sync parameter and this
+    // attachment stay (the ID is in saved sessions and presets).
+    addChildComponent(syncButton);
     syncButton.setTitle("Sync");
     syncButton.setDescription("Sync panning rate to host tempo");
     
@@ -423,7 +426,7 @@ void AutoPanEditor::paint(juce::Graphics& g)
     // Version
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
-    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).removeFromRight(70),
+    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).withTrimmedRight(20).removeFromRight(70),
                juce::Justification::centredRight);
 
     // Column section headers

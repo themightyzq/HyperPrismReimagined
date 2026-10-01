@@ -65,6 +65,11 @@ public:
         static const juce::Colour warning;              // == zqsfx::ui::colour::meterHot
         static const juce::Colour success;              // == zqsfx::ui::colour::lcdText
 
+        // XY-pad border: silkCaption, 5.4:1 against the pad's panelTop fill and 6.4:1 against
+        // the chassis around it (WCAG 1.4.11 asks 3:1 for a control boundary). The pads used
+        // `outline` (ruleTitle), about 1.1-1.3:1, which made the pad's edge invisible.
+        static const juce::Colour xyPadBorder;          // == zqsfx::ui::colour::silkCaption
+
         // Parameter-group colours -> the five colour-blind-safe complementary channels (style
         // guide section 3's fixed mapping for "HyperPrism, Transient Creator": dynamics/sky,
         // frequency/yellow, modulation/purple, output/green, timing/white).

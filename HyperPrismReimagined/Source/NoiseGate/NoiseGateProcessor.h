@@ -71,11 +71,15 @@ private:
     std::vector<float> gateState;
     std::vector<int> holdCounter;
     
-    // Lookahead buffer
-    juce::dsp::DelayLine<float> lookaheadBuffer;
-
-    // Pre-allocated lookahead data (real-time safe)
-    std::vector<float> lookaheadData;
+    // Lookahead. The audio is always delayed by the maximum lookahead (kMaxLookaheadMs),
+    // which is the latency reported to the host, so it never changes with the Lookahead
+    // setting or the block size. The detector reads the same per-channel ring buffer
+    // `lookahead` ms nearer the input, so the gate reacts that much before the audio arrives.
+    static constexpr double kMaxLookaheadMs = 10.0;
+    int maxDelaySamples = 0;
+    int ringSize = 1;
+    int writePosition = 0;
+    std::vector<float> delayRing; // ringSize samples per channel, pre-allocated
 
     // Bypass
     juce::AudioParameterBool* bypassParamBool = nullptr;

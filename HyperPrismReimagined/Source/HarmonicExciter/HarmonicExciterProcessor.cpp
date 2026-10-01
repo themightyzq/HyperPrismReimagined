@@ -126,6 +126,18 @@ void HarmonicExciterProcessor::prepareToPlay(double sampleRate, int samplesPerBl
 
     highFreqBuffer.setSize(getTotalNumInputChannels(), preparedBlockSize);
 
+    constexpr double smoothingSeconds = 0.03;
+    driveSmoothed.reset(sampleRate, smoothingSeconds);
+    harmonicsSmoothed.reset(sampleRate, smoothingSeconds);
+    mixSmoothed.reset(sampleRate, smoothingSeconds);
+    frequencySmoothed.reset(sampleRate, smoothingSeconds);
+    driveSmoothed.setCurrentAndTargetValue(driveParam->get() / 100.0f);
+    harmonicsSmoothed.setCurrentAndTargetValue(harmonicsParam->get());
+    mixSmoothed.setCurrentAndTargetValue(mixParam->get() / 100.0f);
+    frequencySmoothed.setCurrentAndTargetValue(frequencyParam->get());
+    driveValues.assign((size_t) preparedBlockSize, 0.0f);
+    harmonicsValues.assign((size_t) preparedBlockSize, 0.0f);
+
     int latency = 0;
 #if HP_HARMONICEXCITER_FORCE_1X
     oversampling.reset();
@@ -187,14 +199,11 @@ void HarmonicExciterProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
     // Get parameter values
     const bool bypassed = bypassParamBool->get();
-    const float drive = driveParam->get() / 100.0f;
-    const float frequency = frequencyParam->get();
-    const float harmonics = harmonicsParam->get();
-    const float mix = mixParam->get() / 100.0f;
     const int type = typeParam->getIndex();
-
-    // Update filter frequency
-    highPassFilter.setCutoffFrequency(frequency);
+    driveSmoothed.setTargetValue(driveParam->get() / 100.0f);
+    harmonicsSmoothed.setTargetValue(harmonicsParam->get());
+    mixSmoothed.setTargetValue(mixParam->get() / 100.0f);
+    frequencySmoothed.setTargetValue(juce::jmin(frequencyParam->get(), static_cast<float>(currentSampleRate * 0.45)));
 
     // The filters, buffer and oversampler are sized for preparedBlockSize; a host that
     // sends a bigger block gets it processed in chunks of at most that size.
@@ -208,7 +217,7 @@ void HarmonicExciterProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
         if (bypassed)
             delayDryOnly(block);
         else
-            processChunk(block, drive, harmonics, mix, type);
+            processChunk(block, type);
     }
 
     if (bypassed)
@@ -226,6 +235,16 @@ void HarmonicExciterProcessor::processBlock(juce::AudioBuffer<float>& buffer, ju
 
 void HarmonicExciterProcessor::delayDryOnly(juce::dsp::AudioBlock<float> block)
 {
+    const auto n = (int) block.getNumSamples();
+    driveSmoothed.skip(n);
+    harmonicsSmoothed.skip(n);
+    mixSmoothed.skip(n);
+    if (frequencySmoothed.isSmoothing())
+    {
+        frequencySmoothed.skip(n);
+        highPassFilter.setCutoffFrequency(frequencySmoothed.getCurrentValue());
+    }
+
     for (size_t channel = 0; channel < block.getNumChannels(); ++channel)
     {
         auto* data = block.getChannelPointer(channel);
@@ -239,8 +258,7 @@ void HarmonicExciterProcessor::delayDryOnly(juce::dsp::AudioBlock<float> block)
     }
 }
 
-void HarmonicExciterProcessor::processChunk(juce::dsp::AudioBlock<float> block, float drive,
-                                            float harmonics, float mix, int type)
+void HarmonicExciterProcessor::processChunk(juce::dsp::AudioBlock<float> block, int type)
 {
     const size_t numChannels = block.getNumChannels();
     const size_t numSamples = block.getNumSamples();
@@ -251,9 +269,21 @@ void HarmonicExciterProcessor::processChunk(juce::dsp::AudioBlock<float> block, 
                              .getSubBlock(0, numSamples);
     highFreqBlock.copyFrom(block);
 
-    // Apply high-pass filter to extract high frequencies
-    juce::dsp::ProcessContextReplacing<float> highFreqContext(highFreqBlock);
-    highPassFilter.process(highFreqContext);
+    // Apply high-pass filter to extract high frequencies (cutoff moves per sample while the
+    // Frequency parameter ramps), and collect this chunk's per-sample Drive and Harmonics.
+    for (size_t sample = 0; sample < numSamples; ++sample)
+    {
+        if (frequencySmoothed.isSmoothing())
+            highPassFilter.setCutoffFrequency(frequencySmoothed.getNextValue());
+        driveValues[sample] = driveSmoothed.getNextValue();
+        harmonicsValues[sample] = harmonicsSmoothed.getNextValue();
+
+        for (size_t channel = 0; channel < numChannels; ++channel)
+        {
+            auto* data = highFreqBlock.getChannelPointer(channel);
+            data[sample] = highPassFilter.processSample(static_cast<int>(channel), data[sample]);
+        }
+    }
 
     // The harmonic generator is the nonlinear stage: run it 4x oversampled so the
     // harmonics it manufactures are pushed above the base Nyquist before the
@@ -267,8 +297,8 @@ void HarmonicExciterProcessor::processChunk(juce::dsp::AudioBlock<float> block, 
         for (size_t sample = 0; sample < numSamples; ++sample)
         {
             highFreqData[sample] = (type == 0)
-                ? generateWarmHarmonics(highFreqData[sample], drive, harmonics)
-                : generateBrightHarmonics(highFreqData[sample], drive, harmonics);
+                ? generateWarmHarmonics(highFreqData[sample], driveValues[sample], harmonicsValues[sample])
+                : generateBrightHarmonics(highFreqData[sample], driveValues[sample], harmonicsValues[sample]);
         }
     }
 #else
@@ -281,9 +311,10 @@ void HarmonicExciterProcessor::processChunk(juce::dsp::AudioBlock<float> block, 
 
         for (size_t sample = 0; sample < oversampledBlock.getNumSamples(); ++sample)
         {
+            const auto base = sample / (size_t) kOversamplingFactor;
             data[sample] = (type == 0)
-                ? generateWarmHarmonics(data[sample], drive, harmonics)
-                : generateBrightHarmonics(data[sample], drive, harmonics);
+                ? generateWarmHarmonics(data[sample], driveValues[base], harmonicsValues[base])
+                : generateBrightHarmonics(data[sample], driveValues[base], harmonicsValues[base]);
         }
     }
 
@@ -291,14 +322,16 @@ void HarmonicExciterProcessor::processChunk(juce::dsp::AudioBlock<float> block, 
 #endif
 
     // Mix the dry signal, delayed by the oversampler latency, with the harmonic signal
-    for (size_t channel = 0; channel < numChannels; ++channel)
+    for (size_t sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = block.getChannelPointer(channel);
-        const auto* highFreqData = highFreqBlock.getChannelPointer(channel);
-        const int ch = static_cast<int>(channel);
+        const float mix = mixSmoothed.getNextValue();
 
-        for (size_t sample = 0; sample < numSamples; ++sample)
+        for (size_t channel = 0; channel < numChannels; ++channel)
         {
+            auto* channelData = block.getChannelPointer(channel);
+            const auto* highFreqData = highFreqBlock.getChannelPointer(channel);
+            const int ch = static_cast<int>(channel);
+
             dryDelay.pushSample(ch, channelData[sample]);
             channelData[sample] = dryDelay.popSample(ch) + (highFreqData[sample] * mix);
         }

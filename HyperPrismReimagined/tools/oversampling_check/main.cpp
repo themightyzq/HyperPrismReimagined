@@ -5,9 +5,10 @@
 // is: compile definitions select the processor (HP_CHECK_PROCESSOR_HEADER /
 // HP_CHECK_PROCESSOR_CLASS) and which plugin-specific "strong setting" and parameter IDs to
 // drive (HP_CHECK_TUBETAPE / HP_CHECK_HARMONICEXCITER / HP_CHECK_SONICDECIMATOR).
-// Registered with CTest in CMakeLists.txt (add_hyperprism_console_check). HarmonicExciter also
-// gets the dry/wet alignment, high-pass, bypass-latency and block-size checks in
-// checkHarmonicExciter() below. Exit 0 on pass.
+// Registered with CTest in CMakeLists.txt (add_hyperprism_console_check). Every plugin also
+// gets the bypass-latency, block-size-invariance and oversized-host-block checks below;
+// HarmonicExciter and SonicDecimator the dry/wet alignment check; HarmonicExciter its high-pass
+// check; SonicDecimator its default-transparency check. Exit 0 on pass.
 
 #include HP_CHECK_PROCESSOR_HEADER
 #include <iostream>
@@ -222,25 +223,26 @@ void checkLatencyInvariance()
     }
 }
 
-#if HP_CHECK_HARMONICEXCITER
+
 //==============================================================================
-// HarmonicExciter-specific checks (added with the dry/wet alignment, high-pass, chunking and
-// bypass-latency fixes). The processor's output is delayedDry + wet * mix, so with the input
-// known, wet = out - in[n - latency].
+// Latency, chunking and bypass checks shared by all three oversampled plugins (first written
+// for HarmonicExciter's dry/wet alignment fix, generalised to SonicDecimator and TubeTape).
+// HarmonicExciter and SonicDecimator output delayedDry * (1 - mix) + wet * mix (exciter:
+// delayedDry + wet * mix), so at mix 0 the output is exactly the input delayed by the latency.
 
 // Renders `input` (same signal on both channels) through a freshly prepared processor.
 // `preparedBlock` goes to prepareToPlay; the host then sends blocks of `hostBlock` samples,
 // which may be larger than preparedBlock (the processor must chunk internally).
-std::vector<float> renderExciter (const std::vector<float>& input, int preparedBlock, int hostBlock,
-                                  std::function<void (juce::AudioProcessorValueTreeState&)> configure,
-                                  int* latencyOut = nullptr)
+std::vector<float> renderPlugin (const std::vector<float>& input, int preparedBlock, int hostBlock,
+                                 std::function<void (juce::AudioProcessorValueTreeState&)> configure,
+                                 int* latencyOut = nullptr, double sampleRate = kTestSampleRate)
 {
     HP_CHECK_PROCESSOR_CLASS proc;
     if (configure)
         configure (proc.getValueTreeState());
 
-    proc.setPlayConfigDetails (2, 2, kTestSampleRate, preparedBlock);
-    proc.prepareToPlay (kTestSampleRate, preparedBlock);
+    proc.setPlayConfigDetails (2, 2, sampleRate, preparedBlock);
+    proc.prepareToPlay (sampleRate, preparedBlock);
     if (latencyOut != nullptr)
         *latencyOut = proc.getLatencySamples();
 
@@ -302,51 +304,99 @@ float maxAbsDiff (const std::vector<float>& a, const std::vector<float>& b)
     return d;
 }
 
+using Configure = std::function<void (juce::AudioProcessorValueTreeState&)>;
+
+// The reported latency, measured once at 48 kHz / 512.
+int reportedLatency()
+{
+    int latency = -1;
+    renderPlugin (std::vector<float> (16, 0.0f), 512, 512, nullptr, &latency);
+    return latency;
+}
+
+// Mix 0 (dry only): output must be the input delayed by exactly the reported latency (before
+// the fix it was undelayed while latency was reported).
+void checkDryAlignment (const std::vector<float>& noise)
+{
+    int latency = -1;
+    auto out = renderPlugin (noise, 512, 512, [] (auto& apvts) { setParam (apvts, "mix", 0.0f); }, &latency);
+    const float err = maxDelayedDryError (noise, out, latency);
+    if (latency <= 0 || err > 1.0e-6f)
+    {
+        std::cerr << "FAIL mix 0: output is not the input delayed by latency " << latency
+                   << " (max error " << err << ")\n";
+        ++failures;
+    }
+    else
+        std::cout << "ok   mix 0: output == input delayed by the reported " << latency << " samples\n";
+}
+
+// Bypass routes audio through the same delay, so timing does not jump when it is toggled.
+void checkBypassLatency (const std::vector<float>& noise, int latency)
+{
+    auto out = renderPlugin (noise, 512, 512, [] (auto& apvts) { setParam (apvts, "bypass", 1.0f); });
+    const float err = maxDelayedDryError (noise, out, latency);
+    if (latency <= 0 || err > 1.0e-6f)
+    {
+        std::cerr << "FAIL bypass: output is not the input delayed by the reported latency " << latency
+                   << " (max error " << err << ")\n";
+        ++failures;
+    }
+    else
+        std::cout << "ok   bypass: output == input delayed by " << latency << " samples\n";
+}
+
+// Prepared-and-driven at 64 vs 1000 (non-power-of-two) gives the same output, and a host block
+// larger than the prepared size (4096 into a 512-sample preparation) is processed in chunks and
+// matches the 512-block render (before the fix it overran the oversampler's buffers).
+void checkBlockSizes (const std::vector<float>& noise, Configure configure)
+{
+    const auto ref = renderPlugin (noise, 512, 512, configure);
+    {
+        int latencyA = -1, latencyB = -1;
+        auto a = renderPlugin (noise, 64, 64, configure, &latencyA);
+        auto b = renderPlugin (noise, 1000, 1000, configure, &latencyB);
+        const float d = maxAbsDiff (a, b);
+        if (latencyA != latencyB || d > 1.0e-5f)
+        {
+            std::cerr << "FAIL block sizes 64 vs 1000: latency " << latencyA << "/" << latencyB
+                       << ", max diff " << d << "\n";
+            ++failures;
+        }
+        else
+            std::cout << "ok   block sizes 64 vs 1000 match (max diff " << d << ")\n";
+    }
+    {
+        auto big = renderPlugin (noise, 512, 4096, configure);
+        const float d = maxAbsDiff (big, ref);
+        if (d > 1.0e-5f)
+        {
+            std::cerr << "FAIL oversized host block (4096 > prepared 512) differs by " << d << "\n";
+            ++failures;
+        }
+        else
+            std::cout << "ok   oversized host block (4096 > prepared 512) matches (max diff " << d << ")\n";
+    }
+}
+
+#if HP_CHECK_HARMONICEXCITER
 void checkHarmonicExciter()
 {
     const auto noise = testNoise (20000);
+    const int latency = reportedLatency();
 
-    // 1. Dry path: at mix 0 the output must be the input delayed by exactly the reported
-    //    latency (before the fix it was undelayed while latency was reported).
-    int latency = -1;
-    {
-        auto out = renderExciter (noise, 512, 512,
-                                  [] (auto& apvts) { setParam (apvts, "mix", 0.0f); }, &latency);
-        const float err = maxDelayedDryError (noise, out, latency);
-        if (latency <= 0 || err > 1.0e-6f)
-        {
-            std::cerr << "FAIL mix 0: output is not the input delayed by latency " << latency
-                       << " (max error " << err << ")\n";
-            ++failures;
-        }
-        else
-            std::cout << "ok   mix 0: output == input delayed by the reported " << latency << " samples\n";
-    }
+    checkDryAlignment (noise);
+    checkBypassLatency (noise, latency);
 
-    // 2. Bypass routes audio through the same delay, so timing does not jump when toggled.
-    {
-        auto out = renderExciter (noise, 512, 512,
-                                  [] (auto& apvts) { setParam (apvts, "bypass", 1.0f); });
-        const float err = maxDelayedDryError (noise, out, latency);
-        if (err > 1.0e-6f)
-        {
-            std::cerr << "FAIL bypass: output is not the input delayed by " << latency
-                       << " (max error " << err << ")\n";
-            ++failures;
-        }
-        else
-            std::cout << "ok   bypass: output == input delayed by " << latency << " samples\n";
-    }
-
-    // 3. Impulse at mix 50: one dominant peak at the latency and no second peak at sample 0
-    //    (before the fix the undelayed dry impulse sat at sample 0). The half-band IIR
-    //    filters are causal but not linear-phase, so some wet signal legitimately starts
-    //    before the nominal latency; it must stay well below the main peak.
+    // Impulse at mix 50: one dominant peak at the latency and no second peak at sample 0
+    // (before the fix the undelayed dry impulse sat at sample 0). The half-band IIR
+    // filters are causal but not linear-phase, so some wet signal legitimately starts
+    // before the nominal latency; it must stay well below the main peak.
     {
         std::vector<float> imp (4096, 0.0f);
         imp[0] = 1.0f;
-        auto out = renderExciter (imp, 512, 512,
-                                  [] (auto& apvts) { setParam (apvts, "mix", 50.0f); });
+        auto out = renderPlugin (imp, 512, 512,
+                                 [] (auto& apvts) { setParam (apvts, "mix", 50.0f); });
         size_t peakIndex = 0;
         float peak = 0.0f;
         for (size_t i = 0; i < out.size(); ++i)
@@ -369,9 +419,9 @@ void checkHarmonicExciter()
                        << ", max before latency " << early << "\n";
     }
 
-    // 4. The band filter is a high-pass: at Frequency 5 kHz a 100 Hz tone must generate far
-    //    less harmonic (wet) signal than a 10 kHz tone of the same level. With the old
-    //    low-pass it was the other way round.
+    // The band filter is a high-pass: at Frequency 5 kHz a 100 Hz tone must generate far
+    // less harmonic (wet) signal than a 10 kHz tone of the same level. With the old
+    // low-pass it was the other way round.
     {
         auto wetRms = [&] (double freqHz)
         {
@@ -379,7 +429,7 @@ void checkHarmonicExciter()
             for (size_t i = 0; i < sine.size(); ++i)
                 sine[i] = 0.5f * (float) std::sin (2.0 * juce::MathConstants<double>::pi * freqHz * (double) i / kTestSampleRate);
 
-            auto out = renderExciter (sine, 512, 512, [] (auto& apvts)
+            auto out = renderPlugin (sine, 512, 512, [] (auto& apvts)
             {
                 setParam (apvts, "mix", 100.0f);
                 setParam (apvts, "frequency", 5000.0f);
@@ -407,37 +457,80 @@ void checkHarmonicExciter()
             std::cout << "ok   high-pass: wet RMS at 100 Hz " << low << " vs 10 kHz " << high << "\n";
     }
 
-    // 5. Block-size invariance: prepared-and-driven at 64 vs 1000 (non-power-of-two).
-    auto configureMix50 = [] (auto& apvts) { setParam (apvts, "mix", 50.0f); };
-    const auto ref = renderExciter (noise, 512, 512, configureMix50);
+    checkBlockSizes (noise, [] (auto& apvts) { setParam (apvts, "mix", 50.0f); });
+}
+#endif
+
+#if HP_CHECK_SONICDECIMATOR
+// At its default settings (Rate 44100 Hz, Bit Depth 16) on a 44.1 kHz host, SonicDecimator was
+// transparent apart from 16-bit quantisation before oversampling was added: the rate stage
+// passed audio through whenever Rate >= the host rate. Oversampling made the rate stage compare
+// Rate with the 4x rate instead, so it sample-and-held at 44.1 kHz behind a 19.8 kHz low-pass.
+// The reference here is the same 4x oversampler doing up then down with nothing in between, so
+// the only allowed difference is the 16-bit quantiser's (about 3e-5).
+void checkDefaultTransparency()
+{
+    constexpr double hostRate = 44100.0;
+    const auto noise = testNoise (22050);
+
+    int latency = -1;
+    auto out = renderPlugin (noise, 512, 512, nullptr, &latency, hostRate);
+
+    juce::dsp::Oversampling<float> reference (2, 2, juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR, true, true);
+    reference.initProcessing (512);
+    reference.reset();
+    std::vector<float> ref (noise.size(), 0.0f);
+    juce::AudioBuffer<float> buf (2, 512);
+    for (size_t start = 0; start < noise.size(); start += 512)
     {
-        int latencyA = -1, latencyB = -1;
-        auto a = renderExciter (noise, 64, 64, configureMix50, &latencyA);
-        auto b = renderExciter (noise, 1000, 1000, configureMix50, &latencyB);
-        const float d = maxAbsDiff (a, b);
-        if (latencyA != latencyB || d > 1.0e-5f)
-        {
-            std::cerr << "FAIL block sizes 64 vs 1000: latency " << latencyA << "/" << latencyB
-                       << ", max diff " << d << "\n";
-            ++failures;
-        }
-        else
-            std::cout << "ok   block sizes 64 vs 1000 match (max diff " << d << ")\n";
+        const int n = (int) std::min ((size_t) 512, noise.size() - start);
+        for (int ch = 0; ch < 2; ++ch)
+            for (int i = 0; i < n; ++i)
+                buf.setSample (ch, i, noise[start + (size_t) i]);
+        juce::dsp::AudioBlock<float> block (buf.getArrayOfWritePointers(), 2, (size_t) n);
+        reference.processSamplesUp (block);
+        reference.processSamplesDown (block);
+        for (int i = 0; i < n; ++i)
+            ref[start + (size_t) i] = buf.getSample (0, i);
     }
 
-    // 6. A host block larger than the prepared size (4096 into a 512-sample preparation) is
-    //    processed in chunks and matches the 512-block render.
+    const float d = maxAbsDiff (out, ref);
+    if (d > 2.0e-4f || latency != (int) reference.getLatencyInSamples())
     {
-        auto big = renderExciter (noise, 512, 4096, configureMix50);
-        const float d = maxAbsDiff (big, ref);
-        if (d > 1.0e-5f)
-        {
-            std::cerr << "FAIL oversized host block (4096 > prepared 512) differs by " << d << "\n";
-            ++failures;
-        }
-        else
-            std::cout << "ok   oversized host block (4096 > prepared 512) matches (max diff " << d << ")\n";
+        std::cerr << "FAIL defaults at 44.1 kHz are not transparent: max difference from the bare "
+                     "oversampler " << d << " (latency " << latency << ")\n";
+        ++failures;
     }
+    else
+        std::cout << "ok   defaults at 44.1 kHz: output matches the bare 4x oversampler within " << d
+                  << " (16-bit quantisation only)\n";
+}
+
+void checkSonicDecimator()
+{
+    const auto noise = testNoise (20000);
+    const int latency = reportedLatency();
+
+    checkDefaultTransparency();
+    checkDryAlignment (noise);
+    checkBypassLatency (noise, latency);
+    checkBlockSizes (noise, [] (auto& apvts)
+    {
+        setParam (apvts, "mix", 50.0f);
+        setParam (apvts, "bitDepth", 6.0f);
+        setParam (apvts, "sampleRate", 8000.0f);
+    });
+}
+#endif
+
+#if HP_CHECK_TUBETAPE
+void checkTubeTape()
+{
+    const auto noise = testNoise (20000);
+    const int latency = reportedLatency();
+
+    checkBypassLatency (noise, latency);
+    checkBlockSizes (noise, [] (auto& apvts) { setParam (apvts, "drive", 70.0f); });
 }
 #endif
 }
@@ -454,6 +547,10 @@ int main()
 
    #if HP_CHECK_HARMONICEXCITER
     checkHarmonicExciter();
+   #elif HP_CHECK_SONICDECIMATOR
+    checkSonicDecimator();
+   #elif HP_CHECK_TUBETAPE
+    checkTubeTape();
    #endif
 
     std::cout << (failures == 0 ? "PASS" : "FAIL") << " oversampling check\n";

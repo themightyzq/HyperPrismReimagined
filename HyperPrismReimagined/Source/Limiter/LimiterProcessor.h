@@ -63,10 +63,16 @@ private:
     // DSP members
     double currentSampleRate = 44100.0;
     
-    // Circular buffer for lookahead
-    juce::AudioBuffer<float> lookaheadBuffer;
-    int lookaheadWritePos = 0;
-    int lookaheadSamples = 0;
+    // Lookahead. The audio is always delayed by the maximum Lookahead (kMaxLookaheadMs),
+    // which is the latency reported to the host, so it never changes with the Lookahead
+    // setting or the block size. The gain computer reads the same per-channel ring buffer
+    // `lookahead` ms nearer the input, and ramps the gain down over that window, so gain
+    // reduction is in place when a peak reaches the output.
+    static constexpr double kMaxLookaheadMs = 20.0;
+    int maxDelaySamples = 0;
+    int ringSize = 1;
+    int writePosition = 0;
+    std::vector<float> delayRing; // ringSize samples per channel, pre-allocated
     
     // Envelope followers for each channel
     std::vector<float> envelopeFollowers;
@@ -78,6 +84,10 @@ private:
     // release-time coefficient abruptly; advanced once per block via skip(), see
     // processBlock(). Fix for the "Release parameter has no audible effect" defect.
     juce::SmoothedValue<float> releaseMsSmoothed;
+
+    // Input gain and ceiling, smoothed over 30 ms (per-sample gains).
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> inputGainSmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> ceilingSmoothed;
 
     // Metering
     std::atomic<float> currentGainReduction { 0.0f };

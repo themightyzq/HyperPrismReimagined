@@ -101,6 +101,13 @@ void HyperPhaserProcessor::prepareToPlay(double sampleRate, int)
     bandwidthSmoothed.reset(sampleRate, smoothingTime);
     feedbackSmoothed.reset(sampleRate, smoothingTime);
     mixSmoothed.reset(sampleRate, smoothingTime);
+
+    // Start every smoother at the current parameter value (no ramp from a stale value)
+    baseFreqSmoothed.setCurrentAndTargetValue(parameters.getRawParameterValue(BASE_FREQ_ID)->load());
+    depthSmoothed.setCurrentAndTargetValue(parameters.getRawParameterValue(PEAK_NOTCH_DEPTH_ID)->load());
+    bandwidthSmoothed.setCurrentAndTargetValue(parameters.getRawParameterValue(BANDWIDTH_ID)->load());
+    feedbackSmoothed.setCurrentAndTargetValue(parameters.getRawParameterValue(FEEDBACK_ID)->load() * 0.01f);
+    mixSmoothed.setCurrentAndTargetValue(parameters.getRawParameterValue(MIX_ID)->load() * 0.01f);
 }
 
 void HyperPhaserProcessor::releaseResources()
@@ -169,59 +176,67 @@ void HyperPhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::
     if (bypassed)
         return;
 
-    // Get current parameter values directly for real-time response
-    const float baseFreq = parameters.getRawParameterValue(BASE_FREQ_ID)->load();
+    // Targets for this block; the smoothers glide to them (the sweep rate is a rate, not smoothed)
+    baseFreqSmoothed.setTargetValue(parameters.getRawParameterValue(BASE_FREQ_ID)->load());
     const float sweepRate = parameters.getRawParameterValue(SWEEP_RATE_ID)->load();
-    const float depth = parameters.getRawParameterValue(PEAK_NOTCH_DEPTH_ID)->load();
-    const float bandwidth = parameters.getRawParameterValue(BANDWIDTH_ID)->load();
-    const float feedback = parameters.getRawParameterValue(FEEDBACK_ID)->load() * 0.01f;
-    const float mix = parameters.getRawParameterValue(MIX_ID)->load() * 0.01f;
+    depthSmoothed.setTargetValue(parameters.getRawParameterValue(PEAK_NOTCH_DEPTH_ID)->load());
+    bandwidthSmoothed.setTargetValue(parameters.getRawParameterValue(BANDWIDTH_ID)->load());
+    feedbackSmoothed.setTargetValue(parameters.getRawParameterValue(FEEDBACK_ID)->load() * 0.01f);
+    mixSmoothed.setTargetValue(parameters.getRawParameterValue(MIX_ID)->load() * 0.01f);
 
-    // Process each channel
     const int numChannels = juce::jmin(totalNumInputChannels, 2);
-    
-    for (int channel = 0; channel < numChannels; ++channel)
+    if (numChannels < 1)
+        return;
+
+    // Sample-outer / channel-inner so each smoother advances exactly once per sample
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        auto& state = channelStates[static_cast<size_t>(channel)];
-        
-        for (int sample = 0; sample < numSamples; ++sample)
+        const float baseFreq = baseFreqSmoothed.getNextValue();
+        const float depth = depthSmoothed.getNextValue();
+        const float bandwidth = bandwidthSmoothed.getNextValue();
+        const float feedback = feedbackSmoothed.getNextValue();
+        const float mix = mixSmoothed.getNextValue();
+
+        const float bandwidthFactor = 1.0f + (bandwidth / 100.0f) * 3.0f; // 1 to 4 stages based on bandwidth
+        const int activeStages = static_cast<int>(bandwidthFactor * 2.0f); // 2 to 8 stages
+        const float depthGain = processPeakNotchDepth(depth);
+
+        for (int channel = 0; channel < numChannels; ++channel)
         {
-            
+            auto* channelData = buffer.getWritePointer(channel);
+            auto& state = channelStates[static_cast<size_t>(channel)];
+
             // Update LFO
             const float lfoValue = std::sin(state.lfoPhase);
             state.lfoPhase += 2.0f * juce::MathConstants<float>::pi * sweepRate / currentSampleRate;
             if (state.lfoPhase >= 2.0f * juce::MathConstants<float>::pi)
                 state.lfoPhase -= 2.0f * juce::MathConstants<float>::pi;
-            
+
             // Calculate modulated frequency
             const float modulatedFreq = baseFreq * std::exp2f(lfoValue);
-            
+
             // Get input sample
-            float inputSample = channelData[static_cast<size_t>(sample)];
+            const float inputSample = channelData[static_cast<size_t>(sample)];
             float processedSample = inputSample;
-            
+
             // Apply allpass stages
             const float coefficient = calculateAllpassCoefficient(modulatedFreq);
-            const float bandwidthFactor = 1.0f + (bandwidth / 100.0f) * 3.0f; // 1 to 4 stages based on bandwidth
-            const int activeStages = static_cast<int>(bandwidthFactor * 2.0f); // 2 to 8 stages
-            
+
             for (int stage = 0; stage < activeStages && stage < ChannelState::NUM_STAGES; ++stage)
             {
                 processedSample = state.stages[static_cast<size_t>(stage)].process(processedSample, coefficient);
             }
-            
+
             // Apply peak/notch depth processing
-            const float depthGain = processPeakNotchDepth(depth);
             processedSample *= depthGain;
-            
+
             // Apply feedback (with limiting for stability)
             if (feedback > 0.0f)
             {
                 processedSample += processedSample * feedback;
                 processedSample = juce::jlimit(-1.0f, 1.0f, processedSample);
             }
-            
+
             // Mix dry and wet signals
             channelData[static_cast<size_t>(sample)] = inputSample * (1.0f - mix) + processedSample * mix;
         }

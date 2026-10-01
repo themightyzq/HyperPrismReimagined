@@ -76,7 +76,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout ChorusProcessor::createParam
     return { parameters.begin(), parameters.end() };
 }
 
-void ChorusProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void ChorusProcessor::prepareToPlay(double sampleRate, int)
 {
     currentSampleRate = sampleRate;
     
@@ -94,12 +94,18 @@ void ChorusProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     leftHighCut.reset();
     rightHighCut.reset();
     
-    // Pre-allocate dry buffer
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    // Smoothers start at the current parameter values
+    mixSmoothed.reset (sampleRate, 0.03);      mixSmoothed.setCurrentAndTargetValue (mixParam->load());
+    depthSmoothed.reset (sampleRate, 0.12);    depthSmoothed.setCurrentAndTargetValue (depthParam->load());
+    feedbackSmoothed.reset (sampleRate, 0.03); feedbackSmoothed.setCurrentAndTargetValue (feedbackParam->load());
+    delaySmoothed.reset (sampleRate, 0.03);    delaySmoothed.setCurrentAndTargetValue (delayParam->load());
+    lowCutSmoothed.reset (sampleRate, 0.03);   lowCutSmoothed.setCurrentAndTargetValue (lowCutParam->load());
+    highCutSmoothed.reset (sampleRate, 0.03);  highCutSmoothed.setCurrentAndTargetValue (highCutParam->load());
 
-    // Reset filter state
+    // Force the filter coefficients to be computed on the first block
     previousLowCutFreq = -1.0f;
     previousHighCutFreq = -1.0f;
+    filterUpdateCounter = 0;
 }
 
 void ChorusProcessor::releaseResources()
@@ -144,20 +150,20 @@ void ChorusProcessor::processChorus(juce::AudioBuffer<float>& buffer)
         return;
     
     // Get parameter values
-    float mix = mixParam->load();
     float rate = rateParam->load();
-    float depth = depthParam->load();
-    float feedback = feedbackParam->load();
-    float delayMs = delayParam->load();
-    
+
+    mixSmoothed.setTargetValue(mixParam->load());
+    depthSmoothed.setTargetValue(depthParam->load());
+    feedbackSmoothed.setTargetValue(feedbackParam->load());
+    delaySmoothed.setTargetValue(delayParam->load());
+    lowCutSmoothed.setTargetValue(lowCutParam->load());
+    highCutSmoothed.setTargetValue(highCutParam->load());
+
     // Update filters if needed
-    updateFilters();
+    updateFilters(lowCutSmoothed.getCurrentValue(), highCutSmoothed.getCurrentValue());
     
     // Calculate LFO increment
     float lfoIncrement = (rate * juce::MathConstants<float>::twoPi) / static_cast<float>(currentSampleRate);
-    
-    // Copy dry signal (pre-allocated buffer)
-    dryBuffer.makeCopyOf(buffer);
     
     // Get audio data
     auto* leftChannel = buffer.getWritePointer(0);
@@ -166,6 +172,20 @@ void ChorusProcessor::processChorus(juce::AudioBuffer<float>& buffer)
     // Process each sample
     for (int sample = 0; sample < numSamples; ++sample)
     {
+        const float mix = mixSmoothed.getNextValue();
+        const float depth = depthSmoothed.getNextValue();
+        const float feedback = feedbackSmoothed.getNextValue();
+        const float delayMs = delaySmoothed.getNextValue();
+        const float lowCutFreq = lowCutSmoothed.getNextValue();
+        const float highCutFreq = highCutSmoothed.getNextValue();
+
+        // Re-derive the filter coefficients every 16 samples while a cutoff is moving
+        if (++filterUpdateCounter >= 16)
+        {
+            filterUpdateCounter = 0;
+            updateFilters(lowCutFreq, highCutFreq);
+        }
+
         // Calculate LFO values
         float lfoLeft = std::sin(lfoPhase);
         float lfoRight = std::sin(lfoPhaseRight);
@@ -204,15 +224,14 @@ void ChorusProcessor::processChorus(juce::AudioBuffer<float>& buffer)
         if (lfoPhaseRight >= juce::MathConstants<float>::twoPi)
             lfoPhaseRight -= juce::MathConstants<float>::twoPi;
     }
+
+    // Make sure the filters end the block exactly on the current cutoffs
+    updateFilters(lowCutSmoothed.getCurrentValue(), highCutSmoothed.getCurrentValue());
 }
 
-void ChorusProcessor::updateFilters()
+void ChorusProcessor::updateFilters(float lowCutFreq, float highCutFreq)
 {
-    float lowCutFreq = lowCutParam->load();
-    float highCutFreq = highCutParam->load();
-
-    if (std::abs(lowCutFreq - previousLowCutFreq) > 0.1f ||
-        std::abs(highCutFreq - previousHighCutFreq) > 0.1f)
+    if (lowCutFreq != previousLowCutFreq || highCutFreq != previousHighCutFreq)
     {
         leftLowCut.setCoefficients(juce::IIRCoefficients::makeHighPass(currentSampleRate, lowCutFreq, 0.707f));
         rightLowCut.setCoefficients(juce::IIRCoefficients::makeHighPass(currentSampleRate, lowCutFreq, 0.707f));

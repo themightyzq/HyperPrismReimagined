@@ -61,7 +61,7 @@ private:
     
     // Audio processing
     void processReverb(juce::AudioBuffer<float>& buffer);
-    void updateFilters();
+    void updateFilters (float lowCutFreq, float highCutFreq);
     
     // State
     juce::AudioProcessorValueTreeState valueTreeState;
@@ -88,8 +88,16 @@ private:
     
     // Processing state
     double currentSampleRate = 44100.0;
-    float previousFilterFreq = -1.0f;
+    float previousLowCutFreq = -1.0f;
+    float previousHighCutFreq = -1.0f;
+    int filterUpdateCounter = 0;
+    int preparedBlockSize = 512;
 
+    // Parameter smoothers (30 ms), advanced once per sample
+    juce::SmoothedValue<float> mixSmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> lowCutSmoothed, highCutSmoothed;
+
+    // Pre-allocated in prepareToPlay; processBlock hands it chunks of at most preparedBlockSize
     juce::AudioBuffer<float> dryBuffer;
 
     // Editor size persistence

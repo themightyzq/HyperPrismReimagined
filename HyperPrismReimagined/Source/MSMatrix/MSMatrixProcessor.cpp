@@ -105,6 +105,9 @@ void MSMatrixProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     smoothedMidLevel.setCurrentAndTargetValue(1.0f);
     smoothedSideLevel.setCurrentAndTargetValue(1.0f);
     smoothedStereoBalance.setCurrentAndTargetValue(0.0f);
+
+    smoothedOutputLevel.reset(sampleRate, 0.03);
+    smoothedOutputLevel.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
     
     // Reset metering
     leftLevel.store(0.0f);
@@ -171,7 +174,7 @@ void MSMatrixProcessor::processLRToMS(juce::AudioBuffer<float>& buffer)
     const bool midSolo = midSoloParam->load() > 0.5f;
     const bool sideSolo = sideSoloParam->load() > 0.5f;
     const float stereoBalance = stereoBalanceParam->load() / 100.0f; // -1 to +1
-    const float outputLevel = juce::Decibels::decibelsToGain(outputLevelParam->load());
+    smoothedOutputLevel.setTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
     
     // Convert to linear gain
     float midGain = (midLevelDB <= -59.9f) ? 0.0f : juce::Decibels::decibelsToGain(midLevelDB);
@@ -213,6 +216,7 @@ void MSMatrixProcessor::processLRToMS(juce::AudioBuffer<float>& buffer)
         float currentMidGain = smoothedMidLevel.getNextValue();
         float currentSideGain = smoothedSideLevel.getNextValue();
         float currentBalance = smoothedStereoBalance.getNextValue();
+        const float outputLevel = smoothedOutputLevel.getNextValue();
         
         mid *= currentMidGain;
         side *= currentSideGain;
@@ -262,7 +266,7 @@ void MSMatrixProcessor::processMSToLR(juce::AudioBuffer<float>& buffer)
     const bool midSolo = midSoloParam->load() > 0.5f;
     const bool sideSolo = sideSoloParam->load() > 0.5f;
     const float stereoBalance = stereoBalanceParam->load() / 100.0f;
-    const float outputLevel = juce::Decibels::decibelsToGain(outputLevelParam->load());
+    smoothedOutputLevel.setTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
     
     float midGain = (midLevelDB <= -59.9f) ? 0.0f : juce::Decibels::decibelsToGain(midLevelDB);
     float sideGain = (sideLevelDB <= -59.9f) ? 0.0f : juce::Decibels::decibelsToGain(sideLevelDB);
@@ -298,6 +302,7 @@ void MSMatrixProcessor::processMSToLR(juce::AudioBuffer<float>& buffer)
         float currentMidGain = smoothedMidLevel.getNextValue();
         float currentSideGain = smoothedSideLevel.getNextValue();
         float currentBalance = smoothedStereoBalance.getNextValue();
+        const float outputLevel = smoothedOutputLevel.getNextValue();
         
         mid *= currentMidGain;
         side *= currentSideGain;
@@ -346,7 +351,7 @@ void MSMatrixProcessor::processMSThrough(juce::AudioBuffer<float>& buffer)
     const float sideLevelDB = sideLevelParam->load();
     const bool midSolo = midSoloParam->load() > 0.5f;
     const bool sideSolo = sideSoloParam->load() > 0.5f;
-    const float outputLevel = juce::Decibels::decibelsToGain(outputLevelParam->load());
+    smoothedOutputLevel.setTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
     
     float midGain = (midLevelDB <= -59.9f) ? 0.0f : juce::Decibels::decibelsToGain(midLevelDB);
     float sideGain = (sideLevelDB <= -59.9f) ? 0.0f : juce::Decibels::decibelsToGain(sideLevelDB);
@@ -381,6 +386,7 @@ void MSMatrixProcessor::processMSThrough(juce::AudioBuffer<float>& buffer)
         float currentMidGain = smoothedMidLevel.getNextValue();
         float currentSideGain = smoothedSideLevel.getNextValue();
         
+        const float outputLevel = smoothedOutputLevel.getNextValue();
         mid *= currentMidGain * outputLevel;
         side *= currentSideGain * outputLevel;
         

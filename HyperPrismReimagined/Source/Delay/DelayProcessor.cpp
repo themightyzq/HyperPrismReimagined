@@ -82,8 +82,18 @@ void DelayProcessor::prepareToPlay(double sampleRate, int)
     leftHighCut.reset();
     rightHighCut.reset();
     
-    // Reset filter state
-    previousFilterFreq = -1.0f;
+    // Smoothers start at the current parameter values
+    mixSmoothed.reset (sampleRate, 0.03);          mixSmoothed.setCurrentAndTargetValue (mixParam->load());
+    delayTimeSmoothed.reset (sampleRate, 0.03);    delayTimeSmoothed.setCurrentAndTargetValue (delayTimeParam->load());
+    feedbackSmoothed.reset (sampleRate, 0.03);     feedbackSmoothed.setCurrentAndTargetValue (feedbackParam->load());
+    stereoOffsetSmoothed.reset (sampleRate, 0.03); stereoOffsetSmoothed.setCurrentAndTargetValue (stereoOffsetParam->load());
+    lowCutSmoothed.reset (sampleRate, 0.03);       lowCutSmoothed.setCurrentAndTargetValue (lowCutParam->load());
+    highCutSmoothed.reset (sampleRate, 0.03);      highCutSmoothed.setCurrentAndTargetValue (highCutParam->load());
+
+    // Force the filter coefficients to be computed on the first block
+    previousLowCutFreq = -1.0f;
+    previousHighCutFreq = -1.0f;
+    filterUpdateCounter = 0;
 }
 
 void DelayProcessor::releaseResources()
@@ -127,21 +137,17 @@ void DelayProcessor::processDelay(juce::AudioBuffer<float>& buffer)
     if (numChannels < 2)
         return;
     
-    // Get parameter values
-    float mix = mixParam->load();
-    float delayTimeMs = delayTimeParam->load();
-    float feedback = feedbackParam->load();
-    float stereoOffsetMs = stereoOffsetParam->load();
+    mixSmoothed.setTargetValue(mixParam->load());
+    delayTimeSmoothed.setTargetValue(delayTimeParam->load());
+    feedbackSmoothed.setTargetValue(feedbackParam->load());
+    stereoOffsetSmoothed.setTargetValue(stereoOffsetParam->load());
+    lowCutSmoothed.setTargetValue(lowCutParam->load());
+    highCutSmoothed.setTargetValue(highCutParam->load());
     
     // Update filters if needed
-    updateFilters();
+    updateFilters(lowCutSmoothed.getCurrentValue(), highCutSmoothed.getCurrentValue());
     
-    // Convert delay times to samples
-    float leftDelayInSamples = (delayTimeMs / 1000.0f) * static_cast<float>(currentSampleRate);
-    float rightDelayInSamples = leftDelayInSamples + ((stereoOffsetMs / 1000.0f) * static_cast<float>(currentSampleRate));
-    
-    leftDelay.setDelay(leftDelayInSamples);
-    rightDelay.setDelay(rightDelayInSamples);
+    const float samplesPerMs = static_cast<float>(currentSampleRate) / 1000.0f;
     
     // Get audio data
     auto* leftChannel = buffer.getWritePointer(0);
@@ -150,6 +156,26 @@ void DelayProcessor::processDelay(juce::AudioBuffer<float>& buffer)
     // Process each sample
     for (int sample = 0; sample < numSamples; ++sample)
     {
+        const float mix = mixSmoothed.getNextValue();
+        const float delayTimeMs = delayTimeSmoothed.getNextValue();
+        const float feedback = feedbackSmoothed.getNextValue();
+        const float stereoOffsetMs = stereoOffsetSmoothed.getNextValue();
+        const float lowCutFreq = lowCutSmoothed.getNextValue();
+        const float highCutFreq = highCutSmoothed.getNextValue();
+        
+        // Re-derive the filter coefficients every 16 samples while a cutoff is moving
+        if (++filterUpdateCounter >= 16)
+        {
+            filterUpdateCounter = 0;
+            updateFilters(lowCutFreq, highCutFreq);
+        }
+        
+        // Smoothed (fractional) delay times in samples
+        const float leftDelayInSamples = delayTimeMs * samplesPerMs;
+        const float rightDelayInSamples = leftDelayInSamples + stereoOffsetMs * samplesPerMs;
+        leftDelay.setDelay(leftDelayInSamples);
+        rightDelay.setDelay(rightDelayInSamples);
+        
         // Process left channel
         float leftInput = leftChannel[static_cast<size_t>(sample)];
         float leftDelayed = leftDelay.processSample(leftInput, feedback);
@@ -170,16 +196,15 @@ void DelayProcessor::processDelay(juce::AudioBuffer<float>& buffer)
         
         rightChannel[static_cast<size_t>(sample)] = rightInput + (mix * (rightDelayed - rightInput));
     }
+    
+    // Make sure the filters end the block exactly on the current cutoffs
+    updateFilters(lowCutSmoothed.getCurrentValue(), highCutSmoothed.getCurrentValue());
 }
 
-void DelayProcessor::updateFilters()
+void DelayProcessor::updateFilters(float lowCutFreq, float highCutFreq)
 {
-    float lowCutFreq = lowCutParam->load();
-    float highCutFreq = highCutParam->load();
-    
     // Only update if frequencies changed
-    if (std::abs(lowCutFreq - previousFilterFreq) > 0.1f || 
-        std::abs(highCutFreq - previousFilterFreq) > 0.1f)
+    if (lowCutFreq != previousLowCutFreq || highCutFreq != previousHighCutFreq)
     {
         // High-pass filter (low cut)
         leftLowCut.setCoefficients(juce::IIRCoefficients::makeHighPass(currentSampleRate, lowCutFreq, 0.707f));
@@ -189,7 +214,8 @@ void DelayProcessor::updateFilters()
         leftHighCut.setCoefficients(juce::IIRCoefficients::makeLowPass(currentSampleRate, highCutFreq, 0.707f));
         rightHighCut.setCoefficients(juce::IIRCoefficients::makeLowPass(currentSampleRate, highCutFreq, 0.707f));
         
-        previousFilterFreq = lowCutFreq; // Track one of them
+        previousLowCutFreq = lowCutFreq;
+        previousHighCutFreq = highCutFreq;
     }
 }
 

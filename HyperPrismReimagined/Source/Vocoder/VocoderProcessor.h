@@ -5,6 +5,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <array>
 
 class VocoderProcessor : public juce::AudioProcessor
 {
@@ -75,8 +76,10 @@ private:
         VocoderBand() = default;
 
         void prepare(double sampleRate, int samplesPerBlock);
-        void setFrequency(float frequency, float bandwidth);
-        void setReleaseTime(float releaseMs);
+        // bandwidthHz is converted to the filter's Q (centre / bandwidth). The coefficients
+        // are written into the filters' existing storage, so this does not allocate.
+        void setFrequency(float frequency, float bandwidthHz);
+        void setReleaseCoefficient(float coefficient) { releaseCoeff = coefficient; }
         void reset();
         
         float processCarrier(float carrierSample);
@@ -98,7 +101,6 @@ private:
         // Processed carrier signal
         float processedCarrier = 0.0f;
         
-        void updateEnvelopeCoeff();
     };
     
     class CarrierOscillator
@@ -123,6 +125,9 @@ private:
     
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void processVocoding(juce::AudioBuffer<float>& buffer);
+    // Recomputes the band centres for currentBandCount and rebuilds every channel's band
+    // filters at currentSampleRate. Allocation-free (called from prepareToPlay and, when
+    // Band Count changes, from processBlock).
     void setupVocoderBands();
     
     juce::AudioProcessorValueTreeState valueTreeState;
@@ -135,13 +140,21 @@ private:
     std::atomic<float>* releaseTimeParam = nullptr;
     std::atomic<float>* outputLevelParam = nullptr;
     
-    // DSP components
-    std::vector<VocoderBand> vocoderBands;
-    CarrierOscillator carrierOscillator;
-    
+    // DSP components: one filter bank and one carrier oscillator per channel (they used to be
+    // shared, so the second channel ran the oscillator and filters on from where the first
+    // left off). Sized for the maximum band count up front.
+    static constexpr int kMaxChannels = 2;
+    std::array<std::array<VocoderBand, maxBands>, kMaxChannels> vocoderBands;
+    std::array<CarrierOscillator, kMaxChannels> carrierOscillators;
+
     // State variables
+    double currentSampleRate = 44100.0;
     int currentBandCount = defaultBands;
-    std::vector<float> bandFrequencies;
+    std::array<float, maxBands> bandFrequencies {};
+
+    // Modulator gain and output level, smoothed over 30 ms.
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> modulatorGainSmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> outputGainSmoothed;
     
     // Pre-allocated buffer for band level accumulation (real-time safe)
     std::vector<float> bandLevelSums;

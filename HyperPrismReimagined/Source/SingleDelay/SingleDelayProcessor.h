@@ -67,7 +67,7 @@ private:
     //==============================================================================
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void processDelay(juce::AudioBuffer<float>& buffer);
-    void updateFilters();
+    void updateFilters (float highCut, float lowCut);
     
     juce::AudioProcessorValueTreeState valueTreeState;
     
@@ -90,6 +90,11 @@ private:
     double currentSampleRate = 44100.0;
     float previousHighCut = -1.0f;
     float previousLowCut = -1.0f;
+    int filterUpdateCounter = 0;
+
+    // Parameter smoothers (30 ms), advanced once per sample
+    juce::SmoothedValue<float> delayTimeSmoothed, feedbackSmoothed, wetDryMixSmoothed, stereoSpreadSmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> highCutSmoothed, lowCutSmoothed;
     
     // Metering
     std::atomic<float> inputLevel { 0.0f };

@@ -122,7 +122,12 @@ void TremoloProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     float stereoPhase = *valueTreeState.getRawParameterValue(STEREO_PHASE_ID) / 360.0f;
     lfoRight.setPhase(stereoPhase);
 
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    preparedBlockSize = juce::jmax(1, samplesPerBlock);
+    dryBuffer.setSize(juce::jmax(1, juce::jmax(getTotalNumInputChannels(), getTotalNumOutputChannels())),
+                      preparedBlockSize);
+    rateValues.assign(static_cast<size_t>(preparedBlockSize), 0.0f);
+    depthValues.assign(static_cast<size_t>(preparedBlockSize), 0.0f);
+    mixValues.assign(static_cast<size_t>(preparedBlockSize), 0.0f);
 }
 
 void TremoloProcessor::releaseResources()
@@ -174,11 +179,35 @@ void TremoloProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     const auto waveform = static_cast<Waveform>(static_cast<int>(*valueTreeState.getRawParameterValue(WAVEFORM_ID)));
     const float stereoPhase = *valueTreeState.getRawParameterValue(STEREO_PHASE_ID) / 360.0f;
     
+    // Split host blocks larger than the prepared size so dryBuffer is never outgrown
+    const int totalSamples = buffer.getNumSamples();
+    for (int start = 0; start < totalSamples; start += preparedBlockSize)
+    {
+        const int len = juce::jmin(preparedBlockSize, totalSamples - start);
+        juce::AudioBuffer<float> chunk(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), start, len);
+        processChunk(chunk, waveform, stereoPhase);
+    }
+}
+
+void TremoloProcessor::processChunk(juce::AudioBuffer<float>& buffer, Waveform waveform, float stereoPhase)
+{
+    const int numSamples = buffer.getNumSamples();
+    const int numChannels = juce::jmin(buffer.getNumChannels(), dryBuffer.getNumChannels());
+
     // Store dry signal for mixing
-    dryBuffer.makeCopyOf(buffer);
-    
+    for (int channel = 0; channel < numChannels; ++channel)
+        dryBuffer.copyFrom(channel, 0, buffer, channel, 0, numSamples);
+
+    // Advance each smoother exactly once per sample; every channel then reads the same values
+    for (int sample = 0; sample < numSamples; ++sample)
+    {
+        rateValues[static_cast<size_t>(sample)] = rateSmoothed.getNextValue();
+        depthValues[static_cast<size_t>(sample)] = depthSmoothed.getNextValue() * 0.01f; // Convert to 0-1
+        mixValues[static_cast<size_t>(sample)] = mixSmoothed.getNextValue() * 0.01f;     // Convert to 0-1
+    }
+
     // Process each channel
-    for (int channel = 0; channel < totalNumOutputChannels; ++channel)
+    for (int channel = 0; channel < numChannels; ++channel)
     {
         auto* channelData = buffer.getWritePointer(channel);
         auto* dryData = dryBuffer.getReadPointer(channel);
@@ -193,12 +222,12 @@ void TremoloProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
             lfo.setPhase(std::fmod(currentPhase + stereoPhase, 1.0f));
         }
         
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        for (int sample = 0; sample < numSamples; ++sample)
         {
             // Get smoothed parameters
-            const float rate = rateSmoothed.getNextValue();
-            const float depth = depthSmoothed.getNextValue() * 0.01f; // Convert to 0-1
-            const float mix = mixSmoothed.getNextValue() * 0.01f; // Convert to 0-1
+            const float rate = rateValues[static_cast<size_t>(sample)];
+            const float depth = depthValues[static_cast<size_t>(sample)];
+            const float mix = mixValues[static_cast<size_t>(sample)];
             
             // Generate LFO value
             float lfoValue = lfo.process(rate, waveform);

@@ -52,8 +52,8 @@ plugin only.
 
 ### Dynamics
 - Compressor: threshold/ratio/knee compressor with makeup gain and parallel mix
-- Limiter: brick-wall limiter with ceiling, lookahead, and soft clip mode
-- Noise Gate: gate with threshold, attack, hold, release, range, and lookahead
+- Limiter: brick-wall limiter with ceiling, lookahead, and soft clip mode (20 ms latency, reported to the host)
+- Noise Gate: gate with threshold, attack, hold, release, range, and lookahead (10 ms latency, reported to the host)
 - Stereo Dynamics: independent mid/side compression with separate threshold and ratio
 
 ### Modulation
@@ -72,7 +72,7 @@ plugin only.
 - Band-Reject Filter: notch/band-reject with center frequency, Q, and gain
 
 ### Delay and Reverb
-- Delay: stereo delay with feedback, tone shaping, stereo offset, and tempo sync
+- Delay: stereo delay with feedback, tone shaping, and stereo offset
 - Single Delay: simple delay with feedback, stereo spread, and high/low cut filters
 - Echo: classic echo with delay time and feedback
 - Multi Delay: 4-tap delay with per-tap time, level, pan, and feedback, tab-based UI
@@ -121,5 +121,9 @@ that licence still applies to those copies.
 PitchChanger uses Signalsmith Audio's `signalsmith-stretch` and `linear` libraries
 (`HyperPrismReimagined/ThirdParty/signalsmith-stretch/`), by Geraint Luff / Signalsmith Audio,
 MIT licensed (see the `LICENSE.txt` in each folder).
+
+The plugin windows use the fonts Barlow Condensed, VT323 and IBM Plex Mono, embedded through the
+ZQ SFX `zqsfx_ui` module. They are licensed under the SIL Open Font License 1.1; the licence
+texts are in `HyperPrismReimagined/ThirdParty/fonts/`.
 
 ZQ SFX, https://www.zq-sfx.com, connect@zq-sfx.com.

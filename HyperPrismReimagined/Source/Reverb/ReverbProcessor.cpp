@@ -92,10 +92,20 @@ void ReverbProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     leftHighCut.reset();
     rightHighCut.reset();
     
-    // Reset filter state
-    previousFilterFreq = -1.0f;
+    // Smoothers start at the current parameter values
+    mixSmoothed.reset (sampleRate, 0.03);     mixSmoothed.setCurrentAndTargetValue (mixParam->load());
+    lowCutSmoothed.reset (sampleRate, 0.03);  lowCutSmoothed.setCurrentAndTargetValue (lowCutParam->load());
+    highCutSmoothed.reset (sampleRate, 0.03); highCutSmoothed.setCurrentAndTargetValue (highCutParam->load());
 
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    // Force the filter coefficients to be computed on the first block
+    previousLowCutFreq = -1.0f;
+    previousHighCutFreq = -1.0f;
+    filterUpdateCounter = 0;
+
+    // Host blocks larger than this are processed in chunks of this size
+    preparedBlockSize = juce::jmax (1, samplesPerBlock);
+    dryBuffer.setSize(juce::jmax (2, getTotalNumInputChannels()), preparedBlockSize);
+    dryBuffer.clear();
 }
 
 void ReverbProcessor::releaseResources()
@@ -127,8 +137,15 @@ void ReverbProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     if (bypassParam->load() > 0.5f)
         return;
     
-    // Process reverb effect
-    processReverb(buffer);
+    // Process reverb effect, in chunks no larger than the prepared block size
+    const int numSamples = buffer.getNumSamples();
+    
+    for (int start = 0; start < numSamples; start += preparedBlockSize)
+    {
+        const int len = juce::jmin(preparedBlockSize, numSamples - start);
+        juce::AudioBuffer<float> chunk(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), start, len);
+        processReverb(chunk);
+    }
 }
 
 void ReverbProcessor::processReverb(juce::AudioBuffer<float>& buffer)
@@ -140,10 +157,15 @@ void ReverbProcessor::processReverb(juce::AudioBuffer<float>& buffer)
         return;
     
     // Get parameter values
-    float mix = mixParam->load();
     float roomSize = roomSizeParam->load();
     float damping = dampingParam->load();
     float preDelayMs = preDelayParam->load();
+    
+    mixSmoothed.setTargetValue(mixParam->load());
+    lowCutSmoothed.setTargetValue(lowCutParam->load());
+    highCutSmoothed.setTargetValue(highCutParam->load());
+    
+    // Width is not smoothed here: juce::Reverb already ramps its wet gains when it changes
     float width = widthParam->load();
     
     // Update reverb parameters
@@ -156,14 +178,16 @@ void ReverbProcessor::processReverb(juce::AudioBuffer<float>& buffer)
     reverb.setParameters(reverbParams);
     
     // Update filters if needed
-    updateFilters();
+    updateFilters(lowCutSmoothed.getCurrentValue(), highCutSmoothed.getCurrentValue());
     
     // Calculate pre-delay in samples
     int preDelayInSamples = static_cast<int>((preDelayMs / 1000.0f) * currentSampleRate);
     preDelayInSamples = juce::jlimit(0, maxPreDelayInSamples - 1, preDelayInSamples);
     
-    // Create a copy for dry signal
-    dryBuffer.makeCopyOf(buffer);
+    // Copy the dry signal into the pre-allocated buffer (chunks never exceed its size)
+    const int dryChannels = juce::jmin(numChannels, dryBuffer.getNumChannels());
+    for (int channel = 0; channel < dryChannels; ++channel)
+        dryBuffer.copyFrom(channel, 0, buffer, channel, 0, numSamples);
     
     // Apply pre-delay
     if (preDelayInSamples > 0)
@@ -209,34 +233,40 @@ void ReverbProcessor::processReverb(juce::AudioBuffer<float>& buffer)
     
     for (int sample = 0; sample < numSamples; ++sample)
     {
+        const float mix = mixSmoothed.getNextValue();
+        const float lowCutFreq = lowCutSmoothed.getNextValue();
+        const float highCutFreq = highCutSmoothed.getNextValue();
+        
+        // Re-derive the filter coefficients every 16 samples while a cutoff is moving
+        if (++filterUpdateCounter >= 16)
+        {
+            filterUpdateCounter = 0;
+            updateFilters(lowCutFreq, highCutFreq);
+        }
+        
         leftChannel[static_cast<size_t>(sample)] = leftLowCut.processSingleSampleRaw(leftChannel[static_cast<size_t>(sample)]);
         leftChannel[static_cast<size_t>(sample)] = leftHighCut.processSingleSampleRaw(leftChannel[static_cast<size_t>(sample)]);
         
         rightChannel[static_cast<size_t>(sample)] = rightLowCut.processSingleSampleRaw(rightChannel[static_cast<size_t>(sample)]);
         rightChannel[static_cast<size_t>(sample)] = rightHighCut.processSingleSampleRaw(rightChannel[static_cast<size_t>(sample)]);
-    }
-    
-    // Mix wet and dry signals
-    for (int channel = 0; channel < numChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer(channel);
-        auto* dryData = dryBuffer.getReadPointer(channel);
         
-        for (int sample = 0; sample < numSamples; ++sample)
+        // Mix wet and dry signals
+        for (int channel = 0; channel < dryChannels; ++channel)
         {
-            channelData[static_cast<size_t>(sample)] = dryData[static_cast<size_t>(sample)] + (mix * (channelData[static_cast<size_t>(sample)] - dryData[static_cast<size_t>(sample)]));
+            auto* channelData = buffer.getWritePointer(channel);
+            const float dry = dryBuffer.getSample(channel, sample);
+            channelData[static_cast<size_t>(sample)] = dry + (mix * (channelData[static_cast<size_t>(sample)] - dry));
         }
     }
+    
+    // Make sure the filters end the block exactly on the current cutoffs
+    updateFilters(lowCutSmoothed.getCurrentValue(), highCutSmoothed.getCurrentValue());
 }
 
-void ReverbProcessor::updateFilters()
+void ReverbProcessor::updateFilters(float lowCutFreq, float highCutFreq)
 {
-    float lowCutFreq = lowCutParam->load();
-    float highCutFreq = highCutParam->load();
-    
     // Only update if frequencies changed
-    if (std::abs(lowCutFreq - previousFilterFreq) > 0.1f || 
-        std::abs(highCutFreq - previousFilterFreq) > 0.1f)
+    if (lowCutFreq != previousLowCutFreq || highCutFreq != previousHighCutFreq)
     {
         // High-pass filter (low cut)
         leftLowCut.setCoefficients(juce::IIRCoefficients::makeHighPass(currentSampleRate, lowCutFreq, 0.707f));
@@ -246,7 +276,8 @@ void ReverbProcessor::updateFilters()
         leftHighCut.setCoefficients(juce::IIRCoefficients::makeLowPass(currentSampleRate, highCutFreq, 0.707f));
         rightHighCut.setCoefficients(juce::IIRCoefficients::makeLowPass(currentSampleRate, highCutFreq, 0.707f));
         
-        previousFilterFreq = lowCutFreq; // Track one of them
+        previousLowCutFreq = lowCutFreq;
+        previousHighCutFreq = highCutFreq;
     }
 }
 

@@ -17,26 +17,28 @@ void VocoderProcessor::VocoderBand::prepare(double sampleRate, int samplesPerBlo
     spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
     spec.numChannels = 1;
 
+    // Real second-order coefficients before reset(), so the filters' order never changes on
+    // the audio thread (IIR::Filter reallocates its state when it does).
+    setFrequency(1000.0f, 500.0f);
     carrierFilter.prepare(spec);
     modulatorFilter.prepare(spec);
 
-    updateEnvelopeCoeff();
+    releaseCoeff = std::exp(-1.0f / (50.0f * 0.001f * static_cast<float>(currentSampleRate))); // 50 ms
     reset();
 }
 
-void VocoderProcessor::VocoderBand::setFrequency(float frequency, float bandwidth)
+void VocoderProcessor::VocoderBand::setFrequency(float frequency, float bandwidthHz)
 {
-    // Create bandpass filters using second-order sections
-    auto coefficients = juce::dsp::IIR::Coefficients<float>::makeBandPass(
-        currentSampleRate, frequency, bandwidth);
-    
-    carrierFilter.coefficients = coefficients;
-    modulatorFilter.coefficients = coefficients;
-}
+    // Band-pass at `frequency` whose -3 dB bandwidth is bandwidthHz: Q = centre / bandwidth.
+    // (This used to pass the bandwidth in Hz straight in as Q, which made every band a few Hz
+    // wide.) Written into each filter's existing coefficient storage: no allocation.
+    const float nyquistLimit = static_cast<float>(currentSampleRate * 0.49);
+    const float centre = juce::jlimit(10.0f, nyquistLimit, frequency);
+    const float q = centre / juce::jmax(1.0f, bandwidthHz);
+    const auto coefficients = juce::dsp::IIR::ArrayCoefficients<float>::makeBandPass(currentSampleRate, centre, q);
 
-void VocoderProcessor::VocoderBand::setReleaseTime(float releaseMs)
-{
-    releaseCoeff = std::exp(-1.0f / (releaseMs * 0.001f * static_cast<float>(currentSampleRate)));
+    *carrierFilter.coefficients = coefficients;
+    *modulatorFilter.coefficients = coefficients;
 }
 
 void VocoderProcessor::VocoderBand::reset()
@@ -82,10 +84,6 @@ float VocoderProcessor::VocoderBand::getOutput()
     return processedCarrier * envelopeLevel;
 }
 
-void VocoderProcessor::VocoderBand::updateEnvelopeCoeff()
-{
-    setReleaseTime(50.0f); // Default 50ms release
-}
 
 //==============================================================================
 // CarrierOscillator Implementation
@@ -155,8 +153,6 @@ VocoderProcessor::VocoderProcessor()
     // Initialize band levels for metering
     bandLevels.resize(maxBands, 0.0f);
     bandLevelSums.resize(maxBands, 0.0f);
-
-    setupVocoderBands();
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout VocoderProcessor::createParameterLayout()
@@ -205,12 +201,33 @@ juce::AudioProcessorValueTreeState::ParameterLayout VocoderProcessor::createPara
 //==============================================================================
 void VocoderProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    // Prepare DSP components with actual buffer size (fixes 512-sample artifact bug)
-    for (auto& band : vocoderBands)
-        band.prepare(sampleRate, samplesPerBlock);
-    
-    carrierOscillator.prepare(sampleRate);
-    
+    currentSampleRate = sampleRate;
+
+    // Prepare DSP components with actual buffer size (fixes 512-sample artifact bug), then
+    // build the band filters at this sample rate (they used to be built once, at 44.1 kHz,
+    // in the constructor, and never rebuilt).
+    for (auto& channelBands : vocoderBands)
+        for (auto& band : channelBands)
+            band.prepare(sampleRate, samplesPerBlock);
+
+    currentBandCount = juce::jlimit(4, maxBands, static_cast<int>(bandCountParam->load()));
+    setupVocoderBands();
+
+    for (auto& channelBands : vocoderBands)
+        for (auto& band : channelBands)
+            band.reset();
+
+    for (auto& oscillator : carrierOscillators)
+    {
+        oscillator.prepare(sampleRate);
+        oscillator.setFrequency(carrierFreqParam->load());
+    }
+
+    modulatorGainSmoothed.reset(sampleRate, 0.03);
+    outputGainSmoothed.reset(sampleRate, 0.03);
+    modulatorGainSmoothed.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(modulatorGainParam->load()));
+    outputGainSmoothed.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
+
     // Reset metering
     carrierLevel.store(0.0f);
     modulatorLevel.store(0.0f);
@@ -220,10 +237,12 @@ void VocoderProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 
 void VocoderProcessor::releaseResources()
 {
-    for (auto& band : vocoderBands)
-        band.reset();
-    
-    carrierOscillator.reset();
+    for (auto& channelBands : vocoderBands)
+        for (auto& band : channelBands)
+            band.reset();
+
+    for (auto& oscillator : carrierOscillators)
+        oscillator.reset();
 }
 
 bool VocoderProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -259,84 +278,87 @@ void VocoderProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
 void VocoderProcessor::processVocoding(juce::AudioBuffer<float>& buffer)
 {
     const int numSamples = buffer.getNumSamples();
-    const int numChannels = buffer.getNumChannels();
-    
+    const int numChannels = juce::jmin(buffer.getNumChannels(), kMaxChannels);
+    if (numSamples == 0 || numChannels == 0)
+        return;
+
     const float carrierFreq = carrierFreqParam->load();
-    const float modulatorGain = juce::Decibels::decibelsToGain(modulatorGainParam->load());
-    const int bandCount = static_cast<int>(bandCountParam->load());
+    const int bandCount = juce::jlimit(4, maxBands, static_cast<int>(bandCountParam->load()));
     const float releaseTime = releaseTimeParam->load();
-    const float outputGain = juce::Decibels::decibelsToGain(outputLevelParam->load());
-    
-    // Update band count if changed
+    modulatorGainSmoothed.setTargetValue(juce::Decibels::decibelsToGain(modulatorGainParam->load()));
+    outputGainSmoothed.setTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
+
+    // Update band count if changed (allocation-free: the banks are sized for maxBands)
     if (bandCount != currentBandCount)
     {
         currentBandCount = bandCount;
         setupVocoderBands();
     }
-    
-    // Update carrier frequency
-    carrierOscillator.setFrequency(carrierFreq);
-    
+
+    // Update carrier frequency (phase stays continuous)
+    for (auto& oscillator : carrierOscillators)
+        oscillator.setFrequency(carrierFreq);
+
     // Update release time for all bands
-    for (int i = 0; i < currentBandCount; ++i)
-        vocoderBands[static_cast<size_t>(i)].setReleaseTime(releaseTime);
-    
+    const float releaseCoeff = std::exp(-1.0f / (releaseTime * 0.001f * static_cast<float>(currentSampleRate)));
+    for (auto& channelBands : vocoderBands)
+        for (int i = 0; i < currentBandCount; ++i)
+            channelBands[static_cast<size_t>(i)].setReleaseCoefficient(releaseCoeff);
+
     float carrierLevelSum = 0.0f;
     float modulatorLevelSum = 0.0f;
     float outputLevelSum = 0.0f;
-    
+
     // Reset band level accumulation (pre-allocated buffer)
     std::fill(bandLevelSums.begin(), bandLevelSums.end(), 0.0f);
-    
-    for (int channel = 0; channel < numChannels; ++channel)
+
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        
-        for (int sample = 0; sample < numSamples; ++sample)
+        const float modulatorGain = modulatorGainSmoothed.getNextValue();
+        const float outputGain = outputGainSmoothed.getNextValue();
+
+        for (int channel = 0; channel < numChannels; ++channel)
         {
+            auto* channelData = buffer.getWritePointer(channel);
+            auto& bands = vocoderBands[static_cast<size_t>(channel)];
+
             // Use input as modulator
-            float modulator = channelData[sample] * modulatorGain;
+            const float modulator = channelData[sample] * modulatorGain;
             modulatorLevelSum += std::abs(modulator);
-            
-            // Generate carrier signal
-            float carrier = carrierOscillator.getNextSample();
+
+            // Generate carrier signal (this channel's own oscillator)
+            const float carrier = carrierOscillators[static_cast<size_t>(channel)].getNextSample();
             carrierLevelSum += std::abs(carrier);
-            
+
             // Process through vocoder bands
             float output = 0.0f;
-            
             for (int i = 0; i < currentBandCount; ++i)
             {
-                // Process carrier and modulator through band filters
-                vocoderBands[static_cast<size_t>(i)].processCarrier(carrier);
-                vocoderBands[static_cast<size_t>(i)].processModulator(modulator);
-                
-                // Get band output and accumulate
-                float bandOutput = vocoderBands[static_cast<size_t>(i)].getOutput();
-                output += bandOutput;
-                
+                auto& band = bands[static_cast<size_t>(i)];
+                band.processCarrier(carrier);
+                band.processModulator(modulator);
+                output += band.getOutput();
+
                 // Accumulate band levels for metering
-                bandLevelSums[static_cast<size_t>(i)] += vocoderBands[static_cast<size_t>(i)].getEnvelopeLevel();
+                bandLevelSums[static_cast<size_t>(i)] += band.getEnvelopeLevel();
             }
-            
-            // Apply output level
+
             output *= outputGain;
-            
             channelData[sample] = output;
             outputLevelSum += std::abs(output);
         }
     }
-    
+
     // Update metering
-    carrierLevel.store(carrierLevelSum / (numSamples * numChannels));
-    modulatorLevel.store(modulatorLevelSum / (numSamples * numChannels));
-    outputLevel.store(outputLevelSum / (numSamples * numChannels));
-    
+    carrierLevel.store(carrierLevelSum / static_cast<float>(numSamples * numChannels));
+    modulatorLevel.store(modulatorLevelSum / static_cast<float>(numSamples * numChannels));
+    outputLevel.store(outputLevelSum / static_cast<float>(numSamples * numChannels));
+
     // Update band levels
     for (int i = 0; i < maxBands; ++i)
     {
         if (i < currentBandCount)
-            bandLevels[static_cast<size_t>(i)] = bandLevelSums[static_cast<size_t>(i)] / numSamples;
+            bandLevels[static_cast<size_t>(i)] = bandLevelSums[static_cast<size_t>(i)] / static_cast<float>(numSamples);
         else
             bandLevels[static_cast<size_t>(i)] = 0.0f;
     }
@@ -344,46 +366,33 @@ void VocoderProcessor::processVocoding(juce::AudioBuffer<float>& buffer)
 
 void VocoderProcessor::setupVocoderBands()
 {
-    // Ensure we have enough bands
-    if (vocoderBands.size() < static_cast<size_t>(maxBands))
-        vocoderBands.resize(maxBands);
-    
-    // Calculate logarithmically spaced band frequencies
-    bandFrequencies.clear();
-    bandFrequencies.resize(static_cast<size_t>(currentBandCount));
-    
+    const int count = juce::jlimit(4, maxBands, currentBandCount);
+
+    // Logarithmically spaced band frequencies
     const float minFreq = 80.0f;   // Lowest band frequency
     const float maxFreq = 8000.0f; // Highest band frequency
-    
-    for (int i = 0; i < currentBandCount; ++i)
+
+    for (int i = 0; i < count; ++i)
     {
-        float ratio = static_cast<float>(i) / (currentBandCount - 1);
+        float ratio = static_cast<float>(i) / static_cast<float>(count - 1);
         bandFrequencies[static_cast<size_t>(i)] = minFreq * std::pow(maxFreq / minFreq, ratio);
     }
-    
-    // Setup each band with appropriate frequency and bandwidth
-    for (int i = 0; i < currentBandCount; ++i)
+
+    // Setup each band with appropriate frequency and bandwidth (in Hz)
+    for (int i = 0; i < count; ++i)
     {
-        float centerFreq = bandFrequencies[static_cast<size_t>(i)];
+        const float centerFreq = bandFrequencies[static_cast<size_t>(i)];
         float bandwidth;
-        
+
         if (i == 0)
-        {
-            // First band
-            bandwidth = (bandFrequencies[1] - centerFreq) * 0.8f;
-        }
-        else if (i == currentBandCount - 1)
-        {
-            // Last band
-            bandwidth = (centerFreq - bandFrequencies[static_cast<size_t>(i - 1)]) * 0.8f;
-        }
+            bandwidth = (bandFrequencies[1] - centerFreq) * 0.8f;                       // First band
+        else if (i == count - 1)
+            bandwidth = (centerFreq - bandFrequencies[static_cast<size_t>(i - 1)]) * 0.8f; // Last band
         else
-        {
-            // Middle bands
             bandwidth = (bandFrequencies[static_cast<size_t>(i + 1)] - bandFrequencies[static_cast<size_t>(i - 1)]) * 0.4f;
-        }
-        
-        vocoderBands[static_cast<size_t>(i)].setFrequency(centerFreq, bandwidth);
+
+        for (auto& channelBands : vocoderBands)
+            channelBands[static_cast<size_t>(i)].setFrequency(centerFreq, bandwidth);
     }
 }
 

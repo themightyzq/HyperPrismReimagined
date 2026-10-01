@@ -12,7 +12,9 @@
 // harmonics above the original Nyquist before they alias back down. The
 // SampleRateReducer's hold counter is scaled by the same factor (its "original sample
 // rate" is prepared as hostRate * kOversamplingFactor) so a given Rate setting sounds
-// the same as before at 1x. Flip to 1 for an un-oversampled A/B comparison; never ship
+// the same as before at 1x, and it still compares Rate with the HOST rate to decide whether
+// to reduce at all, so the default Rate (44100 Hz) on a 44.1 kHz host passes audio through
+// as it did before oversampling. Flip to 1 for an un-oversampled A/B comparison; never ship
 // it that way.
 #define HP_SONICDECIMATOR_FORCE_1X 0
 
@@ -107,7 +109,9 @@ private:
     public:
         SampleRateReducer() = default;
         
-        void prepare(double sampleRate, int samplesPerBlock);
+        // processingRate is the rate processSample() runs at (host rate x oversampling);
+        // hostRate is the plugin's own sample rate, which Rate is compared with.
+        void prepare(double processingRate, double hostRate, int samplesPerBlock);
         void setSampleRate(float targetSampleRate);
         void setAntiAliasing(bool enableAntiAlias);
         void reset();
@@ -116,7 +120,9 @@ private:
         
     private:
         double originalSampleRate = 44100.0;
+        double hostSampleRate = 44100.0;
         float targetSampleRate = 44100.0f;
+        float coefficientsTarget = -1.0f; // target the anti-alias coefficients were built for
         bool antiAliasingEnabled = true;
         
         float sampleCounter = 0.0f;
@@ -139,7 +145,11 @@ private:
     };
     
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    void processDecimation(juce::AudioBuffer<float>& buffer);
+
+    // processBlock splits host blocks larger than the prepared size into chunks of at most
+    // preparedBlockSize samples (the oversampler and dryBuffer are sized for that).
+    void processChunk(juce::dsp::AudioBlock<float> block);
+    void delayDryOnly(juce::dsp::AudioBlock<float> block);
     
     juce::AudioProcessorValueTreeState valueTreeState;
     
@@ -162,7 +172,16 @@ private:
     std::array<NoiseShaper, kMaxChannels> noiseShapers;
     
     // State variables
+    int preparedBlockSize = 0;
     juce::AudioBuffer<float> dryBuffer;
+
+    // Delays the dry path (and bypassed audio) by the oversampler's integer latency so it
+    // lines up with the wet path and with what setLatencySamples reports.
+    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::None> dryDelay;
+
+    // Mix and output level, smoothed over 30 ms (per-sample gains).
+    juce::SmoothedValue<float> mixSmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> outputGainSmoothed;
     
     // Metering
     std::atomic<float> inputLevel { 0.0f };
@@ -171,7 +190,7 @@ private:
     std::atomic<float> sampleReduction { 0.0f };
 
     // 4x oversampling around the bit/rate quantiser only (see HP_SONICDECIMATOR_FORCE_1X
-    // above). Rebuilt in prepareToPlay; never touched from processBlock.
+    // above). Rebuilt in prepareToPlay with integer latency; never rebuilt from processBlock.
     std::unique_ptr<juce::dsp::Oversampling<float>> oversampling;
 
     // Editor size persistence, read/written from the message thread only.

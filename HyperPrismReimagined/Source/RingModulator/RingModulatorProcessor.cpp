@@ -62,9 +62,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout RingModulatorProcessor::crea
 
 void RingModulatorProcessor::prepareToPlay(double sampleRate, int)
 {
-    // Not cached: processBlock() reads getSampleRate() fresh every block instead (see the
-    // carrierPhaseInc/modulatorPhaseInc calculation there), so there is nothing to precompute here.
-    juce::ignoreUnused(sampleRate);
+    // The phase increments are not cached: processBlock() reads getSampleRate() fresh every
+    // block instead (see the carrierPhaseInc/modulatorPhaseInc calculation there).
+    smoothedMix.reset(sampleRate, 0.03);
+    smoothedMix.setCurrentAndTargetValue(apvts.getRawParameterValue("mix")->load() * 0.01f);
 
     // Reset phases
     carrierPhase = 0.0f;
@@ -135,45 +136,47 @@ void RingModulatorProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     const int carrierWaveform = static_cast<int>(apvts.getRawParameterValue("carrier_waveform")->load());
     const int modulatorWaveform = static_cast<int>(apvts.getRawParameterValue("modulator_waveform")->load());
     const float mixPercent = apvts.getRawParameterValue("mix")->load();
-    const float mix = mixPercent * 0.01f;
+    smoothedMix.setTargetValue(mixPercent * 0.01f);
 
     // Calculate phase increments
     const float carrierPhaseInc = (carrierFreq * juce::MathConstants<float>::twoPi) / sampleRate;
     const float modulatorPhaseInc = (modulatorFreq * juce::MathConstants<float>::twoPi) / sampleRate;
 
-    // Declare local phases outside channel loop so they persist after last channel
+    if (numChannels < 1)
+        return;
+
+    // Every channel uses the same carrier/modulator phase (the original per-channel loop
+    // reset the phases for each channel), so the oscillators advance once per sample and the
+    // result is applied to all channels. Sample-outer ordering also lets the smoothed mix
+    // advance exactly once per sample.
     float localCarrierPhase = carrierPhase;
     float localModulatorPhase = modulatorPhase;
 
-    // Process each channel
-    for (int channel = 0; channel < numChannels; ++channel)
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
+        const float mix = smoothedMix.getNextValue();
 
-        // Reset phases for each channel to maintain stereo consistency
-        localCarrierPhase = carrierPhase;
-        localModulatorPhase = modulatorPhase;
+        const float carrier = generateWaveform(localCarrierPhase, carrierWaveform);
+        const float modulator = generateWaveform(localModulatorPhase, modulatorWaveform);
 
-        for (int sample = 0; sample < numSamples; ++sample)
+        for (int channel = 0; channel < numChannels; ++channel)
         {
-            const float carrier = generateWaveform(localCarrierPhase, carrierWaveform);
-            const float modulator = generateWaveform(localModulatorPhase, modulatorWaveform);
+            auto* channelData = buffer.getWritePointer(channel);
+            const float in = channelData[static_cast<size_t>(sample)];
+            const float ringModSignal = in * carrier * (1.0f + modulator) * 0.5f;
 
-            const float ringModSignal = channelData[static_cast<size_t>(sample)] * carrier * (1.0f + modulator) * 0.5f;
-
-            channelData[static_cast<size_t>(sample)] = (1.0f - mix) * channelData[static_cast<size_t>(sample)] + mix * ringModSignal;
-
-            localCarrierPhase += carrierPhaseInc;
-            localModulatorPhase += modulatorPhaseInc;
-
-            if (localCarrierPhase >= juce::MathConstants<float>::twoPi)
-                localCarrierPhase -= juce::MathConstants<float>::twoPi;
-            if (localModulatorPhase >= juce::MathConstants<float>::twoPi)
-                localModulatorPhase -= juce::MathConstants<float>::twoPi;
+            channelData[static_cast<size_t>(sample)] = (1.0f - mix) * in + mix * ringModSignal;
         }
+
+        localCarrierPhase += carrierPhaseInc;
+        localModulatorPhase += modulatorPhaseInc;
+
+        if (localCarrierPhase >= juce::MathConstants<float>::twoPi)
+            localCarrierPhase -= juce::MathConstants<float>::twoPi;
+        if (localModulatorPhase >= juce::MathConstants<float>::twoPi)
+            localModulatorPhase -= juce::MathConstants<float>::twoPi;
     }
 
-    // Save phases from last channel's processing (already wrapped correctly)
     carrierPhase = localCarrierPhase;
     modulatorPhase = localModulatorPhase;
 }

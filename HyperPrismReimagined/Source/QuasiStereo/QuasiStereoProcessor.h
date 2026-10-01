@@ -71,6 +71,7 @@ private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     void processQuasiStereo(juce::AudioBuffer<float>& buffer);
     void calculateStereoWidth(const juce::AudioBuffer<float>& buffer);
+    void updateHighFreqFilters(float highFreqEnhance);
     
     juce::AudioProcessorValueTreeState valueTreeState;
     std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
@@ -93,6 +94,14 @@ private:
     double currentSampleRate = 44100.0;
     float previousHighFreqEnhance = -1.0f;
     float phaseAccumulator = 0.0f;
+
+    // Parameter smoothing (30 ms)
+    juce::SmoothedValue<float> smoothedWidth;          // 0-2 (width / 100)
+    juce::SmoothedValue<float> smoothedDelayMs;        // delay time in ms
+    juce::SmoothedValue<float> smoothedPhaseShift;     // radians
+    juce::SmoothedValue<float> smoothedHighFreqEnhance; // 0-1
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> smoothedOutputGain;
+    int highFreqCoefCountdown = 0; // samples until the next shelf coefficient refresh
     
     // Metering
     std::atomic<float> leftLevel { 0.0f };

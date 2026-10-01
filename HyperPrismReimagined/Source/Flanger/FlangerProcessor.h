@@ -61,7 +61,7 @@ private:
     
     // Audio processing
     void processFlanger(juce::AudioBuffer<float>& buffer);
-    void updateFilters();
+    void updateFilters (float lowCutFreq, float highCutFreq);
     
     // Flanger delay line class
     class FlangerDelayLine
@@ -104,9 +104,13 @@ private:
     
     // Processing state
     double currentSampleRate = 44100.0;
-    float previousFilterFreq = -1.0f;
+    float previousLowCutFreq = -1.0f;
+    float previousHighCutFreq = -1.0f;
+    int filterUpdateCounter = 0;
 
-    juce::AudioBuffer<float> dryBuffer;
+    // Parameter smoothers (30 ms), advanced once per sample
+    juce::SmoothedValue<float> mixSmoothed, depthSmoothed, feedbackSmoothed, delaySmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> lowCutSmoothed, highCutSmoothed;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FlangerProcessor)
 };

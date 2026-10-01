@@ -108,29 +108,35 @@ void LimiterProcessor::changeProgramName(int, const juce::String&)
 
 void LimiterProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
+    juce::ignoreUnused(samplesPerBlock);
     currentSampleRate = sampleRate;
-    
-    // Calculate maximum lookahead samples needed
-    int maxLookaheadSamples = static_cast<int>(std::ceil(20.0 * sampleRate / 1000.0));
-    
-    // Prepare lookahead buffer
-    lookaheadBuffer.setSize(2, maxLookaheadSamples + samplesPerBlock);
-    lookaheadBuffer.clear();
-    lookaheadWritePos = 0;
-    
+
+    // Fixed lookahead delay = the maximum Lookahead, reported as latency.
+    maxDelaySamples = static_cast<int>(std::ceil(kMaxLookaheadMs * sampleRate / 1000.0));
+    ringSize = maxDelaySamples + 1;
+    delayRing.assign(static_cast<size_t>(2 * ringSize), 0.0f);
+    writePosition = 0;
+    setLatencySamples(maxDelaySamples);
+
     // Initialize envelope followers and smoothed gains
-    envelopeFollowers.resize(2, 0.0f);
-    smoothedGains.resize(2, 1.0f);
+    envelopeFollowers.assign(2, 0.0f);
+    smoothedGains.assign(2, 1.0f);
 
     // 50ms ramp so turning the Release knob doesn't step the release-time coefficient
     // abruptly; advanced per block in processBlock() via skip(), not per sample.
     releaseMsSmoothed.reset(sampleRate, 0.05);
     releaseMsSmoothed.setCurrentAndTargetValue(releaseParam->get());
+
+    inputGainSmoothed.reset(sampleRate, 0.03);
+    ceilingSmoothed.reset(sampleRate, 0.03);
+    inputGainSmoothed.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(inputGainParam->get()));
+    ceilingSmoothed.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(ceilingParam->get()));
 }
 
 void LimiterProcessor::releaseResources()
 {
-    lookaheadBuffer.clear();
+    std::fill(delayRing.begin(), delayRing.end(), 0.0f);
+    writePosition = 0;
 }
 
 bool LimiterProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -158,91 +164,121 @@ void LimiterProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
-    if (bypassParam->load() > 0.5f)
+    const int numChannels = juce::jmin(totalNumInputChannels, buffer.getNumChannels(), 2);
+    const int numSamples = buffer.getNumSamples();
+    if (numChannels == 0 || numSamples == 0 || delayRing.empty())
         return;
 
+    // Bypassed audio still goes through the lookahead delay, so the timing the host
+    // compensates for does not jump when Bypass is toggled.
+    if (bypassParam->load() > 0.5f)
+    {
+        int position = writePosition;
+        for (int channel = 0; channel < numChannels; ++channel)
+        {
+            auto* channelData = buffer.getWritePointer(channel);
+            float* ring = delayRing.data() + static_cast<size_t>(channel * ringSize);
+            position = writePosition;
+            for (int sample = 0; sample < numSamples; ++sample)
+            {
+                ring[position] = channelData[sample];
+                channelData[sample] = ring[(position + ringSize - maxDelaySamples) % ringSize];
+                if (++position == ringSize)
+                    position = 0;
+            }
+        }
+        writePosition = position;
+        return;
+    }
+
     // Get parameter values
-    float ceilingDB = ceilingParam->get();
-    float ceilingLinear = juce::Decibels::decibelsToGain(ceilingDB);
-    float releaseTime = releaseParam->get();
-    float lookaheadMs = lookaheadParam->get();
-    bool useSoftClip = softClipParam->get();
-    float inputGainDB = inputGainParam->get();
-    float inputGainLinear = juce::Decibels::decibelsToGain(inputGainDB);
+    const bool useSoftClip = softClipParam->get();
+    ceilingSmoothed.setTargetValue(juce::Decibels::decibelsToGain(ceilingParam->get()));
+    inputGainSmoothed.setTargetValue(juce::Decibels::decibelsToGain(inputGainParam->get()));
 
-    // Calculate lookahead samples
-    lookaheadSamples = static_cast<int>(lookaheadMs * currentSampleRate / 1000.0);
-
-    const int numChannels = buffer.getNumChannels();
-    const int numSamples = buffer.getNumSamples();
+    // Lookahead: the gain computer leads the delayed audio by lookaheadSamples.
+    const int lookaheadSamples = juce::jlimit(0, maxDelaySamples,
+        static_cast<int>(lookaheadParam->get() * currentSampleRate / 1000.0));
+    const int detectorDelay = maxDelaySamples - lookaheadSamples;
 
     // FIX (was: hard-coded 0.999f release / 0.01f attack coefficients below, so the Release
     // parameter was read above but never used -- see CHANGELOG). Release now drives the same
     // coefficient formula the previously-dead processLimiting() used
     // (coeff = exp(-1000 / (release_ms * sampleRate))), smoothed at block rate (skip()) so the
     // knob can't step it abruptly, computed once per block (no allocation, sample-rate
-    // correct). The 0.1ms fixed attack is unchanged -- there is no Attack parameter, and an
-    // effectively-instant attack is the intended behaviour for a limiter.
-    releaseMsSmoothed.setTargetValue(releaseTime);
+    // correct).
+    releaseMsSmoothed.setTargetValue(releaseParam->get());
     const float smoothedReleaseMs = releaseMsSmoothed.skip(numSamples);
     const float releaseCoeff = static_cast<float>(
         std::exp(-1000.0 / (static_cast<double>(smoothedReleaseMs) * currentSampleRate)));
-    constexpr float attackCoeff = 0.01f; // fixed ~0.1ms-equivalent fast attack, unchanged
+
+    // Attack: with no lookahead, the fixed near-instant 0.01 coefficient as before. With
+    // lookahead, the gain falls over the lookahead window instead (to within 1 % of its target
+    // by the time the peak reaches the output), so the reduction is in place without a step.
+    const float attackCoeff = lookaheadSamples > 0
+        ? static_cast<float>(std::exp(-4.6 / static_cast<double>(lookaheadSamples)))
+        : 0.01f;
 
     float maxGainReduction = 1.0f;
     bool hitCeiling = false;
-    
-    for (int channel = 0; channel < numChannels; ++channel)
+    int position = writePosition;
+
+    // Per-sample ceiling and input gain (smoothed, shared by both channels).
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        
-        for (int sample = 0; sample < numSamples; ++sample)
+        const float ceilingLinear = ceilingSmoothed.getNextValue();
+        const float inputGainLinear = inputGainSmoothed.getNextValue();
+
+        for (int channel = 0; channel < numChannels; ++channel)
         {
-            // Apply input gain
-            float input = channelData[static_cast<size_t>(sample)] * inputGainLinear;
-            
-            // Simplified limiting without expensive lookahead loop
-            // Use immediate input instead of complex lookahead processing
-            float inputAbs = std::abs(input);
-            
-            // Fast envelope follower
+            auto* channelData = buffer.getWritePointer(channel);
+            float* ring = delayRing.data() + static_cast<size_t>(channel * ringSize);
+
+            // Apply input gain, then store in the lookahead ring
+            ring[position] = channelData[sample] * inputGainLinear;
+            const float input = ring[(position + ringSize - maxDelaySamples) % ringSize];
+            const float detectorAbs = std::abs(ring[(position + ringSize - detectorDelay) % ringSize]);
+
+            // Fast envelope follower on the look-ahead signal
             float& envelope = envelopeFollowers[static_cast<size_t>(channel)];
-            if (inputAbs > envelope)
-                envelope = inputAbs; // Instant attack
+            if (detectorAbs > envelope)
+                envelope = detectorAbs; // Instant attack
             else
-                envelope = inputAbs + releaseCoeff * (envelope - inputAbs); // Release, now Release-controlled
+                envelope = detectorAbs + releaseCoeff * (envelope - detectorAbs); // Release, Release-controlled
 
             // Calculate gain reduction
             float& smoothedGain = smoothedGains[static_cast<size_t>(channel)];
-            float targetGain = (envelope > ceilingLinear) ? ceilingLinear / envelope : 1.0f;
+            const float targetGain = (envelope > ceilingLinear) ? ceilingLinear / envelope : 1.0f;
 
-            // Simple gain smoothing
             if (targetGain < smoothedGain)
-                smoothedGain = targetGain + attackCoeff * (smoothedGain - targetGain); // Fast attack, fixed
+                smoothedGain = targetGain + attackCoeff * (smoothedGain - targetGain); // Attack
             else
-                smoothedGain = targetGain + releaseCoeff * (smoothedGain - targetGain); // Release, now Release-controlled
-            
-            // Apply limiting to original input (no delay for performance)
+                smoothedGain = targetGain + releaseCoeff * (smoothedGain - targetGain); // Release
+
+            // Apply limiting to the delayed audio
             float output = input * smoothedGain;
-            
+
             // Apply soft clipping if enabled
             if (useSoftClip && std::abs(output) > ceilingLinear)
-            {
                 output = softClip(output / ceilingLinear) * ceilingLinear;
-            }
-            
+
             // Hard clip as final safety
             output = std::max(-ceilingLinear, std::min(ceilingLinear, output));
-            
-            channelData[static_cast<size_t>(sample)] = output;
-            
+
+            channelData[sample] = output;
+
             // Update metering
             maxGainReduction = std::min(maxGainReduction, smoothedGain);
             if (std::abs(output) >= ceilingLinear * 0.99f)
                 hitCeiling = true;
         }
+
+        if (++position == ringSize)
+            position = 0;
     }
-    
+
+    writePosition = position;
+
     // Update metering values
     currentGainReduction.store(1.0f - maxGainReduction);
     if (hitCeiling)

@@ -72,7 +72,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout FlangerProcessor::createPara
     return { parameters.begin(), parameters.end() };
 }
 
-void FlangerProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void FlangerProcessor::prepareToPlay(double sampleRate, int)
 {
     currentSampleRate = sampleRate;
     
@@ -90,10 +90,18 @@ void FlangerProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     leftHighCut.reset();
     rightHighCut.reset();
     
-    // Reset filter state
-    previousFilterFreq = -1.0f;
+    // Smoothers start at the current parameter values
+    mixSmoothed.reset (sampleRate, 0.03);      mixSmoothed.setCurrentAndTargetValue (mixParam->load());
+    depthSmoothed.reset (sampleRate, 0.12);    depthSmoothed.setCurrentAndTargetValue (depthParam->load());
+    feedbackSmoothed.reset (sampleRate, 0.03); feedbackSmoothed.setCurrentAndTargetValue (feedbackParam->load());
+    delaySmoothed.reset (sampleRate, 0.03);    delaySmoothed.setCurrentAndTargetValue (delayParam->load());
+    lowCutSmoothed.reset (sampleRate, 0.03);   lowCutSmoothed.setCurrentAndTargetValue (lowCutParam->load());
+    highCutSmoothed.reset (sampleRate, 0.03);  highCutSmoothed.setCurrentAndTargetValue (highCutParam->load());
 
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    // Force the filter coefficients to be computed on the first block
+    previousLowCutFreq = -1.0f;
+    previousHighCutFreq = -1.0f;
+    filterUpdateCounter = 0;
 }
 
 void FlangerProcessor::releaseResources()
@@ -138,24 +146,24 @@ void FlangerProcessor::processFlanger(juce::AudioBuffer<float>& buffer)
         return;
     
     // Get parameter values
-    float mix = mixParam->load();
     float rate = rateParam->load();
-    float depth = depthParam->load();
-    float feedback = feedbackParam->load();
-    float delayMs = delayParam->load();
     float phaseOffset = phaseParam->load();
-    
+
+    mixSmoothed.setTargetValue(mixParam->load());
+    depthSmoothed.setTargetValue(depthParam->load());
+    feedbackSmoothed.setTargetValue(feedbackParam->load());
+    delaySmoothed.setTargetValue(delayParam->load());
+    lowCutSmoothed.setTargetValue(lowCutParam->load());
+    highCutSmoothed.setTargetValue(highCutParam->load());
+
     // Update filters if needed
-    updateFilters();
+    updateFilters(lowCutSmoothed.getCurrentValue(), highCutSmoothed.getCurrentValue());
     
     // Calculate LFO increment
     float lfoIncrement = (rate * juce::MathConstants<float>::twoPi) / static_cast<float>(currentSampleRate);
     
     // Convert phase offset to radians
     float phaseOffsetRad = (phaseOffset / 180.0f) * juce::MathConstants<float>::pi;
-    
-    // Create a copy for dry signal
-    dryBuffer.makeCopyOf(buffer);
     
     // Get audio data
     auto* leftChannel = buffer.getWritePointer(0);
@@ -164,6 +172,20 @@ void FlangerProcessor::processFlanger(juce::AudioBuffer<float>& buffer)
     // Process each sample
     for (int sample = 0; sample < numSamples; ++sample)
     {
+        const float mix = mixSmoothed.getNextValue();
+        const float depth = depthSmoothed.getNextValue();
+        const float feedback = feedbackSmoothed.getNextValue();
+        const float delayMs = delaySmoothed.getNextValue();
+        const float lowCutFreq = lowCutSmoothed.getNextValue();
+        const float highCutFreq = highCutSmoothed.getNextValue();
+
+        // Re-derive the filter coefficients every 16 samples while a cutoff is moving
+        if (++filterUpdateCounter >= 16)
+        {
+            filterUpdateCounter = 0;
+            updateFilters(lowCutFreq, highCutFreq);
+        }
+
         // Calculate LFO values with phase offset
         float lfoLeft = std::sin(lfoPhase);
         float lfoRight = std::sin(lfoPhaseRight);
@@ -208,16 +230,15 @@ void FlangerProcessor::processFlanger(juce::AudioBuffer<float>& buffer)
         if (lfoPhaseRight < 0.0f)
             lfoPhaseRight += juce::MathConstants<float>::twoPi;
     }
+
+    // Make sure the filters end the block exactly on the current cutoffs
+    updateFilters(lowCutSmoothed.getCurrentValue(), highCutSmoothed.getCurrentValue());
 }
 
-void FlangerProcessor::updateFilters()
+void FlangerProcessor::updateFilters(float lowCutFreq, float highCutFreq)
 {
-    float lowCutFreq = lowCutParam->load();
-    float highCutFreq = highCutParam->load();
-    
     // Only update if frequencies changed
-    if (std::abs(lowCutFreq - previousFilterFreq) > 0.1f || 
-        std::abs(highCutFreq - previousFilterFreq) > 0.1f)
+    if (lowCutFreq != previousLowCutFreq || highCutFreq != previousHighCutFreq)
     {
         // High-pass filter (low cut)
         leftLowCut.setCoefficients(juce::IIRCoefficients::makeHighPass(currentSampleRate, lowCutFreq, 0.707f));
@@ -227,7 +248,8 @@ void FlangerProcessor::updateFilters()
         leftHighCut.setCoefficients(juce::IIRCoefficients::makeLowPass(currentSampleRate, highCutFreq, 0.707f));
         rightHighCut.setCoefficients(juce::IIRCoefficients::makeLowPass(currentSampleRate, highCutFreq, 0.707f));
         
-        previousFilterFreq = lowCutFreq; // Track one of them
+        previousLowCutFreq = lowCutFreq;
+        previousHighCutFreq = highCutFreq;
     }
 }
 

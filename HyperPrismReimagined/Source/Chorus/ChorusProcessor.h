@@ -66,7 +66,7 @@ private:
     
     // Audio processing
     void processChorus(juce::AudioBuffer<float>& buffer);
-    void updateFilters();
+    void updateFilters (float lowCutFreq, float highCutFreq);
     
     // Chorus delay line class
     class ChorusDelayLine
@@ -105,13 +105,15 @@ private:
     std::atomic<float>* lowCutParam = nullptr;
     std::atomic<float>* highCutParam = nullptr;
     
-    // Pre-allocated dry buffer (real-time safe)
-    juce::AudioBuffer<float> dryBuffer;
+    // Parameter smoothers (30 ms), advanced once per sample
+    juce::SmoothedValue<float> mixSmoothed, depthSmoothed, feedbackSmoothed, delaySmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> lowCutSmoothed, highCutSmoothed;
 
     // Processing state
     double currentSampleRate = 44100.0;
     float previousLowCutFreq = -1.0f;
     float previousHighCutFreq = -1.0f;
+    int filterUpdateCounter = 0;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ChorusProcessor)
 };

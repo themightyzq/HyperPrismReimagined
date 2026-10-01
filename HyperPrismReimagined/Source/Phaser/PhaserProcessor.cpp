@@ -119,8 +119,8 @@ void PhaserProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     mixSmoothed.setCurrentAndTargetValue(*valueTreeState.getRawParameterValue(MIX_ID));
     
     lfoPhase = 0.0f;
-
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    feedbackMemory.fill(0.0f);
+    juce::ignoreUnused(samplesPerBlock);
 }
 
 void PhaserProcessor::releaseResources()
@@ -172,57 +172,47 @@ void PhaserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     mixSmoothed.setTargetValue(*valueTreeState.getRawParameterValue(MIX_ID));
     
     const int stages = static_cast<int>(*valueTreeState.getRawParameterValue(STAGES_ID));
-    
-    // Store dry signal for mixing
-    dryBuffer.makeCopyOf(buffer);
-    
-    // Process each channel
-    for (int channel = 0; channel < totalNumOutputChannels; ++channel)
+    const int numChannels = juce::jmin(totalNumOutputChannels, buffer.getNumChannels(), 2);
+
+    // Samples outer, channels inner: the LFO and the smoothers advance once per sample and
+    // every channel sees the same modulation.
+    for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        auto& filters = (channel == 0) ? allPassFiltersL : allPassFiltersR;
-        
-        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        // Update LFO
+        const float rate = rateSmoothed.getNextValue();
+        const float depth = depthSmoothed.getNextValue() * 0.01f; // Convert to 0-1
+        const float feedback = feedbackSmoothed.getNextValue() * 0.01f * 0.95f; // Convert to 0-0.95
+        const float mix = mixSmoothed.getNextValue() * 0.01f;
+
+        lfoPhase += rate / static_cast<float>(currentSampleRate);
+        if (lfoPhase >= 1.0f)
+            lfoPhase -= 1.0f;
+
+        // Calculate LFO value (sine wave)
+        const float lfoValue = std::sin(2.0f * juce::MathConstants<float>::pi * lfoPhase);
+
+        // Map LFO to frequency range (200Hz - 2000Hz)
+        const float centerFreq = 1100.0f;
+        const float freqRange = 900.0f;
+        const float modulatedFreq = centerFreq + (lfoValue * freqRange * depth);
+
+        for (int channel = 0; channel < numChannels; ++channel)
         {
-            // Update LFO
-            const float rate = rateSmoothed.getNextValue();
-            const float depth = depthSmoothed.getNextValue() * 0.01f; // Convert to 0-1
-            const float feedback = feedbackSmoothed.getNextValue() * 0.01f * 0.95f; // Convert to 0-0.95
-            
-            lfoPhase += rate / static_cast<float>(currentSampleRate);
-            if (lfoPhase >= 1.0f)
-                lfoPhase -= 1.0f;
-            
-            // Calculate LFO value (sine wave)
-            float lfoValue = std::sin(2.0f * juce::MathConstants<float>::pi * lfoPhase);
-            
-            // Map LFO to frequency range (200Hz - 2000Hz)
-            float centerFreq = 1100.0f;
-            float freqRange = 900.0f;
-            float modulatedFreq = centerFreq + (lfoValue * freqRange * depth);
-            
-            // Process through all-pass filters
-            float input = channelData[static_cast<size_t>(sample)];
-            float output = input;
-            
-            // Apply feedback
-            static float feedbackMemoryL = 0.0f;
-            static float feedbackMemoryR = 0.0f;
-            float& feedbackMemory = (channel == 0) ? feedbackMemoryL : feedbackMemoryR;
-            
-            output += feedbackMemory * feedback;
-            
-            // Process through stages
+            auto* channelData = buffer.getWritePointer(channel);
+            auto& filters = (channel == 0) ? allPassFiltersL : allPassFiltersR;
+            float& memory = feedbackMemory[(size_t) channel];
+
+            // Process through all-pass filters, with feedback
+            const float input = channelData[sample];
+            float output = input + memory * feedback;
+
             for (int stage = 0; stage < stages; ++stage)
-            {
                 output = filters[static_cast<size_t>(stage)].process(output, modulatedFreq);
-            }
-            
-            feedbackMemory = output;
-            
+
+            memory = output;
+
             // Mix dry and wet signals
-            const float mix = mixSmoothed.getNextValue() * 0.01f;
-            channelData[static_cast<size_t>(sample)] = input * (1.0f - mix) + output * mix;
+            channelData[sample] = input * (1.0f - mix) + output * mix;
         }
     }
 }

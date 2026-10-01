@@ -68,6 +68,12 @@ void VibratoProcessor::prepareToPlay(double sampleRate, int /*samplesPerBlock*/)
     
     // Initialize LFO phase
     lfoPhase = 0.0f;
+
+    // Smoothers start at the current parameter values
+    mixSmoothed.reset (sampleRate, 0.03);      mixSmoothed.setCurrentAndTargetValue (mixParam->load());
+    depthSmoothed.reset (sampleRate, 0.12);    depthSmoothed.setCurrentAndTargetValue (depthParam->load());
+    delaySmoothed.reset (sampleRate, 0.03);    delaySmoothed.setCurrentAndTargetValue (delayParam->load());
+    feedbackSmoothed.reset (sampleRate, 0.03); feedbackSmoothed.setCurrentAndTargetValue (feedbackParam->load());
 }
 
 void VibratoProcessor::releaseResources()
@@ -112,54 +118,53 @@ void VibratoProcessor::processVibrato(juce::AudioBuffer<float>& buffer)
     if (numChannels == 0)
         return;
     
-    // Get parameter values
-    float mix = mixParam->load();
+    // Get parameter values (smoothed per sample below)
     float rate = rateParam->load();
-    float depth = depthParam->load() / 100.0f;  // Convert percentage to 0-1
-    float baseDelayMs = delayParam->load();
-    float feedback = feedbackParam->load() / 100.0f;  // Convert percentage to -0.95 to 0.95
+
+    mixSmoothed.setTargetValue(mixParam->load());
+    depthSmoothed.setTargetValue(depthParam->load());
+    delaySmoothed.setTargetValue(delayParam->load());
+    feedbackSmoothed.setTargetValue(feedbackParam->load());
     
     // Calculate LFO increment
     float lfoIncrement = (rate * juce::MathConstants<float>::twoPi) / static_cast<float>(currentSampleRate);
     
-    // Calculate depth in milliseconds (50 cents = ~3% pitch change = ~30ms at 1kHz)
-    float depthMs = depth * 3.0f;  // Scale depth to reasonable delay modulation range
+    // All channels share one LFO phase; the smoothers advance once per sample
+    float channelLfoPhase = lfoPhase;
     
-    // Process each channel
-    for (int channel = 0; channel < numChannels; ++channel)
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
+        const float mix = mixSmoothed.getNextValue();
+        const float depth = depthSmoothed.getNextValue() / 100.0f;  // Convert percentage to 0-1
+        const float baseDelayMs = delaySmoothed.getNextValue();
+        const float feedback = feedbackSmoothed.getNextValue() / 100.0f;  // Convert percentage to -0.95 to 0.95
         
-        // Get the appropriate delay line
-        VibratoDelayLine* delayLine = (channel == 0) ? &leftDelayLine : &rightDelayLine;
+        // Calculate depth in milliseconds (50 cents = ~3% pitch change = ~30ms at 1kHz)
+        const float depthMs = depth * 3.0f;  // Scale depth to reasonable delay modulation range
         
-        // Reset LFO phase for each channel to maintain sync
-        float channelLfoPhase = lfoPhase;
+        // Calculate LFO value
+        const float lfoValue = std::sin(channelLfoPhase);
         
-        // Process each sample
-        for (int sample = 0; sample < numSamples; ++sample)
+        // Calculate modulated delay time, kept positive
+        const float modulatedDelay = juce::jmax(0.1f, baseDelayMs + (lfoValue * depthMs));
+        
+        for (int channel = 0; channel < numChannels; ++channel)
         {
-            // Calculate LFO value
-            float lfoValue = std::sin(channelLfoPhase);
-            
-            // Calculate modulated delay time
-            float modulatedDelay = baseDelayMs + (lfoValue * depthMs);
-            
-            // Ensure delay is positive
-            modulatedDelay = juce::jmax(0.1f, modulatedDelay);
+            auto* channelData = buffer.getWritePointer(channel);
+            VibratoDelayLine* delayLine = (channel == 0) ? &leftDelayLine : &rightDelayLine;
             
             // Process through delay line
-            float input = channelData[static_cast<size_t>(sample)];
-            float vibratoOutput = delayLine->processSample(input, modulatedDelay, feedback);
+            const float input = channelData[sample];
+            const float vibratoOutput = delayLine->processSample(input, modulatedDelay, feedback);
             
             // Mix wet and dry signals
-            channelData[static_cast<size_t>(sample)] = input * (1.0f - mix) + vibratoOutput * mix;
-            
-            // Advance LFO phase
-            channelLfoPhase += lfoIncrement;
-            if (channelLfoPhase >= juce::MathConstants<float>::twoPi)
-                channelLfoPhase -= juce::MathConstants<float>::twoPi;
+            channelData[sample] = input * (1.0f - mix) + vibratoOutput * mix;
         }
+        
+        // Advance LFO phase
+        channelLfoPhase += lfoIncrement;
+        if (channelLfoPhase >= juce::MathConstants<float>::twoPi)
+            channelLfoPhase -= juce::MathConstants<float>::twoPi;
     }
     
     // Update the main LFO phase

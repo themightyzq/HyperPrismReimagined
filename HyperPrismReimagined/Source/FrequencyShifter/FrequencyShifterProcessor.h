@@ -129,6 +129,10 @@ private:
     std::array<HilbertTransform, 2> hilbertTransforms;
     std::array<juce::dsp::DelayLine<float>, 2> dryDelay;
     Oscillator oscillator;
+
+    // Parameter smoothing (30 ms): mix is a 0-1 fraction, output level a linear gain.
+    juce::SmoothedValue<float> smoothedMix;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> smoothedOutputGain;
     
     // Metering
     std::atomic<float> inputLevel { 0.0f };

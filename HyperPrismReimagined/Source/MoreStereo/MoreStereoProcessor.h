@@ -70,7 +70,9 @@ public:
 private:
     //==============================================================================
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    void processMoreStereo(juce::AudioBuffer<float>& buffer);
+    // Processes samples [start, start + numSamples) of buffer; numSamples <= preparedBlockSize.
+    void processMoreStereo(juce::AudioBuffer<float>& buffer, int start, int numSamples,
+                           float& leftLevelSum, float& rightLevelSum, float& ambienceLevelSum);
     void calculateStereoWidth(const juce::AudioBuffer<float>& buffer);
     
     juce::AudioProcessorValueTreeState valueTreeState;
@@ -85,23 +87,26 @@ private:
     std::atomic<float>* ambienceParam = nullptr;
     std::atomic<float>* outputLevelParam = nullptr;
     
-    // DSP components for crossover
-    juce::IIRFilter lowPassLeft, lowPassRight;
-    juce::IIRFilter highPassLeft, highPassRight;
+    // Bass/treble split: a 4th-order Linkwitz-Riley crossover, whose two bands sum flat. The
+    // old Butterworth low-pass + high-pass pair at the same frequency notched the crossover.
+    juce::dsp::LinkwitzRileyFilter<float> crossover;
+
+    // Parameter smoothing (30 ms); the crossover moves per sample while it ramps.
+    juce::LinearSmoothedValue<float> widthSmoothed, bassMonoSmoothed, stereoEnhanceSmoothed, ambienceSmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> crossoverSmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> outputGainSmoothed;
     
     // Ambience processing
     juce::dsp::Reverb reverb;
     juce::dsp::DelayLine<float> ambienceDelayLeft { 4800 };
     juce::dsp::DelayLine<float> ambienceDelayRight { 4800 };
     
-    // Pre-allocated processing buffers (real-time safe)
-    juce::AudioBuffer<float> bassBuffer;
-    juce::AudioBuffer<float> trebleBuffer;
+    // Pre-allocated reverb input buffer (real-time safe), sized preparedBlockSize.
     juce::AudioBuffer<float> ambienceBuffer;
+    int preparedBlockSize = 0;
 
     // State variables
     double currentSampleRate = 44100.0;
-    float previousCrossoverFreq = -1.0f;
     
     // Metering
     std::atomic<float> leftLevel { 0.0f };

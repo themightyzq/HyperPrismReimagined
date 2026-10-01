@@ -99,30 +99,28 @@ void NoiseGateProcessor::changeProgramName(int index, const juce::String& newNam
 
 void NoiseGateProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
+    juce::ignoreUnused(samplesPerBlock);
     currentSampleRate = sampleRate;
     
     // Initialize per-channel states
-    const int numChannels = getTotalNumInputChannels();
-    envelopeState.resize(static_cast<size_t>(numChannels), 0.0f);
-    gateState.resize(static_cast<size_t>(numChannels), 0.0f);
-    holdCounter.resize(static_cast<size_t>(numChannels), 0);
+    const int numChannels = juce::jmax(1, getTotalNumInputChannels());
+    envelopeState.assign(static_cast<size_t>(numChannels), 0.0f);
+    gateState.assign(static_cast<size_t>(numChannels), 0.0f);
+    holdCounter.assign(static_cast<size_t>(numChannels), 0);
 
-    // Prepare lookahead buffer
-    juce::dsp::ProcessSpec spec;
-    spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
-    spec.numChannels = static_cast<juce::uint32>(numChannels);
-    
-    lookaheadBuffer.prepare(spec);
-    lookaheadBuffer.setMaximumDelayInSamples(static_cast<int>(sampleRate * 0.01)); // 10ms max
+    // Fixed lookahead delay = the maximum Lookahead, reported as latency.
+    maxDelaySamples = static_cast<int>(std::ceil(kMaxLookaheadMs * 0.001 * sampleRate));
+    ringSize = maxDelaySamples + 1;
+    delayRing.assign(static_cast<size_t>(ringSize * numChannels), 0.0f);
+    writePosition = 0;
 
-    // Pre-allocate lookahead data buffer
-    lookaheadData.resize(static_cast<size_t>(samplesPerBlock) * 2);
+    setLatencySamples(maxDelaySamples);
 }
 
 void NoiseGateProcessor::releaseResources()
 {
-    lookaheadBuffer.reset();
+    std::fill(delayRing.begin(), delayRing.end(), 0.0f);
+    writePosition = 0;
 }
 
 bool NoiseGateProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -146,11 +144,14 @@ void NoiseGateProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
     for (int i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, numSamples);
 
-    if (numSamples == 0)
+    const int numChannels = juce::jmin(totalNumInputChannels, buffer.getNumChannels(),
+                                       static_cast<int>(envelopeState.size()));
+    if (numSamples == 0 || numChannels == 0 || delayRing.empty())
         return;
 
-    if (bypassParamBool->get())
-        return;
+    // Bypassed audio still goes through the lookahead delay, so the timing the host
+    // compensates for does not jump when Bypass is toggled.
+    const bool bypassed = bypassParamBool->get();
 
     // Get parameter values
     const float thresholdDb = threshold->get();
@@ -166,94 +167,79 @@ void NoiseGateProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Mi
     const float attackCoeff = static_cast<float>(1.0 - std::exp(-1.0 / (attackMs * 0.001 * currentSampleRate)));
     const float releaseCoeff = static_cast<float>(1.0 - std::exp(-1.0 / (releaseMs * 0.001 * currentSampleRate)));
     const int holdSamples = static_cast<int>(holdMs * 0.001f * currentSampleRate);
-    const int lookaheadSamples = static_cast<int>(lookaheadMs * 0.001f * currentSampleRate);
+    const int lookaheadSamples = juce::jlimit(0, maxDelaySamples, static_cast<int>(lookaheadMs * 0.001f * currentSampleRate));
+    const int detectorDelay = maxDelaySamples - lookaheadSamples; // detector leads the audio by lookaheadSamples
     
-    // Set lookahead delay
-    lookaheadBuffer.setDelay(static_cast<float>(lookaheadSamples));
-    
-    // Process each channel
     bool anyGateOpen = false;
-    
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    int position = writePosition;
+
+    for (int channel = 0; channel < numChannels; ++channel)
     {
         float* channelData = buffer.getWritePointer(channel);
-        
-        // Copy data for lookahead processing (pre-allocated buffer)
-        jassert(lookaheadData.size() >= static_cast<size_t>(numSamples));
-        std::copy(channelData, channelData + numSamples, lookaheadData.data());
-        
+        float* ring = delayRing.data() + static_cast<size_t>(channel * ringSize);
+        auto& envelope = envelopeState[static_cast<size_t>(channel)];
+        auto& gate = gateState[static_cast<size_t>(channel)];
+        auto& holdLeft = holdCounter[static_cast<size_t>(channel)];
+        position = writePosition;
+
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            // Get input level (use lookahead for detection)
-            int lookaheadIndex = sample + lookaheadSamples;
-            float inputLevel = 0.0f;
-            
-            if (lookaheadIndex < numSamples)
+            ring[position] = channelData[sample];
+            const int audioIndex = (position + ringSize - maxDelaySamples) % ringSize;
+            const float delayedAudio = ring[audioIndex];
+
+            if (bypassed)
             {
-                inputLevel = std::abs(lookaheadData[static_cast<size_t>(lookaheadIndex)]);
+                channelData[sample] = delayedAudio;
             }
             else
             {
-                inputLevel = std::abs(channelData[sample]);
+                // Detector input: the signal lookaheadSamples ahead of the delayed audio
+                const int detectorIndex = (position + ringSize - detectorDelay) % ringSize;
+                const float inputLevel = std::abs(ring[detectorIndex]);
+
+                // Envelope follower
+                if (inputLevel > envelope)
+                    envelope += attackCoeff * (inputLevel - envelope);   // Attack
+                else
+                    envelope += releaseCoeff * (inputLevel - envelope);  // Release
+
+                // Gate logic
+                float targetGate = 0.0f;
+                if (envelope > thresholdLinear)
+                {
+                    targetGate = 1.0f;
+                    holdLeft = holdSamples;
+                }
+                else if (holdLeft > 0)
+                {
+                    targetGate = 1.0f;
+                    holdLeft--;
+                }
+
+                // Smooth gate transitions
+                if (targetGate > gate)
+                    gate += attackCoeff * (targetGate - gate);   // Opening
+                else
+                    gate += releaseCoeff * (targetGate - gate);  // Closing
+
+                // Apply gate to the delayed audio
+                const float gateGain = rangeLinear + (1.0f - rangeLinear) * gate;
+                channelData[sample] = delayedAudio * gateGain;
+
+                if (gate > 0.5f)
+                    anyGateOpen = true;
             }
-            
-            // Envelope follower
-            if (inputLevel > envelopeState[static_cast<size_t>(channel)])
-            {
-                // Attack
-                envelopeState[static_cast<size_t>(channel)] += attackCoeff * (inputLevel - envelopeState[static_cast<size_t>(channel)]);
-            }
-            else
-            {
-                // Release
-                envelopeState[static_cast<size_t>(channel)] += releaseCoeff * (inputLevel - envelopeState[static_cast<size_t>(channel)]);
-            }
-            
-            // Gate logic
-            float targetGate = 0.0f;
-            
-            if (envelopeState[static_cast<size_t>(channel)] > thresholdLinear)
-            {
-                targetGate = 1.0f;
-                holdCounter[static_cast<size_t>(channel)] = holdSamples;
-            }
-            else if (holdCounter[static_cast<size_t>(channel)] > 0)
-            {
-                targetGate = 1.0f;
-                holdCounter[static_cast<size_t>(channel)]--;
-            }
-            else
-            {
-                targetGate = 0.0f;
-            }
-            
-            // Smooth gate transitions
-            if (targetGate > gateState[static_cast<size_t>(channel)])
-            {
-                // Opening
-                gateState[static_cast<size_t>(channel)] += attackCoeff * (targetGate - gateState[static_cast<size_t>(channel)]);
-            }
-            else
-            {
-                // Closing
-                gateState[static_cast<size_t>(channel)] += releaseCoeff * (targetGate - gateState[static_cast<size_t>(channel)]);
-            }
-            
-            // Apply gate
-            float gateGain = rangeLinear + (1.0f - rangeLinear) * gateState[static_cast<size_t>(channel)];
-            
-            // Process through lookahead buffer
-            lookaheadBuffer.pushSample(channel, channelData[sample]);
-            channelData[sample] = lookaheadBuffer.popSample(channel) * gateGain;
-            
-            // Update gate status
-            if (gateState[static_cast<size_t>(channel)] > 0.5f)
-                anyGateOpen = true;
+
+            if (++position == ringSize)
+                position = 0;
         }
     }
-    
+
+    writePosition = position;
+
     // Update gate status for LED
-    gateOpen = anyGateOpen;
+    gateOpen = bypassed ? false : anyGateOpen;
 }
 
 bool NoiseGateProcessor::hasEditor() const

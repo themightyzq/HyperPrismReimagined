@@ -208,6 +208,24 @@ void MultiDelayProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
         delayLine.levelMeter.store(0.0f);
     }
     
+    // Smoothers start at the current parameter values
+    masterMixSmoothed.reset (sampleRate, 0.03);
+    masterMixSmoothed.setCurrentAndTargetValue (masterMixParam->load());
+    globalFeedbackSmoothed.reset (sampleRate, 0.03);
+    globalFeedbackSmoothed.setCurrentAndTargetValue (globalFeedbackParam->load());
+    
+    for (size_t d = 0; d < static_cast<size_t>(NUM_DELAYS); ++d)
+    {
+        delayTimeSmoothed[d].reset (sampleRate, 0.03);
+        delayTimeSmoothed[d].setCurrentAndTargetValue (delayTimeParams[d]->load());
+        delayLevelSmoothed[d].reset (sampleRate, 0.03);
+        delayLevelSmoothed[d].setCurrentAndTargetValue (delayLevelParams[d]->load());
+        delayPanSmoothed[d].reset (sampleRate, 0.03);
+        delayPanSmoothed[d].setCurrentAndTargetValue (delayPanParams[d]->load());
+        delayFeedbackSmoothed[d].reset (sampleRate, 0.03);
+        delayFeedbackSmoothed[d].setCurrentAndTargetValue (delayFeedbackParams[d]->load());
+    }
+    
     // Reset metering
     inputLevel.store(0.0f);
     outputLevel.store(0.0f);
@@ -251,8 +269,16 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
     const int numChannels = juce::jmin(buffer.getNumChannels(), 2);
     const int numSamples = buffer.getNumSamples();
     
-    const float masterMix = masterMixParam->load() / 100.0f;
-    const float globalFeedback = globalFeedbackParam->load() / 100.0f;
+    masterMixSmoothed.setTargetValue(masterMixParam->load());
+    globalFeedbackSmoothed.setTargetValue(globalFeedbackParam->load());
+    
+    for (size_t d = 0; d < static_cast<size_t>(NUM_DELAYS); ++d)
+    {
+        delayTimeSmoothed[d].setTargetValue(delayTimeParams[d]->load());
+        delayLevelSmoothed[d].setTargetValue(delayLevelParams[d]->load());
+        delayPanSmoothed[d].setTargetValue(delayPanParams[d]->load());
+        delayFeedbackSmoothed[d].setTargetValue(delayFeedbackParams[d]->load());
+    }
     
     // Input level metering
     float inputRMS = buffer.getRMSLevel(0, 0, numSamples);
@@ -260,7 +286,7 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
         inputRMS = std::max(inputRMS, buffer.getRMSLevel(1, 0, numSamples));
     inputLevel.store(inputRMS);
     
-    // Per-tap settings, read once per block
+    // Per-tap settings, recomputed from the smoothed parameters once per sample
     std::array<bool, NUM_DELAYS> tapActive {};
     std::array<float, NUM_DELAYS> tapDelaySamples {};
     std::array<float, NUM_DELAYS> tapLevel {};
@@ -269,30 +295,32 @@ void MultiDelayProcessor::processMultiDelay(juce::AudioBuffer<float>& buffer)
     std::array<float, NUM_DELAYS> tapRightGain {};
     std::array<float, NUM_DELAYS> tapLevelSum {};
     
-    for (size_t d = 0; d < static_cast<size_t>(NUM_DELAYS); ++d)
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        const float delayTimeMs = delayTimeParams[d]->load();
-        const float delayPan = delayPanParams[d]->load() / 100.0f; // -1 to +1
+        const float masterMix = masterMixSmoothed.getNextValue() / 100.0f;
+        const float globalFeedback = globalFeedbackSmoothed.getNextValue() / 100.0f;
         
-        tapLevel[d] = delayLevelParams[d]->load() / 100.0f;
-        tapFeedback[d] = delayFeedbackParams[d]->load() / 100.0f;
-        // A tap whose level is essentially zero is silent: it adds nothing to the output
-        // or the global feedback, but its line keeps running (below) so that raising the
-        // level later echoes recent input, not audio left over from when it was last on.
-        tapActive[d] = tapLevel[d] >= 0.001f;
-        tapDelaySamples[d] = (delayTimeMs / 1000.0f) * static_cast<float>(currentSampleRate);
-        
-        // Pan coefficients: panning left reduces the right channel and vice versa
-        tapLeftGain[d] = delayPan > 0.0f ? 1.0f - delayPan : 1.0f;
-        tapRightGain[d] = delayPan < 0.0f ? 1.0f + delayPan : 1.0f;
-    }
-    
-    for (int channel = 0; channel < numChannels; ++channel)
-    {
-        auto* data = buffer.getWritePointer(channel);
-        
-        for (int sample = 0; sample < numSamples; ++sample)
+        for (size_t d = 0; d < static_cast<size_t>(NUM_DELAYS); ++d)
         {
+            const float delayTimeMs = delayTimeSmoothed[d].getNextValue();
+            const float delayPan = delayPanSmoothed[d].getNextValue() / 100.0f; // -1 to +1
+            
+            tapLevel[d] = delayLevelSmoothed[d].getNextValue() / 100.0f;
+            tapFeedback[d] = delayFeedbackSmoothed[d].getNextValue() / 100.0f;
+            // A tap whose level is essentially zero is silent: it adds nothing to the output
+            // or the global feedback, but its line keeps running (below) so that raising the
+            // level later echoes recent input, not audio left over from when it was last on.
+            tapActive[d] = tapLevel[d] >= 0.001f;
+            tapDelaySamples[d] = (delayTimeMs / 1000.0f) * static_cast<float>(currentSampleRate);
+            
+            // Pan coefficients: panning left reduces the right channel and vice versa
+            tapLeftGain[d] = delayPan > 0.0f ? 1.0f - delayPan : 1.0f;
+            tapRightGain[d] = delayPan < 0.0f ? 1.0f + delayPan : 1.0f;
+        }
+        
+        for (int channel = 0; channel < numChannels; ++channel)
+        {
+            auto* data = buffer.getWritePointer(channel);
             const float input = data[sample];
             
             // Read every tap exactly once per sample. popSample(..., true) advances that

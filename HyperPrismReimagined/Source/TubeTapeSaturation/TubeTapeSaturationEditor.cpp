@@ -56,7 +56,7 @@ void XYPad::paint(juce::Graphics& g)
     }
     
     // Border
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::xyPadBorder);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
 
     
@@ -371,6 +371,8 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
     typeComboBox.addItem("Tube", 1);
     typeComboBox.addItem("Tape", 2);
     typeComboBox.addItem("Transformer", 3);
+    typeComboBox.setTooltip("Saturation character: Tube is warm and asymmetric, Tape is smooth and compressed, Transformer is harder and more edgy");
+    typeComboBox.setDescription("Saturation character: Tube is warm and asymmetric, Tape is smooth and compressed, Transformer is harder and more edgy");
     
     // Set up right-click handlers for parameter assignment
     driveLabel.onClick = [this]() { showParameterMenu(&driveLabel, TubeTapeSaturationProcessor::DRIVE_ID); };
@@ -497,7 +499,7 @@ void TubeTapeSaturationEditor::paint(juce::Graphics& g)
     // Version
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
-    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).removeFromRight(70),
+    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).withTrimmedRight(20).removeFromRight(70),
                juce::Justification::centredRight);
 
     // Column section headers

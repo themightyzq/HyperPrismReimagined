@@ -85,7 +85,14 @@ void CompressorProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
     envelope = 0.0f;
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    preparedBlockSize = juce::jmax(1, samplesPerBlock);
+    dryBuffer.setSize(juce::jmax(1, juce::jmax(getTotalNumInputChannels(), getTotalNumOutputChannels())),
+                      preparedBlockSize);
+
+    makeupGainSmoothed.reset(sampleRate, 0.03);
+    mixSmoothed.reset(sampleRate, 0.03);
+    makeupGainSmoothed.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(makeupGainParam->load()));
+    mixSmoothed.setCurrentAndTargetValue(mixParam->load() * 0.01f);
 }
 
 void CompressorProcessor::releaseResources()
@@ -123,17 +130,33 @@ void CompressorProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     if (bypassParam->load() > 0.5f)
         return;
 
-    const float mixAmount = mixParam->load() * 0.01f;
+    makeupGainSmoothed.setTargetValue(juce::Decibels::decibelsToGain(makeupGainParam->load()));
+    mixSmoothed.setTargetValue(mixParam->load() * 0.01f);
+
+    // Split host blocks larger than the prepared size so dryBuffer is never outgrown
+    const int totalSamples = buffer.getNumSamples();
+    for (int start = 0; start < totalSamples; start += preparedBlockSize)
+    {
+        const int len = juce::jmin(preparedBlockSize, totalSamples - start);
+        juce::AudioBuffer<float> chunk(buffer.getArrayOfWritePointers(), buffer.getNumChannels(), start, len);
+        processChunk(chunk);
+    }
+}
+
+void CompressorProcessor::processChunk(juce::AudioBuffer<float>& buffer)
+{
+    const auto totalNumInputChannels = juce::jmin(getTotalNumInputChannels(), buffer.getNumChannels(),
+                                                  dryBuffer.getNumChannels());
+
     const float threshold = thresholdParam->load();
     const float ratio = ratioParam->load();
     const float knee = kneeParam->load();
-    const float makeupGain = juce::Decibels::decibelsToGain(makeupGainParam->load());
     const float attackCoeff = calculateAttackCoeff(attackParam->load());
     const float releaseCoeff = calculateReleaseCoeff(releaseParam->load());
 
-    dryBuffer.makeCopyOf(buffer);
-
     const int numSamples = buffer.getNumSamples();
+    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+        dryBuffer.copyFrom(channel, 0, buffer, channel, 0, numSamples);
 
     for (int sample = 0; sample < numSamples; ++sample)
     {
@@ -174,6 +197,9 @@ void CompressorProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
             envelope = targetGainReduction + (envelope - targetGainReduction) * releaseCoeff;
 
         currentGainReduction.store(1.0f - envelope);
+
+        const float makeupGain = makeupGainSmoothed.getNextValue();
+        const float mixAmount = mixSmoothed.getNextValue();
 
         // Apply same gain to all channels
         for (int channel = 0; channel < totalNumInputChannels; ++channel)

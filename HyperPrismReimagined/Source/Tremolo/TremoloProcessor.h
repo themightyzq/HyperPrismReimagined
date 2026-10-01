@@ -14,7 +14,7 @@ public:
     ~TremoloProcessor() override;
 
     //==============================================================================
-    void prepareToPlay(double sampleRate, int) override;
+    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -134,6 +134,13 @@ private:
     double currentSampleRate = 44100.0;
 
     juce::AudioBuffer<float> dryBuffer;
+
+    // Largest block handled in one piece (host blocks above this are chunked) and the
+    // per-sample smoothed parameter values for one chunk, allocated in prepareToPlay
+    int preparedBlockSize = 512;
+    std::vector<float> rateValues, depthValues, mixValues;
+
+    void processChunk(juce::AudioBuffer<float>& chunk, Waveform waveform, float stereoPhase);
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

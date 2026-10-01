@@ -8,6 +8,84 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed (audible)
+- **Bass Maximiser** - the bass and the rest of the signal are now split with a Linkwitz-Riley
+  crossover, so they add back together flat. The old split cancelled at the crossover: a notch
+  at the Frequency setting with Boost at 0 dB, near 113 Hz at the defaults.
+- **Bass Maximiser Harmonics now works.** It adds a sub-octave (half the frequency of the bass
+  below Frequency). The default of 25 % is now audible (at 100 % the sub-octave is about as loud as the input);
+  set Harmonics to 0 % for the old sound.
+- **More Stereo** - the same flat Linkwitz-Riley crossover replaces the split that notched the
+  sound at the Crossover frequency (120 Hz by default).
+- **Vocoder** - each band now has the bandwidth it was meant to have (the bandwidth in Hz was
+  being used as the filter Q, so every band was a few Hz wide); the bands are built at the
+  session's sample rate (they were built for 44.1 kHz and sat too high at 48 and 96 kHz); left
+  and right now each have their own carrier and filters. The Vocoder is fuller and louder, and
+  identical left and right input now gives identical output. It is much louder than before (a
+  test tone that gave about 0.00007 RMS now gives about 0.17), so lower Output Level in old
+  sessions.
+- **Phaser** - the sweep now runs at the Rate setting in stereo (it ran at twice the rate, with
+  left and right out of step), and its feedback memory belongs to each instance and channel
+  (it was shared by every Phaser in the session).
+- **Tube/Tape Saturation** - Transformer mode's hysteresis memory belongs to each instance and
+  channel (it was shared by both channels and every instance). Bypass now passes audio through
+  the same delay the plugin reports, so toggling it no longer shifts the audio in time.
+- **Sonic Decimator** - at its default settings it passes audio through again (apart from the
+  16-bit quantisation) when the session runs at 44.1 kHz, as it did before oversampling was added:
+  the Rate control is compared with the session rate again, not the oversampled rate. The dry
+  signal is now delayed to line up with the processed signal (it used to arrive early, so Mix
+  below 100 % caused comb filtering), and Bypass passes audio through the same delay.
+- **Noise Gate** - Lookahead now works ahead of the audio by the set time, at every block size.
+  The plugin reports a constant 10 ms latency (the maximum Lookahead) so hosts can compensate;
+  before, it delayed the audio by the Lookahead time without telling the host, and Bypass skipped
+  that delay.
+- **Limiter** - Lookahead now works: the gain comes down over the lookahead time before a peak
+  arrives. The plugin reports a constant 20 ms latency (the maximum Lookahead), also while
+  bypassed. With Lookahead at 0 ms the limiting is as before, 20 ms later.
+- **Parameter smoothing** - automating or moving gain, mix, depth, feedback, width, filter
+  frequency and delay-time controls no longer steps or clicks. New ramps are 30 ms, except depth
+  in Chorus, Flanger and Vibrato (120 ms); ramps that already existed keep their times (50 ms in
+  M+S Matrix, Pan, HyperPhaser and Echo, 20 ms in Tremolo, 5 ms in Phaser). Auto Pan was already
+  smoothed and Noise Gate has no such controls. Tremolo's ramps now last their full 20 ms on
+  both channels (they ran about twice as fast), and Echo's delay, feedback and mix no longer
+  ramp up from zero each time playback starts. Reverb's Pre-Delay still changes in steps.
+
+### Fixed
+- **Limiter Release, sessions from 1.1.0 and earlier** - the 1.1.0 entry below says only
+  non-default Release values sound different. That is wrong for older sessions: every session
+  saved before Release was wired up stored Release = 50 ms (the old default, which did nothing),
+  and those sessions now release at 50 ms instead of the roughly 20.8 ms they used before.
+  Set Release to 20.8 ms to get the old sound back.
+- No memory is allocated on the audio thread any more (filters were rebuilding coefficient
+  objects every block, and dry buffers were resized whenever the host's block size changed),
+  and host blocks larger than the size a plugin was prepared for are processed in pieces instead
+  of overrunning its buffers. Covered for all 32 plugins by `hp_rt_alloc_<Effect>`.
+- Delay's Tempo Sync and Auto Pan's Sync switches are hidden. They never changed the sound and
+  neither plugin has a note-value control to sync to. Their parameters stay, so saved sessions
+  and presets still load.
+- Pan's Pan Law box listed Linear, -3dB, -4.5dB and -6dB for choices that are Linear, Equal
+  Power, -3dB and -6dB; it now shows the real choices.
+- Tooltips added to the 10 visible controls that had none (Bass Maximiser Phase Invert, Harmonic Exciter
+  Type, Limiter Soft Clip, M+S Matrix Mode, Mid Solo and Side Solo, Pan Law, Sonic Decimator
+  Anti-Alias and Dither, Tube/Tape Saturation Type).
+- The XY pad's border is drawn in a lighter colour (5.4:1 contrast against the pad, was about
+  1.1:1).
+- The version number in each window's bottom-right corner moved left, clear of the resize grip.
+- The Compressor no longer lists a stray "Init Copy" factory preset.
+- Quasi Stereo's delay line holds its full 50 ms at sample rates above 96 kHz (it was sized
+  for 96 kHz).
+
+### Added
+- CI runs the CTest checks on macOS, Linux and Windows.
+- New CTest checks: `hp_rt_alloc_<Effect>` (all 32), `hp_smoothing_<Effect>` (31),
+  `hp_crossover_BassMaximiser`, `hp_crossover_MoreStereo`, `hp_vocoder_Vocoder`,
+  `hp_isolation_Phaser`, `hp_isolation_TubeTapeSaturation`, `hp_lookahead_NoiseGate`,
+  `hp_lookahead_Limiter`; `hp_oversampling_SonicDecimator` and
+  `hp_oversampling_TubeTapeSaturation` now also check dry alignment, bypass delay, block-size
+  invariance, oversized host blocks and (Sonic Decimator) default transparency.
+- README credits the SIL Open Font License fonts the plugin windows use; the licence texts are
+  in `HyperPrismReimagined/ThirdParty/fonts/`.
+
 ## [1.1.0] - 2026-09-29
 
 First versioned release since v1.0.0. It includes every change listed below, including the

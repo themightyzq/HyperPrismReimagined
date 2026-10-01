@@ -105,34 +105,40 @@ void BassMaximiserProcessor::prepareToPlay(double sampleRate, int samplesPerBloc
     spec.sampleRate = sampleRate;
     spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
     spec.numChannels = 2;
-    
+
+    const float crossoverHz = juce::jmin(frequencyParam->get(), static_cast<float>(sampleRate * 0.45));
+    crossover.prepare(spec);
+    crossover.setCutoffFrequency(crossoverHz);
+    subFilter.setType(juce::dsp::LinkwitzRileyFilterType::lowpass);
+    subFilter.prepare(spec);
+    subFilter.setCutoffFrequency(crossoverHz);
     for (int ch = 0; ch < 2; ++ch)
     {
-        bassFilter[ch].prepare(spec);
-        highPassFilter[ch].prepare(spec);
+        subFlipFlop[ch] = 1.0f;
+        subArmed[ch] = false;
     }
-    
-    updateFilters();
-    
-    // Initialize sub-harmonic buffer
-    subHarmonicBuffer.setSize(2, samplesPerBlock);
-    subHarmonicBuffer.clear();
-    
+
     // Initialize bass processing arrays
-    bassEnvelopes.resize(2, 0.0f);
-    bassGainReduction.resize(2, 1.0f);
-    
+    bassEnvelopes.assign(2, 0.0f);
+    bassGainReduction.assign(2, 1.0f);
+
     // Initialize smoothers
     bassLevelSmoother.reset(sampleRate, 0.1);
     bassLevelSmoother.setCurrentAndTargetValue(0.0f);
-    
     outputGainSmoother.reset(sampleRate, 0.05);
     outputGainSmoother.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(outputGainParam->get()));
+    frequencySmoother.reset(sampleRate, 0.03);
+    frequencySmoother.setCurrentAndTargetValue(crossoverHz);
+    boostGainSmoother.reset(sampleRate, 0.03);
+    boostGainSmoother.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(boostParam->get()));
+    harmonicsSmoother.reset(sampleRate, 0.03);
+    harmonicsSmoother.setCurrentAndTargetValue(harmonicsParam->get() / 100.0f);
 }
 
 void BassMaximiserProcessor::releaseResources()
 {
-    subHarmonicBuffer.setSize(0, 0);
+    crossover.reset();
+    subFilter.reset();
 }
 
 bool BassMaximiserProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -156,71 +162,67 @@ void BassMaximiserProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce
     if (bypassParam->load() > 0.5f)
         return;
 
-    // Update filters if frequency changed
-    updateFilters();
-    
-    // Get current parameter values. Frequency (the bass/high crossover point) is applied by
-    // updateFilters() just above -- it configures bassFilter/highPassFilter, which the per-
-    // sample loop below reads from -- so it is not re-read here.
-    float boost = boostParam->get();
-    float harmonics = harmonicsParam->get() / 100.0f;
-    float tightness = tightnessParam->get() / 100.0f;
-    bool phaseInvert = phaseInvertParam->get();
-    
-    // Update output gain smoother
+    // Frequency (the bass/high crossover point), Boost and Harmonics ramp to their targets;
+    // tightness and phase invert are read once per block.
+    frequencySmoother.setTargetValue(juce::jmin(frequencyParam->get(), static_cast<float>(currentSampleRate * 0.45)));
+    boostGainSmoother.setTargetValue(juce::Decibels::decibelsToGain(boostParam->get()));
+    harmonicsSmoother.setTargetValue(harmonicsParam->get() / 100.0f);
     outputGainSmoother.setTargetValue(juce::Decibels::decibelsToGain(outputGainParam->get()));
-    
-    // Clear sub-harmonic buffer
-    subHarmonicBuffer.clear();
-    
+    const float tightness = tightnessParam->get() / 100.0f;
+    const bool phaseInvert = phaseInvertParam->get();
+
     float totalBassLevel = 0.0f;
-    int numSamples = buffer.getNumSamples();
-    
-    // Process each channel
-    for (int channel = 0; channel < juce::jmin(totalNumInputChannels, 2); ++channel)
+    const int numSamples = buffer.getNumSamples();
+    const int numChannels = juce::jmin(totalNumInputChannels, buffer.getNumChannels(), 2);
+
+    // Samples outer, channels inner, so every smoother advances once per sample.
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        auto* subHarmonicData = subHarmonicBuffer.getWritePointer(channel);
-        
-        for (int sample = 0; sample < numSamples; ++sample)
+        if (frequencySmoother.isSmoothing())
         {
-            float input = channelData[static_cast<size_t>(sample)];
-            
-            // Split signal into bass and high frequencies
-            float bassSignal = bassFilter[static_cast<size_t>(channel)].processSample(input);
-            float highSignal = highPassFilter[static_cast<size_t>(channel)].processSample(input);
-            
+            const float hz = frequencySmoother.getNextValue();
+            crossover.setCutoffFrequency(hz);
+            subFilter.setCutoffFrequency(hz);
+        }
+        const float boostGain = boostGainSmoother.getNextValue();
+        const float harmonics = harmonicsSmoother.getNextValue();
+        const float outputGain = outputGainSmoother.getNextValue();
+
+        for (int channel = 0; channel < numChannels; ++channel)
+        {
+            auto* channelData = buffer.getWritePointer(channel);
+            const float input = channelData[sample];
+
+            // Split signal into bass and high frequencies (Linkwitz-Riley: bass + high = input,
+            // all-passed, so the bands sum flat when nothing below changes them).
+            float bassSignal = 0.0f, highSignal = 0.0f;
+            crossover.processSample(channel, input, bassSignal, highSignal);
+
             // Apply boost to bass signal
-            float boostedBass = bassSignal * juce::Decibels::decibelsToGain(boost);
-            
-            // Generate sub-harmonics
-            float subHarmonic = generateSubHarmonic(boostedBass, subHarmonicPhase[static_cast<size_t>(channel)], harmonics);
-            subHarmonicData[static_cast<size_t>(sample)] = subHarmonic;
-            
+            const float boostedBass = bassSignal * boostGain;
+
+            // Generate the sub-octave and keep only the band below the crossover
+            const float subHarmonic = subFilter.processSample(channel, generateSubHarmonic(boostedBass, channel));
+
             // Apply bass compression/limiting (tightness)
             float processedBass = processBassCompression(boostedBass, bassEnvelopes[static_cast<size_t>(channel)],
-                                                       bassGainReduction[static_cast<size_t>(channel)], tightness);
-            
+                                                         bassGainReduction[static_cast<size_t>(channel)], tightness);
+
             // Apply phase invert if enabled
             if (phaseInvert)
                 processedBass = -processedBass;
-            
-            // Combine bass, sub-harmonics, and high frequencies
-            float output = processedBass + (subHarmonic * harmonics) + highSignal;
-            
-            // Apply output gain
-            output *= outputGainSmoother.getNextValue();
-            
-            channelData[static_cast<size_t>(sample)] = output;
-            
+
+            // Combine bass, sub-harmonics, and high frequencies, then output gain
+            channelData[sample] = (processedBass + subHarmonic * harmonics + highSignal) * outputGain;
+
             // Accumulate bass level for metering (only channel 0 for stereo linking)
             if (channel == 0)
                 totalBassLevel += processedBass * processedBass;
         }
     }
-    
+
     // Update bass level meter (RMS)
-    float rmsLevel = std::sqrt(totalBassLevel / numSamples);
+    float rmsLevel = numSamples > 0 ? std::sqrt(totalBassLevel / numSamples) : 0.0f;
     bassLevelSmoother.setTargetValue(rmsLevel);
     currentBassLevel.store(bassLevelSmoother.getNextValue());
 }
@@ -258,43 +260,28 @@ void BassMaximiserProcessor::setStateInformation(const void* data, int sizeInByt
         }
 }
 
-void BassMaximiserProcessor::updateFilters()
+float BassMaximiserProcessor::generateSubHarmonic(float input, int channel)
 {
-    float frequency = frequencyParam->get();
-    
-    // Create low-pass filter coefficients for bass isolation
-    auto bassCoeffs = juce::dsp::IIR::Coefficients<float>::makeLowPass(currentSampleRate, frequency, 0.707f);
-    
-    // Create high-pass filter coefficients for everything else  
-    auto highCoeffs = juce::dsp::IIR::Coefficients<float>::makeHighPass(currentSampleRate, frequency, 0.707f);
-    
-    for (int ch = 0; ch < 2; ++ch)
-    {
-        bassFilter[ch].coefficients = bassCoeffs;
-        highPassFilter[ch].coefficients = highCoeffs;
-    }
-}
+    // Octave divider. The flip-flop toggles on each upward zero crossing of the bass band, so
+    // it is a square wave at half the bass frequency; multiplying the band by it puts a
+    // component one octave down (and one at 1.5x, which the low-pass after this removes).
+    // The crossing needs the signal to have gone below -hysteresis first, so low-level noise
+    // around zero cannot chatter it. (The previous generator started its phase at 0 and only
+    // advanced it while the phase was already non-zero, so it never produced anything.)
+    constexpr float hysteresis = 1.0e-3f;
+    const auto ch = static_cast<size_t>(juce::jlimit(0, 1, channel));
 
-float BassMaximiserProcessor::generateSubHarmonic(float input, float& phase, float harmonicsAmount)
-{
-    if (harmonicsAmount <= 0.0f)
-        return 0.0f;
-        
-    // Generate sub-harmonic at half frequency (one octave down)
-    float subHarmonic = std::sin(phase) * input * 0.5f;
-    
-    // Update phase based on input signal's zero crossings
-    // This creates a more musical sub-harmonic effect
-    if ((input > 0.0f && phase < 0.0f) || (input < 0.0f && phase > 0.0f))
+    if (input < -hysteresis)
     {
-        phase += static_cast<float>(juce::MathConstants<float>::pi / currentSampleRate * 2.0f);
+        subArmed[ch] = true;
     }
-    
-    // Keep phase in range
-    if (phase > juce::MathConstants<float>::twoPi)
-        phase -= juce::MathConstants<float>::twoPi;
-    
-    return subHarmonic;
+    else if (input > hysteresis && subArmed[ch])
+    {
+        subArmed[ch] = false;
+        subFlipFlop[ch] = -subFlipFlop[ch];
+    }
+
+    return input * subFlipFlop[ch];
 }
 
 float BassMaximiserProcessor::processBassCompression(float input, float& envelope, float& gainReduction,
@@ -302,9 +289,9 @@ float BassMaximiserProcessor::processBassCompression(float input, float& envelop
 {
     // INVESTIGATED (was flagged as a possible bug: this function used to take an unused
     // `frequency` argument). No audible defect: the crossover frequency IS applied to the
-    // sound -- updateFilters() (called at the top of processBlock(), every block) builds
-    // bassFilter/highPassFilter from the Frequency parameter, and the `input` this function
-    // receives (boostedBass) is already the output of that low-pass-filtered bass band. The
+    // sound -- processBlock() sets the Linkwitz-Riley crossover from the Frequency parameter,
+    // and the `input` this function receives (boostedBass) is already that crossover's
+    // low band. The
     // Frequency control's tooltip ("Crossover frequency -- bass below this point is boosted",
     // see BassMaximiserEditor.cpp) is satisfied by that band split; this function's own
     // attack/release/threshold constants govern the tightness (compression) shaping applied

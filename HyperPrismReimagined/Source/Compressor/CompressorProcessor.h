@@ -8,7 +8,7 @@ public:
     CompressorProcessor();
     ~CompressorProcessor() override;
 
-    void prepareToPlay(double sampleRate, int) override;
+    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
@@ -71,6 +71,15 @@ private:
 
     // Sample rate
     double currentSampleRate = 44100.0;
+
+    // Largest block processBlock() handles in one piece (host blocks above this are chunked)
+    int preparedBlockSize = 512;
+
+    // Smoothed (30 ms) parameters
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> makeupGainSmoothed; // linear gain
+    juce::SmoothedValue<float> mixSmoothed;                                                    // 0..1
+
+    void processChunk(juce::AudioBuffer<float>& buffer);
 
     // Helper functions
     float calculateAttackCoeff(float attackTimeMs);

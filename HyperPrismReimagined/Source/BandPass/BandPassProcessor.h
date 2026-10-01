@@ -14,7 +14,7 @@ public:
     ~BandPassProcessor() override;
 
     //==============================================================================
-    void prepareToPlay(double sampleRate, int) override;
+    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -79,14 +79,17 @@ private:
     // Parameter smoothing
     juce::SmoothedValue<float> centerFreqSmoothed;
     juce::SmoothedValue<float> bandwidthSmoothed;
-    juce::SmoothedValue<float> gainSmoothed;
-    juce::SmoothedValue<float> mixSmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> gainSmoothed; // linear gain
+    juce::SmoothedValue<float> mixSmoothed;                                               // 0..1
     
     double currentSampleRate = 44100.0;
 
     juce::AudioBuffer<float> dryBuffer;
 
-    void updateFilters();
+    int preparedBlockSize = 512;
+
+    void processChunk(juce::AudioBuffer<float>& chunk);
+    void updateFilters(float centerFreq, float bandwidth);
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BandPassProcessor)

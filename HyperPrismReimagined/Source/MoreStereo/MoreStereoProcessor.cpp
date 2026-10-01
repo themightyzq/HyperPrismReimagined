@@ -88,16 +88,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout MoreStereoProcessor::createP
 void MoreStereoProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
-    
+    preparedBlockSize = juce::jmax(1, samplesPerBlock);
+
     // Prepare reverb for ambience
     juce::dsp::ProcessSpec spec;
     spec.sampleRate = sampleRate;
-    spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
+    spec.maximumBlockSize = static_cast<juce::uint32>(preparedBlockSize);
     spec.numChannels = 2;
-    
+
     reverb.prepare(spec);
     reverb.reset();
-    
+
     // Configure reverb parameters for subtle ambience
     juce::Reverb::Parameters reverbParams;
     reverbParams.roomSize = 0.3f;
@@ -107,33 +108,33 @@ void MoreStereoProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     reverbParams.width = 1.0f;
     reverbParams.freezeMode = 0.0f;
     reverb.setParameters(reverbParams);
-    
+
     // Prepare ambience delay lines
-    ambienceDelayLeft.prepare({ sampleRate, static_cast<juce::uint32>(samplesPerBlock), 1 });
-    ambienceDelayRight.prepare({ sampleRate, static_cast<juce::uint32>(samplesPerBlock), 1 });
+    ambienceDelayLeft.prepare({ sampleRate, static_cast<juce::uint32>(preparedBlockSize), 1 });
+    ambienceDelayRight.prepare({ sampleRate, static_cast<juce::uint32>(preparedBlockSize), 1 });
     ambienceDelayLeft.reset();
     ambienceDelayRight.reset();
-    
-    // Initialize crossover filters
-    auto defaultLowPassCoeffs = juce::IIRCoefficients::makeLowPass(sampleRate, 120.0);
-    auto defaultHighPassCoeffs = juce::IIRCoefficients::makeHighPass(sampleRate, 120.0);
-    
-    lowPassLeft.setCoefficients(defaultLowPassCoeffs);
-    lowPassRight.setCoefficients(defaultLowPassCoeffs);
-    highPassLeft.setCoefficients(defaultHighPassCoeffs);
-    highPassRight.setCoefficients(defaultHighPassCoeffs);
-    
-    lowPassLeft.reset();
-    lowPassRight.reset();
-    highPassLeft.reset();
-    highPassRight.reset();
-    
-    previousCrossoverFreq = -1.0f;
 
-    // Pre-allocate processing buffers
-    bassBuffer.setSize(2, samplesPerBlock);
-    trebleBuffer.setSize(2, samplesPerBlock);
-    ambienceBuffer.setSize(2, samplesPerBlock);
+    // Linkwitz-Riley crossover (low + high sums flat)
+    crossover.prepare(spec);
+    crossover.setCutoffFrequency(crossoverFreqParam->load());
+    crossover.reset();
+
+    // Smoothing (30 ms), starting at the current values.
+    constexpr double smoothingSeconds = 0.03;
+    for (auto* s : { &widthSmoothed, &bassMonoSmoothed, &stereoEnhanceSmoothed, &ambienceSmoothed })
+        s->reset(sampleRate, smoothingSeconds);
+    crossoverSmoothed.reset(sampleRate, smoothingSeconds);
+    outputGainSmoothed.reset(sampleRate, smoothingSeconds);
+    widthSmoothed.setCurrentAndTargetValue(widthParam->load() / 100.0f);
+    bassMonoSmoothed.setCurrentAndTargetValue(bassMonoParam->load() / 100.0f);
+    stereoEnhanceSmoothed.setCurrentAndTargetValue(stereoEnhanceParam->load() / 100.0f);
+    ambienceSmoothed.setCurrentAndTargetValue(ambienceParam->load() / 100.0f);
+    crossoverSmoothed.setCurrentAndTargetValue(crossoverFreqParam->load());
+    outputGainSmoothed.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
+
+    // Pre-allocate the ambience (reverb input) buffer
+    ambienceBuffer.setSize(2, preparedBlockSize);
 
     // Reset metering
     leftLevel.store(0.0f);
@@ -144,11 +145,7 @@ void MoreStereoProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 
 void MoreStereoProcessor::releaseResources()
 {
-    // Reset filters
-    lowPassLeft.reset();
-    lowPassRight.reset();
-    highPassLeft.reset();
-    highPassRight.reset();
+    crossover.reset();
     reverb.reset();
 }
 
@@ -166,171 +163,114 @@ bool MoreStereoProcessor::isBusesLayoutSupported(const BusesLayout& layouts) con
 void MoreStereoProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& /*midiMessages*/)
 {
     juce::ScopedNoDenormals noDenormals;
-    
+
     if (bypassParam->load() > 0.5f)
         return;
-        
+
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
-    if (buffer.getNumChannels() < 2)
+    if (buffer.getNumChannels() < 2 || preparedBlockSize <= 0)
         return;
 
-    processMoreStereo(buffer);
+    widthSmoothed.setTargetValue(widthParam->load() / 100.0f);
+    bassMonoSmoothed.setTargetValue(bassMonoParam->load() / 100.0f);
+    stereoEnhanceSmoothed.setTargetValue(stereoEnhanceParam->load() / 100.0f);
+    ambienceSmoothed.setTargetValue(ambienceParam->load() / 100.0f);
+    crossoverSmoothed.setTargetValue(crossoverFreqParam->load());
+    outputGainSmoothed.setTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
+
+    // ambienceBuffer is sized for preparedBlockSize; a host that sends a bigger block gets it
+    // processed in chunks of at most that size.
+    float leftSum = 0.0f, rightSum = 0.0f, ambienceSum = 0.0f;
+    const int numSamples = buffer.getNumSamples();
+    for (int start = 0; start < numSamples; start += preparedBlockSize)
+        processMoreStereo(buffer, start, juce::jmin(preparedBlockSize, numSamples - start),
+                          leftSum, rightSum, ambienceSum);
+
+    // Update level metering
+    leftLevel.store(leftSum / numSamples);
+    rightLevel.store(rightSum / numSamples);
+    ambienceLevel.store(ambienceSum / numSamples);
+
     calculateStereoWidth(buffer);
 }
 
-void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer)
+void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer, int start, int numSamples,
+                                            float& leftLevelSum, float& rightLevelSum, float& ambienceLevelSum)
 {
-    const int numSamples = buffer.getNumSamples();
-    
-    const float width = widthParam->load() / 100.0f;
-    const float bassMonoAmount = bassMonoParam->load() / 100.0f;
-    const float crossoverFreq = crossoverFreqParam->load();
-    const float stereoEnhance = stereoEnhanceParam->load() / 100.0f;
-    const float ambienceAmount = ambienceParam->load() / 100.0f;
-    const float outputLevel = juce::Decibels::decibelsToGain(outputLevelParam->load());
-    
-    // Update crossover filters if frequency changed
-    if (std::abs(crossoverFreq - previousCrossoverFreq) > 1.0f)
+    auto* leftData = buffer.getWritePointer(0, start);
+    auto* rightData = buffer.getWritePointer(1, start);
+
+    // Ambience (reverb + short delays) runs while Ambience is above zero or ramping to it.
+    const bool ambienceActive = ambienceSmoothed.isSmoothing() || ambienceSmoothed.getTargetValue() > 0.001f;
+    if (ambienceActive)
     {
-        auto lowPassCoeffs = juce::IIRCoefficients::makeLowPass(currentSampleRate, crossoverFreq);
-        auto highPassCoeffs = juce::IIRCoefficients::makeHighPass(currentSampleRate, crossoverFreq);
-        
-        lowPassLeft.setCoefficients(lowPassCoeffs);
-        lowPassRight.setCoefficients(lowPassCoeffs);
-        highPassLeft.setCoefficients(highPassCoeffs);
-        highPassRight.setCoefficients(highPassCoeffs);
-        
-        previousCrossoverFreq = crossoverFreq;
+        ambienceBuffer.copyFrom(0, 0, leftData, numSamples);
+        ambienceBuffer.copyFrom(1, 0, rightData, numSamples);
+        auto ambienceBlock = juce::dsp::AudioBlock<float>(ambienceBuffer).getSubBlock(0, (size_t) numSamples);
+        reverb.process(juce::dsp::ProcessContextReplacing<float>(ambienceBlock));
     }
-    
-    auto* leftData = buffer.getWritePointer(0);
-    auto* rightData = buffer.getWritePointer(1);
-    
-    // Copy to pre-allocated processing buffers
-    bassBuffer.makeCopyOf(buffer);
-    trebleBuffer.makeCopyOf(buffer);
-    ambienceBuffer.makeCopyOf(buffer);
-    
-    // Apply crossover filtering
-    auto* bassLeft = bassBuffer.getWritePointer(0);
-    auto* bassRight = bassBuffer.getWritePointer(1);
-    auto* trebleLeft = trebleBuffer.getWritePointer(0);
-    auto* trebleRight = trebleBuffer.getWritePointer(1);
-    
+    const auto* ambienceLeft = ambienceBuffer.getReadPointer(0);
+    const auto* ambienceRight = ambienceBuffer.getReadPointer(1);
+
     for (int sample = 0; sample < numSamples; ++sample)
     {
-        // Filter bass frequencies
-        bassLeft[static_cast<size_t>(sample)] = lowPassLeft.processSingleSampleRaw(bassLeft[static_cast<size_t>(sample)]);
-        bassRight[static_cast<size_t>(sample)] = lowPassRight.processSingleSampleRaw(bassRight[static_cast<size_t>(sample)]);
-        
-        // Filter treble frequencies
-        trebleLeft[static_cast<size_t>(sample)] = highPassLeft.processSingleSampleRaw(trebleLeft[static_cast<size_t>(sample)]);
-        trebleRight[static_cast<size_t>(sample)] = highPassRight.processSingleSampleRaw(trebleRight[static_cast<size_t>(sample)]);
-    }
-    
-    // Process bass frequencies (make mono if required)
-    if (bassMonoAmount > 0.001f)
-    {
-        for (int sample = 0; sample < numSamples; ++sample)
+        if (crossoverSmoothed.isSmoothing())
+            crossover.setCutoffFrequency(crossoverSmoothed.getNextValue());
+
+        const float width = widthSmoothed.getNextValue();
+        const float bassMonoAmount = bassMonoSmoothed.getNextValue();
+        const float stereoEnhance = stereoEnhanceSmoothed.getNextValue();
+        const float ambienceAmount = ambienceSmoothed.getNextValue();
+        const float outputGain = outputGainSmoothed.getNextValue();
+
+        // Crossover: bass + treble == input (all-passed), so neutral settings sum flat.
+        float bassL = 0.0f, trebleL = 0.0f, bassR = 0.0f, trebleR = 0.0f;
+        crossover.processSample(0, leftData[sample], bassL, trebleL);
+        crossover.processSample(1, rightData[sample], bassR, trebleR);
+
+        // Bass towards mono
+        const float bassMono = (bassL + bassR) * 0.5f;
+        bassL = bassL * (1.0f - bassMonoAmount) + bassMono * bassMonoAmount;
+        bassR = bassR * (1.0f - bassMonoAmount) + bassMono * bassMonoAmount;
+
+        // Treble: stereo enhancement, then overall width
+        float mid = (trebleL + trebleR) * 0.5f;
+        float side = (trebleL - trebleR) * 0.5f * (1.0f + stereoEnhance * 2.0f);
+        trebleL = mid + side;
+        trebleR = mid - side;
+        mid = (trebleL + trebleR) * 0.5f;
+        side = (trebleL - trebleR) * 0.5f * width;
+        trebleL = mid + side;
+        trebleR = mid - side;
+
+        float outL = (bassL + trebleL) * outputGain;
+        float outR = (bassR + trebleR) * outputGain;
+
+        if (ambienceActive)
         {
-            float mono = (bassLeft[static_cast<size_t>(sample)] + bassRight[static_cast<size_t>(sample)]) * 0.5f;
-            float dryLeft = bassLeft[static_cast<size_t>(sample)] * (1.0f - bassMonoAmount);
-            float dryRight = bassRight[static_cast<size_t>(sample)] * (1.0f - bassMonoAmount);
-            float wetMono = mono * bassMonoAmount;
-            
-            bassLeft[static_cast<size_t>(sample)] = dryLeft + wetMono;
-            bassRight[static_cast<size_t>(sample)] = dryRight + wetMono;
+            // Add small delays (3-7 ms) for width
+            const float leftDelayed = ambienceDelayLeft.popSample(0, 3.0f * 48.0f, true);
+            const float rightDelayed = ambienceDelayRight.popSample(0, 7.0f * 48.0f, true);
+            ambienceDelayLeft.pushSample(0, ambienceLeft[sample]);
+            ambienceDelayRight.pushSample(0, ambienceRight[sample]);
+
+            const float ambL = leftDelayed * ambienceAmount * 0.3f;
+            const float ambR = rightDelayed * ambienceAmount * 0.3f;
+            outL += ambL;
+            outR += ambR;
+            ambienceLevelSum += (std::abs(ambL) + std::abs(ambR)) * 0.5f;
         }
+
+        leftData[sample] = outL;
+        rightData[sample] = outR;
+        leftLevelSum += std::abs(outL);
+        rightLevelSum += std::abs(outR);
     }
-    
-    // Process treble frequencies (apply stereo enhancement)
-    if (stereoEnhance > 0.001f)
-    {
-        for (int sample = 0; sample < numSamples; ++sample)
-        {
-            float mono = (trebleLeft[static_cast<size_t>(sample)] + trebleRight[static_cast<size_t>(sample)]) * 0.5f;
-            float side = (trebleLeft[static_cast<size_t>(sample)] - trebleRight[static_cast<size_t>(sample)]) * 0.5f;
-            
-            // Enhance stereo image
-            side *= (1.0f + stereoEnhance * 2.0f);
-            
-            trebleLeft[static_cast<size_t>(sample)] = mono + side;
-            trebleRight[static_cast<size_t>(sample)] = mono - side;
-        }
-    }
-    
-    // Apply overall stereo width to treble
-    for (int sample = 0; sample < numSamples; ++sample)
-    {
-        float mono = (trebleLeft[static_cast<size_t>(sample)] + trebleRight[static_cast<size_t>(sample)]) * 0.5f;
-        float side = (trebleLeft[static_cast<size_t>(sample)] - trebleRight[static_cast<size_t>(sample)]) * 0.5f * width;
-        
-        trebleLeft[static_cast<size_t>(sample)] = mono + side;
-        trebleRight[static_cast<size_t>(sample)] = mono - side;
-    }
-    
-    // Process ambience if enabled
-    float ambienceLevelSum = 0.0f;
-    if (ambienceAmount > 0.001f)
-    {
-        // Apply reverb to create ambience
-        auto ambienceBlock = juce::dsp::AudioBlock<float>(ambienceBuffer);
-        auto ambienceContext = juce::dsp::ProcessContextReplacing<float>(ambienceBlock);
-        reverb.process(ambienceContext);
-        
-        // Add slight delays for width
-        auto* ambienceLeft = ambienceBuffer.getWritePointer(0);
-        auto* ambienceRight = ambienceBuffer.getWritePointer(1);
-        
-        for (int sample = 0; sample < numSamples; ++sample)
-        {
-            float leftInput = ambienceLeft[static_cast<size_t>(sample)];
-            float rightInput = ambienceRight[static_cast<size_t>(sample)];
-            
-            // Add small delays (3-7 ms)
-            float leftDelayed = ambienceDelayLeft.popSample(0, 3.0f * 48.0f, true);
-            float rightDelayed = ambienceDelayRight.popSample(0, 7.0f * 48.0f, true);
-            
-            ambienceDelayLeft.pushSample(0, leftInput);
-            ambienceDelayRight.pushSample(0, rightInput);
-            
-            ambienceLeft[static_cast<size_t>(sample)] = leftDelayed * ambienceAmount * 0.3f;
-            ambienceRight[static_cast<size_t>(sample)] = rightDelayed * ambienceAmount * 0.3f;
-            
-            ambienceLevelSum += (std::abs(ambienceLeft[static_cast<size_t>(sample)]) + std::abs(ambienceRight[static_cast<size_t>(sample)])) * 0.5f;
-        }
-    }
-    
-    // Combine all components
-    float leftLevelSum = 0.0f;
-    float rightLevelSum = 0.0f;
-    
-    for (int sample = 0; sample < numSamples; ++sample)
-    {
-        leftData[static_cast<size_t>(sample)] = (bassLeft[static_cast<size_t>(sample)] + trebleLeft[static_cast<size_t>(sample)]) * outputLevel;
-        rightData[static_cast<size_t>(sample)] = (bassRight[static_cast<size_t>(sample)] + trebleRight[static_cast<size_t>(sample)]) * outputLevel;
-        
-        // Add ambience
-        if (ambienceAmount > 0.001f)
-        {
-            leftData[static_cast<size_t>(sample)] += ambienceBuffer.getSample(0, sample);
-            rightData[static_cast<size_t>(sample)] += ambienceBuffer.getSample(1, sample);
-        }
-        
-        // Accumulate for metering
-        leftLevelSum += std::abs(leftData[static_cast<size_t>(sample)]);
-        rightLevelSum += std::abs(rightData[static_cast<size_t>(sample)]);
-    }
-    
-    // Update level metering
-    leftLevel.store(leftLevelSum / numSamples);
-    rightLevel.store(rightLevelSum / numSamples);
-    ambienceLevel.store(ambienceLevelSum / numSamples);
 }
 
 void MoreStereoProcessor::calculateStereoWidth(const juce::AudioBuffer<float>& buffer)

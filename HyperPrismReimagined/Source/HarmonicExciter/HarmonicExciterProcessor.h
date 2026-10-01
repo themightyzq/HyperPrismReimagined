@@ -90,11 +90,17 @@ private:
     // Pre-allocated buffer (sized to preparedBlockSize)
     juce::AudioBuffer<float> highFreqBuffer;
 
+    // Drive, Frequency, Harmonics and Mix, smoothed over 30 ms. Drive and Harmonics feed the
+    // oversampled generator through per-base-sample buffers (sized preparedBlockSize).
+    juce::LinearSmoothedValue<float> driveSmoothed, harmonicsSmoothed, mixSmoothed;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> frequencySmoothed;
+    std::vector<float> driveValues, harmonicsValues;
+
     // Delays the dry path (and bypassed audio) by the oversampler's integer latency so it
     // lines up with the wet path and with what setLatencySamples reports.
     juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::None> dryDelay;
 
-    void processChunk(juce::dsp::AudioBlock<float> block, float drive, float harmonics, float mix, int type);
+    void processChunk(juce::dsp::AudioBlock<float> block, int type);
     void delayDryOnly(juce::dsp::AudioBlock<float> block);
 
     // Harmonic generation functions

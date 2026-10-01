@@ -118,7 +118,7 @@ private:
     };
     
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
-    void processPitchShifting(juce::AudioBuffer<float>& buffer);
+    void processPitchShifting(juce::AudioBuffer<float>& buffer); // one chunk, <= preparedBlockSize
     
     juce::AudioProcessorValueTreeState valueTreeState;
     std::atomic<int> editorWidth { 0 }, editorHeight { 0 };
@@ -137,6 +137,11 @@ private:
     
     // State variables
     juce::AudioBuffer<float> dryBuffer;
+    int preparedBlockSize = 512;
+
+    // Parameter smoothing (30 ms): mix is a 0-1 fraction, output level a linear gain.
+    juce::SmoothedValue<float> smoothedMix;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> smoothedOutputGain;
     
     // Metering
     std::atomic<float> inputLevel { 0.0f };

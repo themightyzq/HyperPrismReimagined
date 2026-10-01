@@ -116,6 +116,7 @@ private:
     // State variables
     juce::SmoothedValue<float> smoothedMidGain;
     juce::SmoothedValue<float> smoothedSideGain;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> smoothedOutputLevel; // linear gain, 30 ms
     
     // Metering
     std::atomic<float> leftLevel { 0.0f };

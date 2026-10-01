@@ -115,6 +115,11 @@ private:
     // DSP components
     std::array<DelayLine, NUM_DELAYS> delayLines;
     
+    // Parameter smoothers (30 ms), advanced once per sample
+    juce::SmoothedValue<float> masterMixSmoothed, globalFeedbackSmoothed;
+    std::array<juce::SmoothedValue<float>, NUM_DELAYS> delayTimeSmoothed, delayLevelSmoothed,
+                                                       delayPanSmoothed, delayFeedbackSmoothed;
+
     // State variables
     double currentSampleRate = 44100.0;
 

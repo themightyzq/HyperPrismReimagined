@@ -92,7 +92,12 @@ void PanProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     leftLevel.store(0.0f);
     rightLevel.store(0.0f);
 
-    originalBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    smoothedWidth.reset(sampleRate, 0.03);
+    smoothedWidth.setCurrentAndTargetValue(widthParam->load() / 100.0f);
+
+    preparedBlockSize = juce::jmax(1, samplesPerBlock);
+    originalBuffer.setSize(juce::jmax(2, juce::jmax(getTotalNumInputChannels(), getTotalNumOutputChannels())),
+                           preparedBlockSize);
 }
 
 void PanProcessor::releaseResources()
@@ -138,7 +143,7 @@ void PanProcessor::processPanning(juce::AudioBuffer<float>& buffer)
     
     const float panPosition = panPositionParam->load() / 100.0f; // -1 to +1
     const int panLawType = static_cast<int>(panLawParam->load());
-    const float width = widthParam->load() / 100.0f; // 0 to 2
+    smoothedWidth.setTargetValue(widthParam->load() / 100.0f); // 0 to 2
     const float balance = balanceParam->load() / 100.0f; // -1 to +1
     const float outputLevel = juce::Decibels::decibelsToGain(outputLevelParam->load());
     
@@ -162,11 +167,24 @@ void PanProcessor::processPanning(juce::AudioBuffer<float>& buffer)
     smoothedLeftGain.setTargetValue(panLeftGain * balanceLeftGain * outputLevel);
     smoothedRightGain.setTargetValue(panRightGain * balanceRightGain * outputLevel);
     
-    auto* leftData = buffer.getWritePointer(0);
-    auto* rightData = buffer.getWritePointer(1);
+    // Split host blocks larger than the prepared size so originalBuffer is never outgrown
+    for (int start = 0; start < numSamples; start += preparedBlockSize)
+    {
+        const int len = juce::jmin(preparedBlockSize, numSamples - start);
+        juce::AudioBuffer<float> chunk(buffer.getArrayOfWritePointers(), numChannels, start, len);
+        processPanningChunk(chunk);
+    }
+}
+
+void PanProcessor::processPanningChunk(juce::AudioBuffer<float>& chunk)
+{
+    const int numSamples = chunk.getNumSamples();
+    auto* leftData = chunk.getWritePointer(0);
+    auto* rightData = chunk.getWritePointer(1);
     
     // Store original signals for stereo width processing
-    originalBuffer.makeCopyOf(buffer);
+    originalBuffer.copyFrom(0, 0, chunk, 0, 0, numSamples);
+    originalBuffer.copyFrom(1, 0, chunk, 1, 0, numSamples);
     const auto* originalLeft = originalBuffer.getReadPointer(0);
     const auto* originalRight = originalBuffer.getReadPointer(1);
     
@@ -180,6 +198,7 @@ void PanProcessor::processPanning(juce::AudioBuffer<float>& buffer)
         
         // Apply stereo width
         float mono = (leftInput + rightInput) * 0.5f;
+        const float width = smoothedWidth.getNextValue();
         float side = (leftInput - rightInput) * 0.5f * width;
         
         float widthLeft = mono + side;

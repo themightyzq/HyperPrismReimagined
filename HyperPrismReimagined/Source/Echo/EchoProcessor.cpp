@@ -82,6 +82,11 @@ void EchoProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     delaySmoothed.reset(sampleRate, smoothingTime);
     feedbackSmoothed.reset(sampleRate, smoothingTime);
     mixSmoothed.reset(sampleRate, smoothingTime);
+    
+    // Start the smoothers at the current parameter values (not at 0)
+    delaySmoothed.setCurrentAndTargetValue(parameters.getRawParameterValue(DELAY_ID)->load());
+    feedbackSmoothed.setCurrentAndTargetValue(parameters.getRawParameterValue(FEEDBACK_ID)->load() * 0.01f);
+    mixSmoothed.setCurrentAndTargetValue(parameters.getRawParameterValue(MIX_ID)->load() * 0.01f);
 }
 
 void EchoProcessor::releaseResources()

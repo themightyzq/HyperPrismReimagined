@@ -56,7 +56,7 @@ void XYPad::paint(juce::Graphics& g)
     }
     
     // Border
-    g.setColour(HyperPrismLookAndFeel::Colors::outline);
+    g.setColour(HyperPrismLookAndFeel::Colors::xyPadBorder);
     g.drawRoundedRectangle(bounds, 5.0f, 2.0f);
 
     
@@ -181,7 +181,8 @@ HarmonicExciterEditor::HarmonicExciterEditor(HarmonicExciterProcessor& p)
     typeComboBox.setColour(juce::ComboBox::outlineColourId, HyperPrismLookAndFeel::Colors::outline);
     addAndMakeVisible(typeComboBox);
     typeComboBox.setTitle("Type");
-    typeComboBox.setDescription("Excitation type");
+    typeComboBox.setTooltip("Harmonic character: Warm adds soft, mostly even harmonics; Bright adds harder, odd harmonics");
+    typeComboBox.setDescription("Harmonic character: Warm adds soft, mostly even harmonics; Bright adds harder, odd harmonics");
     
     typeLabel.setText("Type", juce::dontSendNotification);
     typeLabel.setJustificationType(juce::Justification::centred);
@@ -288,7 +289,7 @@ void HarmonicExciterEditor::paint(juce::Graphics& g)
     g.fillRect(12, 4, getWidth() - 24, 2);
     g.setColour(HyperPrismLookAndFeel::Colors::onSurfaceVariant);
     g.setFont(juce::Font(juce::FontOptions(9.0f)));
-    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).removeFromRight(70),
+    g.drawText(juce::String("v") + JucePlugin_VersionString, getLocalBounds().removeFromBottom(20).withTrimmedRight(20).removeFromRight(70),
                juce::Justification::centredRight);
 
     auto paintColumnHeader = [&](int x, int y, int width,

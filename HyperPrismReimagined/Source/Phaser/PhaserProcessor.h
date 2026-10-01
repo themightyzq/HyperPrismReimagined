@@ -100,8 +100,13 @@ private:
     std::array<AllPassFilter, maxStages> allPassFiltersL;
     std::array<AllPassFilter, maxStages> allPassFiltersR;
     
-    // LFO for modulation
+    // LFO for modulation: one phase for the whole plugin, advanced once per sample (not once
+    // per channel, which ran it at twice the set rate in stereo).
     float lfoPhase = 0.0f;
+
+    // Feedback memory, one per channel (was a function-level static shared by every
+    // instance in the session).
+    std::array<float, 2> feedbackMemory {};
     
     // Parameter smoothing
     juce::SmoothedValue<float> rateSmoothed;
@@ -110,8 +115,6 @@ private:
     juce::SmoothedValue<float> mixSmoothed;
     
     double currentSampleRate = 44100.0;
-
-    juce::AudioBuffer<float> dryBuffer;
 
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

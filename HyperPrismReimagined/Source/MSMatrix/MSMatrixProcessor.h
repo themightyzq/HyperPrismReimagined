@@ -101,6 +101,7 @@ private:
     juce::SmoothedValue<float> smoothedMidLevel;
     juce::SmoothedValue<float> smoothedSideLevel;
     juce::SmoothedValue<float> smoothedStereoBalance;
+    juce::SmoothedValue<float, juce::ValueSmoothingTypes::Multiplicative> smoothedOutputLevel; // linear gain, 30 ms
     
     // Metering
     std::atomic<float> leftLevel { 0.0f };

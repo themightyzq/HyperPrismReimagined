@@ -1678,3 +1678,98 @@ add_hyperprism_console_check(label_visibility_check  HyperPrismSonicDecimator So
 # ---- MultiDelay echo timing (tools/echo_timing_check/main.cpp): every tap is read once per
 # sample, so each echo lands at its configured delay and renders are block-size invariant.
 add_hyperprism_console_check(echo_timing_check HyperPrismMultiDelay MultiDelay MultiDelayProcessor.h MultiDelayProcessor HP_CHECK_MULTIDELAY)
+
+# ---- 2026-10-01 backlog checks. These link only ${plugin_target}'s shared-code library, which
+# already contains every JUCE module compiled for that plugin, and take its compile settings
+# from it, instead of compiling the JUCE modules again per tool (about 160 s of CPU each, times
+# 70 tools). Same naming as add_hyperprism_console_check() (short: Windows MAX_PATH).
+function(add_hyperprism_light_check kind plugin_target effect_dir processor_header processor_class flag)
+    string(REPLACE "HyperPrism" "" effect_short "${plugin_target}")
+    string(REPLACE "_check" "" kind_short "${kind}")
+    set(check_target "hp_${kind_short}_${effect_short}")
+    add_executable(${check_target} tools/${kind}/main.cpp)
+    target_compile_features(${check_target} PRIVATE cxx_std_17)
+    target_compile_definitions(${check_target} PRIVATE
+        $<TARGET_PROPERTY:${plugin_target},COMPILE_DEFINITIONS>
+        "HP_CHECK_PROCESSOR_HEADER=\"${processor_header}\""
+        "HP_CHECK_PROCESSOR_CLASS=${processor_class}"
+        "${flag}=1"
+        ${ARGN})
+    target_include_directories(${check_target} PRIVATE
+        Source/${effect_dir}
+        Source/Shared
+        $<TARGET_PROPERTY:${plugin_target},INCLUDE_DIRECTORIES>)
+    target_link_libraries(${check_target} PRIVATE ${plugin_target})
+    if(TARGET ${plugin_target}Presets)
+        target_link_libraries(${check_target} PRIVATE ${plugin_target}Presets)
+    endif()
+    add_test(NAME ${check_target} COMMAND ${check_target})
+endfunction()
+
+# hp_rt_alloc_<Effect> (tools/rt_alloc_check/main.cpp): no heap allocation inside processBlock,
+# with parameters, block sizes and an oversized host block all changing; every plugin.
+set(HYPERPRISM_EFFECTS
+    AutoPan BandPass BandReject BassMaximiser Chorus Compressor Delay Echo Flanger
+    FrequencyShifter HarmonicExciter HighPass HyperPhaser Limiter LowPass MSMatrix MoreStereo
+    MultiDelay NoiseGate Pan Phaser PitchChanger QuasiStereo Reverb RingModulator SingleDelay
+    SonicDecimator StereoDynamics Tremolo TubeTapeSaturation Vibrato Vocoder)
+foreach(effect IN LISTS HYPERPRISM_EFFECTS)
+    add_hyperprism_light_check(rt_alloc_check HyperPrism${effect} ${effect} ${effect}Processor.h ${effect}Processor HP_CHECK_GENERIC)
+endforeach()
+
+# hp_smoothing_<Effect> (tools/smoothing_check/main.cpp): the listed continuous parameters that
+# feed a gain, mix, frequency, delay time or depth are smoothed. "id:r" = ramp check on noise,
+# "id:c:delta" = click check on a sine for delay times, "id:r:delta:ms" = ramp check measured
+# that many ms after the change (a feedback path's delay, or the Limiter's 20 ms latency). NoiseGate has none (threshold, times and
+# range only; its gate gain is already smoothed by attack/release).
+# Optional third argument: "id=value,..." settings applied first (HP_SMOOTH_SETUP).
+function(add_hyperprism_smoothing_check effect params)
+    set(setup_def "")
+    if(ARGC GREATER 2)
+        set(setup_def "HP_SMOOTH_SETUP=\"${ARGV2}\"")
+    endif()
+    add_hyperprism_light_check(smoothing_check HyperPrism${effect} ${effect} ${effect}Processor.h ${effect}Processor
+        HP_CHECK_GENERIC "HP_SMOOTH_PARAMS=\"${params}\"" ${setup_def})
+endfunction()
+add_hyperprism_smoothing_check(AutoPan            "depth:r,phase:r,outputLevel:r")
+add_hyperprism_smoothing_check(BandPass           "centerFreq:r,bandwidth:r,gain:r,mix:r")
+add_hyperprism_smoothing_check(BandReject         "centerFreq:r,q:r,gain:r,mix:r")
+add_hyperprism_smoothing_check(BassMaximiser      "frequency:r,boost:r,harmonics:r,outputGain:r")
+add_hyperprism_smoothing_check(Chorus             "mix:r,depth:r,feedback:r:0.3:15,delay:c:0.2,lowCut:r,highCut:r")
+add_hyperprism_smoothing_check(Compressor         "makeupGain:r,mix:r")
+add_hyperprism_smoothing_check(Delay              "mix:r,delayTime:c:0.02,feedback:r:0.3:125,lowCut:r,highCut:r,stereoOffset:c:0.02")
+add_hyperprism_smoothing_check(Echo               "delay:c:0.02,feedback:r:0.3:250,mix:r")
+add_hyperprism_smoothing_check(Flanger            "mix:r,depth:r,feedback:r:0.3:5,delay:c:0.2,lowCut:r,highCut:r")
+add_hyperprism_smoothing_check(FrequencyShifter   "mix:r,outputLevel:r" "frequencyShift=300")
+add_hyperprism_smoothing_check(HarmonicExciter    "drive:r,frequency:r,harmonics:r,mix:r")
+add_hyperprism_smoothing_check(HighPass           "frequency:r,resonance:r,gain:r,mix:r")
+add_hyperprism_smoothing_check(HyperPhaser        "baseFreq:r,peakNotchDepth:r,bandwidth:r,feedback:r,mix:r")
+add_hyperprism_smoothing_check(Limiter            "inputgain:r:0.3:20,ceiling:r:0.5:20")
+add_hyperprism_smoothing_check(LowPass            "frequency:r,resonance:r,gain:r,mix:r")
+add_hyperprism_smoothing_check(MSMatrix           "midLevel:r,sideLevel:r,stereoBalance:r,outputLevel:r")
+add_hyperprism_smoothing_check(MoreStereo         "width:r,bassMono:r,crossoverFreq:r,stereoEnhance:r,ambience:r,outputLevel:r")
+add_hyperprism_smoothing_check(MultiDelay         "masterMix:r,globalFeedback:r:0.3:125,delay1Time:c:0.02,delay1Level:r,delay1Pan:r,delay1Feedback:r:0.3:125")
+add_hyperprism_smoothing_check(Pan                "panPosition:r,width:r,balance:r,outputLevel:r")
+add_hyperprism_smoothing_check(Phaser             "depth:r,feedback:r,mix:r")
+add_hyperprism_smoothing_check(PitchChanger       "mix:r,outputLevel:r")
+add_hyperprism_smoothing_check(QuasiStereo        "width:r,delayTime:c:0.02,phaseShift:r,highFreqEnhance:r,outputLevel:r")
+add_hyperprism_smoothing_check(Reverb             "mix:r,width:r,lowCut:r,highCut:r")
+add_hyperprism_smoothing_check(RingModulator      "mix:r")
+add_hyperprism_smoothing_check(SingleDelay        "delayTime:c:0.02,feedback:r:0.3:250,wetDryMix:r,highCut:r,lowCut:r")
+add_hyperprism_smoothing_check(SonicDecimator     "mix:r,outputLevel:r")
+add_hyperprism_smoothing_check(StereoDynamics     "outputLevel:r")
+add_hyperprism_smoothing_check(Tremolo            "depth:r,mix:r")
+add_hyperprism_smoothing_check(TubeTapeSaturation "drive:r,warmth:r,brightness:r,outputLevel:r")
+add_hyperprism_smoothing_check(Vibrato            "mix:r,depth:r,delay:c:0.2,feedback:r:0.3:5")
+add_hyperprism_smoothing_check(Vocoder            "outputLevel:r")
+
+# Plugin-specific behaviour checks for the same pass (each tool's header comment says what it
+# proves): shared/static DSP state, flat crossover sums and BassMaximiser Harmonics, the
+# Vocoder filter bank, and lookahead latency reporting.
+add_hyperprism_light_check(isolation_check HyperPrismPhaser             Phaser             PhaserProcessor.h             PhaserProcessor             HP_CHECK_PHASER)
+add_hyperprism_light_check(isolation_check HyperPrismTubeTapeSaturation TubeTapeSaturation TubeTapeSaturationProcessor.h TubeTapeSaturationProcessor HP_CHECK_TUBETAPE)
+add_hyperprism_light_check(crossover_check HyperPrismBassMaximiser      BassMaximiser      BassMaximiserProcessor.h      BassMaximiserProcessor      HP_CHECK_BASSMAXIMISER)
+add_hyperprism_light_check(crossover_check HyperPrismMoreStereo         MoreStereo         MoreStereoProcessor.h         MoreStereoProcessor         HP_CHECK_MORESTEREO)
+add_hyperprism_light_check(vocoder_check   HyperPrismVocoder            Vocoder            VocoderProcessor.h            VocoderProcessor            HP_CHECK_VOCODER)
+add_hyperprism_light_check(lookahead_check HyperPrismNoiseGate          NoiseGate          NoiseGateProcessor.h          NoiseGateProcessor          HP_CHECK_NOISEGATE)
+add_hyperprism_light_check(lookahead_check HyperPrismLimiter            Limiter            LimiterProcessor.h            LimiterProcessor            HP_CHECK_LIMITER)

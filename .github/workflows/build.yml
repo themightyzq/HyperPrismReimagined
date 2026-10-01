@@ -50,7 +50,7 @@ jobs:
             build-essential libasound2-dev libjack-jackd2-dev \
             libfreetype6-dev libfontconfig1-dev libcurl4-openssl-dev \
             libx11-dev libxext-dev libxrandr-dev libxinerama-dev \
-            libxcursor-dev libgl1-mesa-dev libglu1-mesa-dev pkg-config
+            libxcursor-dev libgl1-mesa-dev libglu1-mesa-dev pkg-config xvfb
 
       # Windows builds with Ninja + the MSVC dev environment. The VS generator
       # can't locate Visual Studio on the current windows-latest image, but
@@ -105,6 +105,18 @@ jobs:
         run: |
           cd HyperPrismReimagined
           cmake --build build --parallel
+
+      # The check tools (state, presets, oversampling, real-time allocation, smoothing,
+      # crossover, lookahead, ...) are console apps built by the step above. One check opens
+      # an editor, so Linux runs them under a virtual display.
+      - name: Run checks (macOS / Windows)
+        if: matrix.os != 'ubuntu-latest'
+        shell: bash
+        run: ctest --test-dir HyperPrismReimagined/build -C Release --output-on-failure
+
+      - name: Run checks (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: xvfb-run -a ctest --test-dir HyperPrismReimagined/build -C Release --output-on-failure
 
       - name: Verify Universal Binary (macOS)
         if: matrix.os == 'macos-latest'

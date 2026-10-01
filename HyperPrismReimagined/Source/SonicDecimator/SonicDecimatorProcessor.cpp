@@ -62,15 +62,21 @@ void SonicDecimatorProcessor::BitCrusher::updateQuantizationStep()
 //==============================================================================
 // SampleRateReducer Implementation
 //==============================================================================
-void SonicDecimatorProcessor::SampleRateReducer::prepare(double sampleRate, int samplesPerBlock)
+void SonicDecimatorProcessor::SampleRateReducer::prepare(double processingRate, double hostRate, int samplesPerBlock)
 {
-    originalSampleRate = sampleRate;
+    originalSampleRate = processingRate;
+    hostSampleRate = hostRate;
 
     juce::dsp::ProcessSpec spec;
-    spec.sampleRate = sampleRate;
+    spec.sampleRate = processingRate;
     spec.maximumBlockSize = static_cast<juce::uint32>(samplesPerBlock);
     spec.numChannels = 1;
 
+    // Give the filter real second-order coefficients before reset(), so their order never
+    // changes on the audio thread (IIR::Filter reallocates its state when it does).
+    *antiAliasFilter.coefficients = juce::dsp::IIR::ArrayCoefficients<float>::makeLowPass(
+        processingRate, static_cast<float>(juce::jmin(hostRate, processingRate) * 0.45));
+    coefficientsTarget = -1.0f;
     antiAliasFilter.prepare(spec);
 
     reset();
@@ -79,14 +85,16 @@ void SonicDecimatorProcessor::SampleRateReducer::prepare(double sampleRate, int 
 void SonicDecimatorProcessor::SampleRateReducer::setSampleRate(float newTargetSampleRate)
 {
     targetSampleRate = newTargetSampleRate;
-    
-    // Update anti-aliasing filter cutoff
-    if (antiAliasingEnabled && targetSampleRate < originalSampleRate)
+
+    // Update anti-aliasing filter cutoff, only when it changes, into the filter's existing
+    // coefficient storage (no allocation; this runs on the audio thread).
+    if (antiAliasingEnabled && targetSampleRate < hostSampleRate
+        && targetSampleRate != coefficientsTarget)
     {
         float cutoffFreq = targetSampleRate * 0.45f; // Slightly below Nyquist
-        auto coefficients = juce::dsp::IIR::Coefficients<float>::makeLowPass(
+        *antiAliasFilter.coefficients = juce::dsp::IIR::ArrayCoefficients<float>::makeLowPass(
             originalSampleRate, cutoffFreq);
-        antiAliasFilter.coefficients = coefficients;
+        coefficientsTarget = targetSampleRate;
     }
 }
 
@@ -104,24 +112,26 @@ void SonicDecimatorProcessor::SampleRateReducer::reset()
 
 float SonicDecimatorProcessor::SampleRateReducer::processSample(float input)
 {
-    if (targetSampleRate >= originalSampleRate)
-        return input; // No reduction needed
-    
+    // Rate at or above the host rate: no reduction (compared with the host rate, not the
+    // oversampled processing rate, as before oversampling was added).
+    if (targetSampleRate >= hostSampleRate)
+        return input;
+
     // Apply anti-aliasing filter before downsampling
     float filteredInput = antiAliasingEnabled ? antiAliasFilter.processSample(input) : input;
-    
+
     // Calculate decimation ratio
     float decimationRatio = static_cast<float>(originalSampleRate) / targetSampleRate;
-    
+
     // Sample and hold decimation
     sampleCounter += 1.0f;
-    
+
     if (sampleCounter >= decimationRatio)
     {
         lastOutputSample = filteredInput;
         sampleCounter -= decimationRatio;
     }
-    
+
     return lastOutputSample;
 }
 
@@ -222,25 +232,34 @@ juce::AudioProcessorValueTreeState::ParameterLayout SonicDecimatorProcessor::cre
 //==============================================================================
 void SonicDecimatorProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
+    preparedBlockSize = juce::jmax(1, samplesPerBlock);
+    const int numChannels = juce::jmax(1, getTotalNumInputChannels());
+
     // Prepare DSP components with actual buffer size (fixes 512-sample artifact bug)
     for (auto& r : sampleRateReducers)
     {
 #if HP_SONICDECIMATOR_FORCE_1X
-        r.prepare(sampleRate, samplesPerBlock);
+        r.prepare(sampleRate, sampleRate, preparedBlockSize);
 #else
-    // The quantiser now runs on 4x-oversampled audio, so as far as the sample-and-hold
-    // decimator and its anti-alias filter are concerned, "original sample rate" is
-    // hostRate * kOversamplingFactor. targetSampleRate (set per-block from the Rate
-    // parameter) stays in real Hz, so a given Rate setting still decimates to the same
-    // audible rate as it did at 1x -- this is the required hold-counter scaling.
-        r.prepare(sampleRate * kOversamplingFactor, samplesPerBlock * kOversamplingFactor);
+        // The quantiser runs on 4x-oversampled audio, so as far as the sample-and-hold
+        // decimator and its anti-alias filter are concerned, the processing rate is
+        // hostRate * kOversamplingFactor. targetSampleRate (set per-block from the Rate
+        // parameter) stays in real Hz, so a given Rate setting still decimates to the same
+        // audible rate as it did at 1x -- this is the required hold-counter scaling.
+        r.prepare(sampleRate * kOversamplingFactor, sampleRate, preparedBlockSize * kOversamplingFactor);
 #endif
     }
     for (auto& b : bitCrushers) b.reset();
     for (auto& n : noiseShapers) n.reset();
 
     // Prepare dry buffer for mixing
-    dryBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
+    dryBuffer.setSize(numChannels, preparedBlockSize);
+
+    constexpr double smoothingSeconds = 0.03;
+    mixSmoothed.reset(sampleRate, smoothingSeconds);
+    outputGainSmoothed.reset(sampleRate, smoothingSeconds);
+    mixSmoothed.setCurrentAndTargetValue(mixParam->load() * 0.01f);
+    outputGainSmoothed.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
 
     // Reset metering
     inputLevel.store(0.0f);
@@ -248,20 +267,30 @@ void SonicDecimatorProcessor::prepareToPlay(double sampleRate, int samplesPerBlo
     bitReduction.store(0.0f);
     sampleReduction.store(0.0f);
 
+    int latency = 0;
 #if HP_SONICDECIMATOR_FORCE_1X
     oversampling.reset();
-    setLatencySamples(0);
 #else
     static_assert(kOversamplingFactor == 4, "oversampling stage count below assumes 4x (2 half-band stages)");
     oversampling = std::make_unique<juce::dsp::Oversampling<float>>(
-        (size_t) juce::jmax(1, getTotalNumOutputChannels()),
+        (size_t) numChannels,
         (size_t) 2, // log2(kOversamplingFactor)
         juce::dsp::Oversampling<float>::filterHalfBandPolyphaseIIR,
-        true);
-    oversampling->initProcessing((size_t) samplesPerBlock);
+        true,
+        true); // integer latency, so the dry delay below can match it exactly
+    oversampling->initProcessing((size_t) preparedBlockSize);
     oversampling->reset();
-    setLatencySamples((int) std::round(oversampling->getLatencyInSamples()));
+    latency = juce::roundToInt(oversampling->getLatencyInSamples());
 #endif
+
+    // setDelay asserts against the maximum, so the maximum is set first.
+    juce::dsp::ProcessSpec spec { sampleRate, (juce::uint32) preparedBlockSize, (juce::uint32) numChannels };
+    dryDelay.setMaximumDelayInSamples(juce::jmax(1, latency));
+    dryDelay.prepare(spec);
+    dryDelay.setDelay(static_cast<float>(latency));
+    dryDelay.reset();
+
+    setLatencySamples(latency);
 }
 
 void SonicDecimatorProcessor::releaseResources()
@@ -288,35 +317,28 @@ bool SonicDecimatorProcessor::isBusesLayoutSupported(const BusesLayout& layouts)
 void SonicDecimatorProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& /*midiMessages*/)
 {
     juce::ScopedNoDenormals noDenormals;
-    
-    if (bypassParam->load() > 0.5f)
-        return;
-        
+
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
+    const int numSamples = buffer.getNumSamples();
 
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
+        buffer.clear(i, 0, numSamples);
 
-    if (buffer.getNumChannels() < 1)
+    const int numChannels = juce::jmin(totalNumInputChannels, buffer.getNumChannels(), dryBuffer.getNumChannels());
+    if (numChannels < 1 || numSamples == 0 || preparedBlockSize <= 0)
         return;
 
-    processDecimation(buffer);
-}
+    const bool bypassed = bypassParam->load() > 0.5f;
 
-void SonicDecimatorProcessor::processDecimation(juce::AudioBuffer<float>& buffer)
-{
-    const int numSamples = buffer.getNumSamples();
-    const int numChannels = buffer.getNumChannels();
-    
     const float bitDepth = bitDepthParam->load();
     const float sampleRate = sampleRateParam->load();
     const bool antiAlias = antiAliasParam->load() > 0.5f;
     const bool dither = ditherParam->load() > 0.5f;
-    const float mix = mixParam->load() * 0.01f; // Convert percentage to 0-1
-    const float outputGain = juce::Decibels::decibelsToGain(outputLevelParam->load());
-    
-    // Update DSP parameters
+    mixSmoothed.setTargetValue(mixParam->load() * 0.01f); // Convert percentage to 0-1
+    outputGainSmoothed.setTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
+
+    // Update DSP parameters (the reducer only rebuilds its filter when Rate changes).
     for (auto& b : bitCrushers)
     {
         b.setBitDepth(bitDepth);
@@ -324,25 +346,74 @@ void SonicDecimatorProcessor::processDecimation(juce::AudioBuffer<float>& buffer
     }
     for (auto& r : sampleRateReducers)
     {
-        r.setSampleRate(sampleRate);
         r.setAntiAliasing(antiAlias);
+        r.setSampleRate(sampleRate);
     }
-    
-    // Store dry signal for mixing
-    dryBuffer.makeCopyOf(buffer);
 
+    juce::dsp::AudioBlock<float> fullBlock(buffer.getArrayOfWritePointers(),
+                                           static_cast<size_t>(numChannels),
+                                           static_cast<size_t>(numSamples));
+
+    // The oversampler and dryBuffer are sized for preparedBlockSize; a host that sends a bigger
+    // block gets it processed in chunks of at most that size.
+    for (int start = 0; start < numSamples; start += preparedBlockSize)
+    {
+        const int chunk = juce::jmin(preparedBlockSize, numSamples - start);
+        auto block = fullBlock.getSubBlock(static_cast<size_t>(start), static_cast<size_t>(chunk));
+
+        // Bypass still runs the dry delay so timing does not jump while latency stays reported.
+        if (bypassed)
+            delayDryOnly(block);
+        else
+            processChunk(block);
+    }
+
+    if (! bypassed)
+    {
+        // Calculate reduction amounts for metering
+        float originalSampleRate = static_cast<float>(getSampleRate());
+        sampleReduction.store(1.0f - (sampleRate / originalSampleRate));
+        bitReduction.store(1.0f - (bitDepth / 24.0f));
+    }
+}
+
+void SonicDecimatorProcessor::delayDryOnly(juce::dsp::AudioBlock<float> block)
+{
+    mixSmoothed.skip((int) block.getNumSamples());
+    outputGainSmoothed.skip((int) block.getNumSamples());
+
+    for (size_t channel = 0; channel < block.getNumChannels(); ++channel)
+    {
+        auto* data = block.getChannelPointer(channel);
+        const int ch = static_cast<int>(channel);
+
+        for (size_t sample = 0; sample < block.getNumSamples(); ++sample)
+        {
+            dryDelay.pushSample(ch, data[sample]);
+            data[sample] = dryDelay.popSample(ch);
+        }
+    }
+}
+
+void SonicDecimatorProcessor::processChunk(juce::dsp::AudioBlock<float> block)
+{
+    const int numSamples = static_cast<int>(block.getNumSamples());
+    const int numChannels = static_cast<int>(block.getNumChannels());
+
+    // Store the dry signal for mixing, delayed by the oversampler latency so it lines up with
+    // the wet signal.
     float inputLevelSum = 0.0f;
     for (int channel = 0; channel < numChannels; ++channel)
     {
-        const auto* dryData = dryBuffer.getReadPointer(channel);
+        const auto* in = block.getChannelPointer(static_cast<size_t>(channel));
+        auto* dry = dryBuffer.getWritePointer(channel);
         for (int sample = 0; sample < numSamples; ++sample)
-            inputLevelSum += std::abs(dryData[static_cast<size_t>(sample)]);
+        {
+            inputLevelSum += std::abs(in[sample]);
+            dryDelay.pushSample(channel, in[sample]);
+            dry[sample] = dryDelay.popSample(channel);
+        }
     }
-
-    // Calculate reduction amounts for metering
-    float originalSampleRate = static_cast<float>(getSampleRate());
-    float sampleReductionAmount = 1.0f - (sampleRate / originalSampleRate);
-    float bitReductionAmount = 1.0f - (bitDepth / 24.0f);
 
     // The bit/rate quantiser is the nonlinear stage: run it 4x oversampled so the
     // quantisation harmonics it introduces are pushed above the base Nyquist before the
@@ -352,19 +423,15 @@ void SonicDecimatorProcessor::processDecimation(juce::AudioBuffer<float>& buffer
 #if HP_SONICDECIMATOR_FORCE_1X
     for (int channel = 0; channel < numChannels; ++channel)
     {
-        auto* channelData = buffer.getWritePointer(channel);
+        auto* channelData = block.getChannelPointer(static_cast<size_t>(channel));
         auto& reducer = sampleRateReducers[static_cast<size_t>(juce::jmin(channel, kMaxChannels - 1))];
         auto& crusher = bitCrushers[static_cast<size_t>(juce::jmin(channel, kMaxChannels - 1))];
 
         for (int sample = 0; sample < numSamples; ++sample)
-        {
-            float sampleReduced = reducer.processSample(channelData[static_cast<size_t>(sample)]);
-            channelData[static_cast<size_t>(sample)] = crusher.processSample(sampleReduced);
-        }
+            channelData[sample] = crusher.processSample(reducer.processSample(channelData[sample]));
     }
 #else
     jassert(oversampling != nullptr);
-    juce::dsp::AudioBlock<float> block(buffer);
     auto oversampledBlock = oversampling->processSamplesUp(block);
 
     for (size_t channel = 0; channel < oversampledBlock.getNumChannels(); ++channel)
@@ -385,25 +452,24 @@ void SonicDecimatorProcessor::processDecimation(juce::AudioBuffer<float>& buffer
 
     // Mix dry/wet and apply output gain, at the base sample rate.
     float outputLevelSum = 0.0f;
-    for (int channel = 0; channel < numChannels; ++channel)
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        const auto* dryData = dryBuffer.getReadPointer(channel);
+        const float mix = mixSmoothed.getNextValue();
+        const float outputGain = outputGainSmoothed.getNextValue();
 
-        for (int sample = 0; sample < numSamples; ++sample)
+        for (int channel = 0; channel < numChannels; ++channel)
         {
-            float output = (dryData[static_cast<size_t>(sample)] * (1.0f - mix)
-                             + channelData[static_cast<size_t>(sample)] * mix) * outputGain;
-            channelData[static_cast<size_t>(sample)] = output;
+            auto* channelData = block.getChannelPointer(static_cast<size_t>(channel));
+            const auto* dryData = dryBuffer.getReadPointer(channel);
+            const float output = (dryData[sample] * (1.0f - mix) + channelData[sample] * mix) * outputGain;
+            channelData[sample] = output;
             outputLevelSum += std::abs(output);
         }
     }
 
     // Update metering
-    inputLevel.store(inputLevelSum / (numSamples * numChannels));
-    outputLevel.store(outputLevelSum / (numSamples * numChannels));
-    bitReduction.store(bitReductionAmount);
-    sampleReduction.store(sampleReductionAmount);
+    inputLevel.store(inputLevelSum / static_cast<float>(numSamples * numChannels));
+    outputLevel.store(outputLevelSum / static_cast<float>(numSamples * numChannels));
 }
 
 //==============================================================================

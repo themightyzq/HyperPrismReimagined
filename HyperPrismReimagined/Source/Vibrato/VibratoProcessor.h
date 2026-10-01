@@ -92,6 +92,9 @@ private:
     std::atomic<float>* delayParam = nullptr;
     std::atomic<float>* feedbackParam = nullptr;
     
+    // Parameter smoothers (30 ms), advanced once per sample
+    juce::SmoothedValue<float> mixSmoothed, depthSmoothed, delaySmoothed, feedbackSmoothed;
+
     // Processing state
     double currentSampleRate = 44100.0;
     
