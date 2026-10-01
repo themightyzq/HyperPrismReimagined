@@ -82,7 +82,11 @@ private:
         void setFormantShift(float formantRatio);
         
         void processBlock(juce::AudioBuffer<float>& buffer);
-        
+
+        // Delay through the stretcher (its input + output latency): 120 ms with the
+        // default preset at any sample rate, the same at every pitch setting.
+        int getLatencySamples() const;
+
     private:
         std::unique_ptr<signalsmith::stretch::SignalsmithStretch<float>> stretcher;
         
@@ -138,6 +142,11 @@ private:
     // State variables
     juce::AudioBuffer<float> dryBuffer;
     int preparedBlockSize = 512;
+
+    // Delays the dry path (and bypassed audio) by the shifter's latency, so dry and wet line up
+    // and the timing the host compensates for (setLatencySamples) holds when bypassed.
+    juce::dsp::DelayLine<float, juce::dsp::DelayLineInterpolationTypes::None> dryDelay;
+    void delayDryOnly(juce::AudioBuffer<float>& buffer);
 
     // Parameter smoothing (30 ms): mix is a 0-1 fraction, output level a linear gain.
     juce::SmoothedValue<float> smoothedMix;

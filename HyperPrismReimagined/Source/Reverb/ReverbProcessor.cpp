@@ -85,6 +85,11 @@ void ReverbProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     preDelayBuffer.setSize(2, maxPreDelayInSamples);
     preDelayBuffer.clear();
     preDelayWriteIndex = 0;
+    preDelayTap = juce::jlimit(0, maxPreDelayInSamples - 1,
+                               static_cast<int>((preDelayParam->load() / 1000.0f) * sampleRate));
+    preDelayNextTap = preDelayTap;
+    preDelayFade = 1.0f;
+    preDelayFadeStep = static_cast<float>(1.0 / (0.03 * sampleRate));
     
     // Prepare filters
     leftLowCut.reset();
@@ -189,29 +194,47 @@ void ReverbProcessor::processReverb(juce::AudioBuffer<float>& buffer)
     for (int channel = 0; channel < dryChannels; ++channel)
         dryBuffer.copyFrom(channel, 0, buffer, channel, 0, numSamples);
     
-    // Apply pre-delay
-    if (preDelayInSamples > 0)
+    // Apply pre-delay. The line is always written, so a later Pre-Delay change reads real
+    // audio, and a change crossfades between the old and the new read tap (see the header).
+    if (preDelayFade >= 1.0f && preDelayInSamples != preDelayTap)
+    {
+        preDelayNextTap = preDelayInSamples;
+        preDelayFade = 0.0f;
+    }
+
     {
         auto* leftChannel = buffer.getWritePointer(0);
         auto* rightChannel = buffer.getWritePointer(1);
         auto* preDelayLeft = preDelayBuffer.getWritePointer(0);
         auto* preDelayRight = preDelayBuffer.getWritePointer(1);
-        
+
         for (int sample = 0; sample < numSamples; ++sample)
         {
-            // Read delayed samples
-            int readIndex = (preDelayWriteIndex - preDelayInSamples + maxPreDelayInSamples) % maxPreDelayInSamples;
-            float delayedLeft = preDelayLeft[readIndex];
-            float delayedRight = preDelayRight[readIndex];
-            
-            // Write current samples to delay buffer
+            // Write the current samples first, so a tap of 0 reads the input itself
             preDelayLeft[preDelayWriteIndex] = leftChannel[static_cast<size_t>(sample)];
             preDelayRight[preDelayWriteIndex] = rightChannel[static_cast<size_t>(sample)];
-            
-            // Replace current samples with delayed ones
+
+            const int readIndex = (preDelayWriteIndex - preDelayTap + maxPreDelayInSamples) % maxPreDelayInSamples;
+            float delayedLeft = preDelayLeft[readIndex];
+            float delayedRight = preDelayRight[readIndex];
+
+            if (preDelayFade < 1.0f)
+            {
+                const int nextIndex = (preDelayWriteIndex - preDelayNextTap + maxPreDelayInSamples) % maxPreDelayInSamples;
+                delayedLeft += preDelayFade * (preDelayLeft[nextIndex] - delayedLeft);
+                delayedRight += preDelayFade * (preDelayRight[nextIndex] - delayedRight);
+
+                preDelayFade += preDelayFadeStep;
+                if (preDelayFade >= 1.0f)
+                {
+                    preDelayFade = 1.0f;
+                    preDelayTap = preDelayNextTap;
+                }
+            }
+
             leftChannel[static_cast<size_t>(sample)] = delayedLeft;
             rightChannel[static_cast<size_t>(sample)] = delayedRight;
-            
+
             // Advance write index
             preDelayWriteIndex = (preDelayWriteIndex + 1) % maxPreDelayInSamples;
         }

@@ -48,7 +48,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   M+S Matrix, Pan, HyperPhaser and Echo, 20 ms in Tremolo, 5 ms in Phaser). Auto Pan was already
   smoothed and Noise Gate has no such controls. Tremolo's ramps now last their full 20 ms on
   both channels (they ran about twice as fast), and Echo's delay, feedback and mix no longer
-  ramp up from zero each time playback starts. Reverb's Pre-Delay still changes in steps.
+  ramp up from zero each time playback starts. Reverb's Pre-Delay now crossfades to a new
+  setting over 30 ms instead of jumping, which clicked inside the reverb. Single Delay's Stereo
+  Spread and Multi Delay's taps 2 to 4 are smoothed as well.
+- **Tremolo** - the right channel's sweep now sits exactly the Stereo Phase setting away from
+  the left. It used to be taken from the left channel's position at the end of each block,
+  which added an extra offset that changed with the host's buffer size (about 19 degrees more
+  at 512 samples, 5 Hz, 48 kHz). Output is now the same at every buffer size.
+- **More Stereo** - the Ambience delays are 3 ms (left) and 7 ms (right) at every sample rate.
+  They were counted in 48 kHz samples, so at 96 kHz they were half as long and at 44.1 kHz a
+  little longer.
+- **Quasi Stereo** - Delay Time reaches its full 50 ms at every sample rate (it stopped at
+  25 ms at 192 kHz).
+- **Pitch Changer** - the pitch-shifted signal has always arrived 120 ms late (the shifter's
+  analysis window, the same at every pitch setting and sample rate). The plugin now reports
+  those 120 ms to the host so it can compensate, and delays its dry signal and bypassed audio by
+  the same amount, so Mix no longer blends an early dry signal with a late shifted one.
 
 ### Fixed
 - **Limiter Release, sessions from 1.1.0 and earlier** - the 1.1.0 entry below says only
@@ -83,6 +98,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   `hp_lookahead_Limiter`; `hp_oversampling_SonicDecimator` and
   `hp_oversampling_TubeTapeSaturation` now also check dry alignment, bypass delay, block-size
   invariance, oversized host blocks and (Sonic Decimator) default transparency.
+- More CTest checks: `hp_blocksize_Tremolo` (64- and 1000-sample renders identical),
+  `hp_delay_time_MoreStereo` and `hp_delay_time_QuasiStereo` (fixed delays in ms at 44.1, 48,
+  96 and 192 kHz), `hp_start_Echo` (no ramp-in at playback start) and
+  `hp_pitch_latency_PitchChanger` (measured delay at several pitches and rates equals the
+  reported latency; dry and bypassed audio aligned). `hp_smoothing_Reverb` now covers Pre-Delay,
+  `hp_smoothing_SingleDelay` Stereo Spread and `hp_smoothing_MultiDelay` taps 2 to 4.
 - README credits the SIL Open Font License fonts the plugin windows use; the licence texts are
   in `HyperPrismReimagined/ThirdParty/fonts/`.
 

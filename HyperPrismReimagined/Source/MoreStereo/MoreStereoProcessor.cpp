@@ -216,6 +216,7 @@ void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer, in
     }
     const auto* ambienceLeft = ambienceBuffer.getReadPointer(0);
     const auto* ambienceRight = ambienceBuffer.getReadPointer(1);
+    const float samplesPerMs = static_cast<float>(currentSampleRate * 0.001);
 
     for (int sample = 0; sample < numSamples; ++sample)
     {
@@ -253,9 +254,10 @@ void MoreStereoProcessor::processMoreStereo(juce::AudioBuffer<float>& buffer, in
 
         if (ambienceActive)
         {
-            // Add small delays (3-7 ms) for width
-            const float leftDelayed = ambienceDelayLeft.popSample(0, 3.0f * 48.0f, true);
-            const float rightDelayed = ambienceDelayRight.popSample(0, 7.0f * 48.0f, true);
+            // Add small delays (3 ms left, 7 ms right) for width, at the session's sample rate
+            // (these were 3 * 48 and 7 * 48 samples, right only at 48 kHz)
+            const float leftDelayed = ambienceDelayLeft.popSample(0, 3.0f * samplesPerMs, true);
+            const float rightDelayed = ambienceDelayRight.popSample(0, 7.0f * samplesPerMs, true);
             ambienceDelayLeft.pushSample(0, ambienceLeft[sample]);
             ambienceDelayRight.pushSample(0, ambienceRight[sample]);
 

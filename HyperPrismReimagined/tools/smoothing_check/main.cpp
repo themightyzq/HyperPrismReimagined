@@ -24,6 +24,11 @@
 //      (a smoothed glide only scales the slope by the small Doppler factor; use a small delta,
 //      e.g. 0.02). The input's slope is the floor because the steady output can be nearly
 //      silent when the dry and delayed signals happen to cancel at 110 Hz.
+//   mode h (high frequency): for a delay time that feeds something that smears a click (Reverb's
+//      Pre-Delay feeds the reverb). Input is the same 110 Hz sine. A jump in the read point puts
+//      broadband energy into the output, which a 110 Hz sine through a linear reverb never has.
+//      Pass: the RMS of the output's second difference (a high-pass that weights 2 kHz about
+//      330x more than 110 Hz) over the 100 ms after the change is under 2x the same for A.
 //
 // Exit 0 on pass. Registered with CTest by add_hyperprism_smoothing_check().
 
@@ -52,7 +57,7 @@ juce::RangedAudioParameter* findParam (juce::AudioProcessor& proc, const juce::S
 std::vector<float> makeInput (char mode, int channel, int length)
 {
     std::vector<float> x ((size_t) length);
-    if (mode == 'c')
+    if (mode == 'c' || mode == 'h')
     {
         for (int i = 0; i < length; ++i)
             x[(size_t) i] = 0.5f * (float) std::sin (juce::MathConstants<double>::twoPi * 110.0 * i / kSampleRate);
@@ -189,7 +194,34 @@ int main()
             continue;
         }
 
-        if (mode == 'c')
+        if (mode == 'h')
+        {
+            auto hfRms = [&] (const std::vector<float>& x)
+            {
+                double sum = 0.0;
+                int count = 0;
+                const int to = kStepSample + (int) (0.100 * kSampleRate);
+                for (int ch = 0; ch < 2; ++ch)
+                    for (int n = kStepSample; n < to; ++n)
+                    {
+                        const size_t i = (size_t) (ch * length + n);
+                        const double d2 = (double) x[i] - 2.0 * x[i - 1] + x[i - 2];
+                        sum += d2 * d2;
+                        ++count;
+                    }
+                return std::sqrt (sum / juce::jmax (1, count));
+            };
+            const double hfA = hfRms (a);
+            const double hfB = hfRms (b);
+            const double ratio = hfB / juce::jmax (1.0e-12, hfA);
+            const double effect = rms (a, b, length, kStepSample, length);
+            const bool pass = ratio < 2.0 && effect > 1.0e-4;
+            std::cout << (pass ? "ok   " : "FAIL ") << id << " (high-frequency): second-difference RMS after change "
+                      << hfB << " vs steady " << hfA << " (ratio " << ratio << ")\n";
+            if (! pass)
+                ++failures;
+        }
+        else if (mode == 'c')
         {
             const int to = kStepSample + (int) (0.020 * kSampleRate);
             const double inputSlope = 0.5 * juce::MathConstants<double>::twoPi * 110.0 / kSampleRate;

@@ -38,6 +38,11 @@ void PitchChangerProcessor::PitchShifter::reset()
     std::fill(rightOutputBuffer.begin(), rightOutputBuffer.end(), 0.0f);
 }
 
+int PitchChangerProcessor::PitchShifter::getLatencySamples() const
+{
+    return stretcher->inputLatency() + stretcher->outputLatency();
+}
+
 void PitchChangerProcessor::PitchShifter::setPitchShift(float pitchRatio)
 {
     currentPitchRatio = pitchRatio;
@@ -286,6 +291,16 @@ void PitchChangerProcessor::prepareToPlay(double sampleRate, int samplesPerBlock
     smoothedMix.setCurrentAndTargetValue(mixParam->load() * 0.01f);
     smoothedOutputGain.reset(sampleRate, 0.03);
     smoothedOutputGain.setCurrentAndTargetValue(juce::Decibels::decibelsToGain(outputLevelParam->load()));
+
+    // The shifted signal arrives the stretcher's latency late, whatever the pitch: report it,
+    // and delay the dry path (and bypassed audio) by the same amount.
+    const int latency = pitchShifter->getLatencySamples();
+    dryDelay.setMaximumDelayInSamples(juce::jmax(1, latency));
+    dryDelay.prepare({ sampleRate, static_cast<juce::uint32>(preparedBlockSize),
+                       static_cast<juce::uint32>(dryBuffer.getNumChannels()) });
+    dryDelay.setDelay(static_cast<float>(latency));
+    dryDelay.reset();
+    setLatencySamples(latency);
     
     // Reset metering
     inputLevel.store(0.0f);
@@ -314,9 +329,6 @@ bool PitchChangerProcessor::isBusesLayoutSupported(const BusesLayout& layouts) c
 void PitchChangerProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& /*midiMessages*/)
 {
     juce::ScopedNoDenormals noDenormals;
-    
-    if (bypassParam->load() > 0.5f)
-        return;
         
     auto totalNumInputChannels = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
@@ -326,6 +338,15 @@ void PitchChangerProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce:
 
     if (buffer.getNumChannels() < 1)
         return;
+
+    // Bypassed audio still goes through the latency delay, so the timing does not jump.
+    if (bypassParam->load() > 0.5f)
+    {
+        smoothedMix.skip(buffer.getNumSamples());
+        smoothedOutputGain.skip(buffer.getNumSamples());
+        delayDryOnly(buffer);
+        return;
+    }
 
     // Split oversized host blocks into prepared-size chunks (no heap: the chunk
     // buffer just references the host's channel pointers).
@@ -361,10 +382,19 @@ void PitchChangerProcessor::processPitchShifting(juce::AudioBuffer<float>& buffe
         pitchShifter->setFormantShift(formantRatio);
     }
     
-    // Store dry signal for mixing (pre-allocated buffer, never resized)
+    // Store the dry signal for mixing (pre-allocated buffer, never resized), delayed by the
+    // shifter's latency so it lines up with the shifted signal.
     const int dryChannels = juce::jmin(numChannels, dryBuffer.getNumChannels());
     for (int channel = 0; channel < dryChannels; ++channel)
-        dryBuffer.copyFrom(channel, 0, buffer, channel, 0, numSamples);
+    {
+        const auto* in = buffer.getReadPointer(channel);
+        auto* dry = dryBuffer.getWritePointer(channel);
+        for (int sample = 0; sample < numSamples; ++sample)
+        {
+            dryDelay.pushSample(channel, in[sample]);
+            dry[sample] = dryDelay.popSample(channel);
+        }
+    }
     
     float inputLevelSum = 0.0f;
     float outputLevelSum = 0.0f;
@@ -408,6 +438,20 @@ void PitchChangerProcessor::processPitchShifting(juce::AudioBuffer<float>& buffe
     // Update metering
     inputLevel.store(inputLevelSum / (numSamples * numChannels));
     outputLevel.store(outputLevelSum / (numSamples * numChannels));
+}
+
+void PitchChangerProcessor::delayDryOnly(juce::AudioBuffer<float>& buffer)
+{
+    const int channels = juce::jmin(buffer.getNumChannels(), dryBuffer.getNumChannels());
+    for (int channel = 0; channel < channels; ++channel)
+    {
+        auto* data = buffer.getWritePointer(channel);
+        for (int sample = 0; sample < buffer.getNumSamples(); ++sample)
+        {
+            dryDelay.pushSample(channel, data[sample]);
+            data[sample] = dryDelay.popSample(channel);
+        }
+    }
 }
 
 //==============================================================================

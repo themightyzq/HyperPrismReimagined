@@ -75,6 +75,14 @@ private:
     juce::AudioBuffer<float> preDelayBuffer;
     int preDelayWriteIndex = 0;
     int maxPreDelayInSamples = 0;
+
+    // Pre-Delay changes crossfade from the old read tap to the new one over 30 ms instead of
+    // jumping (a jump put a click into the reverb). While a crossfade runs, a newer setting
+    // waits for it to finish.
+    int preDelayTap = 0;          // delay, in samples, being read now
+    int preDelayNextTap = 0;      // delay being faded to
+    float preDelayFade = 1.0f;    // 1 = no crossfade running
+    float preDelayFadeStep = 1.0f;
     
     // Cached parameters
     std::atomic<float>* bypassParam = nullptr;

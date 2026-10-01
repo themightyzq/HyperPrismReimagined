@@ -85,7 +85,7 @@ plugin only.
 - M+S Matrix: mid/side encoding and decoding with level control, balance, and solo
 
 ### Pitch and Frequency
-- Pitch Changer: pitch shifting with semitone/cent control and formant preservation
+- Pitch Changer: pitch shifting with semitone/cent control and formant preservation (120 ms latency, reported to the host)
 - Frequency Shifter: linear frequency shifting with fine control
 - Ring Modulator: ring modulation with carrier/modulator frequency and waveform selection
 - Vocoder: multi-band vocoder with carrier frequency, band count, and envelope control

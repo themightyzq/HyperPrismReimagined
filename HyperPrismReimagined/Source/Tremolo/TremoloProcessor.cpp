@@ -99,9 +99,8 @@ void TremoloProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     currentSampleRate = sampleRate;
     
-    // Prepare LFOs
+    // Prepare the LFO
     lfoLeft.prepare(sampleRate);
-    lfoRight.prepare(sampleRate);
     
     // Initialize smoothed values
     const float smoothTime = 0.02f; // 20ms smoothing
@@ -114,13 +113,8 @@ void TremoloProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     depthSmoothed.setCurrentAndTargetValue(*valueTreeState.getRawParameterValue(DEPTH_ID));
     mixSmoothed.setCurrentAndTargetValue(*valueTreeState.getRawParameterValue(MIX_ID));
     
-    // Reset LFO phases
+    // Reset the LFO phase
     lfoLeft.reset();
-    lfoRight.reset();
-    
-    // Set stereo phase offset for right channel
-    float stereoPhase = *valueTreeState.getRawParameterValue(STEREO_PHASE_ID) / 360.0f;
-    lfoRight.setPhase(stereoPhase);
 
     preparedBlockSize = juce::jmax(1, samplesPerBlock);
     dryBuffer.setSize(juce::jmax(1, juce::jmax(getTotalNumInputChannels(), getTotalNumOutputChannels())),
@@ -133,7 +127,6 @@ void TremoloProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 void TremoloProcessor::releaseResources()
 {
     lfoLeft.reset();
-    lfoRight.reset();
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -206,48 +199,33 @@ void TremoloProcessor::processChunk(juce::AudioBuffer<float>& buffer, Waveform w
         mixValues[static_cast<size_t>(sample)] = mixSmoothed.getNextValue() * 0.01f;     // Convert to 0-1
     }
 
-    // Process each channel
-    for (int channel = 0; channel < numChannels; ++channel)
+    // One LFO step per sample; the right channel reads the same LFO Stereo Phase later.
+    for (int sample = 0; sample < numSamples; ++sample)
     {
-        auto* channelData = buffer.getWritePointer(channel);
-        auto* dryData = dryBuffer.getReadPointer(channel);
-        
-        // Choose LFO based on channel
-        LFO& lfo = (channel == 0) ? lfoLeft : lfoRight;
-        
-        // Set phase offset for right channel
-        if (channel == 1)
+        const float rate = rateValues[static_cast<size_t>(sample)];
+        const float depth = depthValues[static_cast<size_t>(sample)];
+        const float mix = mixValues[static_cast<size_t>(sample)];
+
+        const float leftValue = lfoLeft.process(rate, waveform);
+        float rightPhase = lfoLeft.getPhase() + stereoPhase;
+        if (rightPhase >= 1.0f)
+            rightPhase -= 1.0f;
+        const float rightValue = LFO::shape(rightPhase, waveform);
+
+        for (int channel = 0; channel < numChannels; ++channel)
         {
-            float currentPhase = lfoLeft.getPhase();
-            lfo.setPhase(std::fmod(currentPhase + stereoPhase, 1.0f));
-        }
-        
-        for (int sample = 0; sample < numSamples; ++sample)
-        {
-            // Get smoothed parameters
-            const float rate = rateValues[static_cast<size_t>(sample)];
-            const float depth = depthValues[static_cast<size_t>(sample)];
-            const float mix = mixValues[static_cast<size_t>(sample)];
-            
-            // Generate LFO value
-            float lfoValue = lfo.process(rate, waveform);
-            
+            auto* channelData = buffer.getWritePointer(channel);
+            const auto* dryData = dryBuffer.getReadPointer(channel);
+            const float lfoValue = (channel == 0) ? leftValue : rightValue;
+
             // Convert bipolar LFO (-1 to 1) to unipolar amplitude modulation (0 to 1)
             // At depth = 0%, amplitude stays at 1.0
             // At depth = 100%, amplitude varies from 0.0 to 1.0
-            float amplitude = 1.0f - (depth * 0.5f * (1.0f - lfoValue));
-            
-            // Apply tremolo effect
-            float wetSignal = channelData[static_cast<size_t>(sample)] * amplitude;
-            
-            // Mix dry and wet signals
+            const float amplitude = 1.0f - (depth * 0.5f * (1.0f - lfoValue));
+
+            // Apply tremolo effect and mix dry and wet signals
+            const float wetSignal = channelData[static_cast<size_t>(sample)] * amplitude;
             channelData[static_cast<size_t>(sample)] = dryData[static_cast<size_t>(sample)] * (1.0f - mix) + wetSignal * mix;
-        }
-        
-        // Keep LFOs in sync after processing
-        if (channel == 0)
-        {
-            lfoRight.setPhase(std::fmod(lfo.getPhase() + stereoPhase, 1.0f));
         }
     }
 }

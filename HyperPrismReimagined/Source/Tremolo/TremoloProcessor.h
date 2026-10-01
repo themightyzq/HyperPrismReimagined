@@ -82,30 +82,37 @@ private:
             phase = 0.0f;
         }
         
+        // Advances the phase by one sample and returns the waveform at the new phase.
         float process(float rate, Waveform waveform)
         {
             // Update phase
             phase += rate / sampleRate;
             if (phase >= 1.0f)
                 phase -= 1.0f;
-            
+
+            return shape(phase, waveform);
+        }
+
+        // The waveform at `atPhase` (0..1), without touching the LFO's own phase.
+        static float shape(float atPhase, Waveform waveform)
+        {
             // Generate waveform
             switch (waveform)
             {
                 case Waveform::Sine:
-                    return std::sin(2.0f * juce::MathConstants<float>::pi * phase);
+                    return std::sin(2.0f * juce::MathConstants<float>::pi * atPhase);
                     
                 case Waveform::Triangle:
                 {
                     // Triangle wave: rises from -1 to 1 in first half, falls from 1 to -1 in second half
-                    if (phase < 0.5f)
-                        return 4.0f * phase - 1.0f;
+                    if (atPhase < 0.5f)
+                        return 4.0f * atPhase - 1.0f;
                     else
-                        return 3.0f - 4.0f * phase;
+                        return 3.0f - 4.0f * atPhase;
                 }
                     
                 case Waveform::Square:
-                    return phase < 0.5f ? 1.0f : -1.0f;
+                    return atPhase < 0.5f ? 1.0f : -1.0f;
                     
                 default:
                     return 0.0f;
@@ -122,9 +129,11 @@ private:
         float sampleRate = 44100.0f;
     };
     
-    // LFOs for each channel
+    // One LFO; the right channel reads it at (phase + Stereo Phase), sample by sample, so the
+    // left/right relationship is exactly the Stereo Phase setting at any block size. (A second
+    // LFO used to be re-synced from this one's end-of-block phase, which made it depend on
+    // the block size.)
     LFO lfoLeft;
-    LFO lfoRight;
     
     // Parameter smoothing
     juce::SmoothedValue<float> rateSmoothed;

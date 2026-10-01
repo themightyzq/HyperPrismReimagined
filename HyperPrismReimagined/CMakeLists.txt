@@ -1719,7 +1719,9 @@ endforeach()
 
 # hp_smoothing_<Effect> (tools/smoothing_check/main.cpp): the listed continuous parameters that
 # feed a gain, mix, frequency, delay time or depth are smoothed. "id:r" = ramp check on noise,
-# "id:c:delta" = click check on a sine for delay times, "id:r:delta:ms" = ramp check measured
+# "id:c:delta" = click check on a sine for delay times, "id:h:delta" = high-frequency check on a
+# sine for a delay time whose click a later stage smears (Reverb Pre-Delay),
+# "id:r:delta:ms" = ramp check measured
 # that many ms after the change (a feedback path's delay, or the Limiter's 20 ms latency). NoiseGate has none (threshold, times and
 # range only; its gate gain is already smoothed by attack/release).
 # Optional third argument: "id=value,..." settings applied first (HP_SMOOTH_SETUP).
@@ -1748,14 +1750,14 @@ add_hyperprism_smoothing_check(Limiter            "inputgain:r:0.3:20,ceiling:r:
 add_hyperprism_smoothing_check(LowPass            "frequency:r,resonance:r,gain:r,mix:r")
 add_hyperprism_smoothing_check(MSMatrix           "midLevel:r,sideLevel:r,stereoBalance:r,outputLevel:r")
 add_hyperprism_smoothing_check(MoreStereo         "width:r,bassMono:r,crossoverFreq:r,stereoEnhance:r,ambience:r,outputLevel:r")
-add_hyperprism_smoothing_check(MultiDelay         "masterMix:r,globalFeedback:r:0.3:125,delay1Time:c:0.02,delay1Level:r,delay1Pan:r,delay1Feedback:r:0.3:125")
+add_hyperprism_smoothing_check(MultiDelay         "masterMix:r,globalFeedback:r:0.3:125,delay1Time:c:0.02,delay1Level:r,delay1Pan:r,delay1Feedback:r:0.3:125,delay2Time:c:0.02,delay2Level:r,delay2Pan:r,delay2Feedback:r:0.3:250,delay3Time:c:0.02,delay3Level:r,delay3Pan:r,delay4Time:c:0.02,delay4Level:r,delay4Pan:r")
 add_hyperprism_smoothing_check(Pan                "panPosition:r,width:r,balance:r,outputLevel:r")
 add_hyperprism_smoothing_check(Phaser             "depth:r,feedback:r,mix:r")
-add_hyperprism_smoothing_check(PitchChanger       "mix:r,outputLevel:r")
+add_hyperprism_smoothing_check(PitchChanger       "mix:r,outputLevel:r" "pitchShift=7")
 add_hyperprism_smoothing_check(QuasiStereo        "width:r,delayTime:c:0.02,phaseShift:r,highFreqEnhance:r,outputLevel:r")
-add_hyperprism_smoothing_check(Reverb             "mix:r,width:r,lowCut:r,highCut:r")
+add_hyperprism_smoothing_check(Reverb             "mix:r,width:r,lowCut:r,highCut:r,preDelay:h:0.02" "mix=100")
 add_hyperprism_smoothing_check(RingModulator      "mix:r")
-add_hyperprism_smoothing_check(SingleDelay        "delayTime:c:0.02,feedback:r:0.3:250,wetDryMix:r,highCut:r,lowCut:r")
+add_hyperprism_smoothing_check(SingleDelay        "delayTime:c:0.02,feedback:r:0.3:250,wetDryMix:r,highCut:r,lowCut:r,stereoSpread:c:0.6")
 add_hyperprism_smoothing_check(SonicDecimator     "mix:r,outputLevel:r")
 add_hyperprism_smoothing_check(StereoDynamics     "outputLevel:r")
 add_hyperprism_smoothing_check(Tremolo            "depth:r,mix:r")
@@ -1773,3 +1775,12 @@ add_hyperprism_light_check(crossover_check HyperPrismMoreStereo         MoreSter
 add_hyperprism_light_check(vocoder_check   HyperPrismVocoder            Vocoder            VocoderProcessor.h            VocoderProcessor            HP_CHECK_VOCODER)
 add_hyperprism_light_check(lookahead_check HyperPrismNoiseGate          NoiseGate          NoiseGateProcessor.h          NoiseGateProcessor          HP_CHECK_NOISEGATE)
 add_hyperprism_light_check(lookahead_check HyperPrismLimiter            Limiter            LimiterProcessor.h            LimiterProcessor            HP_CHECK_LIMITER)
+
+# Follow-up checks (2026-10-01, second pass): block-size invariance (Tremolo's stereo LFO phase),
+# fixed internal delays in ms at every sample rate (More Stereo ambience, Quasi Stereo's 50 ms
+# line), smoothers starting at the current values (Echo), and Pitch Changer's reported latency.
+add_hyperprism_light_check(blocksize_check     HyperPrismTremolo      Tremolo      TremoloProcessor.h      TremoloProcessor      HP_CHECK_TREMOLO)
+add_hyperprism_light_check(delay_time_check    HyperPrismMoreStereo   MoreStereo   MoreStereoProcessor.h   MoreStereoProcessor   HP_CHECK_MORESTEREO)
+add_hyperprism_light_check(delay_time_check    HyperPrismQuasiStereo  QuasiStereo  QuasiStereoProcessor.h  QuasiStereoProcessor  HP_CHECK_QUASISTEREO)
+add_hyperprism_light_check(start_check         HyperPrismEcho         Echo         EchoProcessor.h         EchoProcessor         HP_CHECK_ECHO)
+add_hyperprism_light_check(pitch_latency_check HyperPrismPitchChanger PitchChanger PitchChangerProcessor.h PitchChangerProcessor HP_CHECK_PITCHCHANGER)
