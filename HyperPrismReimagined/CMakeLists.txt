@@ -6,7 +6,7 @@ if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version (universal binaries cannot go below 11.0)")
 endif()
 
-project(HyperPrismReimagined VERSION 1.1.0)
+project(HyperPrismReimagined VERSION 1.2.0)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS YES)
 

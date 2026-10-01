@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-01
+
 ### Changed (audible)
 - **Bass Maximiser** - the bass and the rest of the signal are now split with a Linkwitz-Riley
   crossover, so they add back together flat. The old split cancelled at the crossover: a notch
