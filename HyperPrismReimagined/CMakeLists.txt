@@ -1516,6 +1516,12 @@ configure_hyperprism_plugin(HyperPrismEcho)
 
 # All 32 HyperPrism plugins are now implemented!
 
+# Check tools (UI snapshots, state/preset/DSP checks) and their CTest registrations. ON by
+# default. Windows CI turns it off: the ~70 check executables pushed the Windows job past its
+# time limit, and the checks exercise platform-independent DSP that macOS and Linux CI run.
+option(HP_BUILD_CHECKS "Build the HyperPrism check tools and register them with CTest" ON)
+if(HP_BUILD_CHECKS)
+
 # ---- UI snapshot tool (headless before/after render gate for the zqsfx_ui house-UI migration;
 # see tools/ui_snapshot/main.cpp). Piloted for three plugins:
 # Compressor (XY pad + dynamics), Chorus (modulation), BandPass (frequency). See
@@ -1784,3 +1790,5 @@ add_hyperprism_light_check(delay_time_check    HyperPrismMoreStereo   MoreStereo
 add_hyperprism_light_check(delay_time_check    HyperPrismQuasiStereo  QuasiStereo  QuasiStereoProcessor.h  QuasiStereoProcessor  HP_CHECK_QUASISTEREO)
 add_hyperprism_light_check(start_check         HyperPrismEcho         Echo         EchoProcessor.h         EchoProcessor         HP_CHECK_ECHO)
 add_hyperprism_light_check(pitch_latency_check HyperPrismPitchChanger PitchChanger PitchChangerProcessor.h PitchChangerProcessor HP_CHECK_PITCHCHANGER)
+
+endif() # HP_BUILD_CHECKS
