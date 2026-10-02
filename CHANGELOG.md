@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-02
+
 ### Changed
 - Knobs in all 32 plugins: Tab to a knob, the arrow keys adjust it, Shift+arrow adjusts in fine steps, and double-click resets it to its default.
 
