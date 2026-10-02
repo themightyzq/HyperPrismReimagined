@@ -134,23 +134,23 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Parameter controls with ParameterLabel for right-click assignment
-    juce::Slider carrierFreqSlider;
+    zqsfx::ui::Dial carrierFreqSlider;
     ParameterLabel carrierFreqLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> carrierFreqAttachment;
     
-    juce::Slider modulatorGainSlider;
+    zqsfx::ui::Dial modulatorGainSlider;
     ParameterLabel modulatorGainLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> modulatorGainAttachment;
     
-    juce::Slider bandCountSlider;
+    zqsfx::ui::Dial bandCountSlider;
     ParameterLabel bandCountLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> bandCountAttachment;
     
-    juce::Slider releaseTimeSlider;
+    zqsfx::ui::Dial releaseTimeSlider;
     ParameterLabel releaseTimeLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseTimeAttachment;
     
-    juce::Slider outputLevelSlider;
+    zqsfx::ui::Dial outputLevelSlider;
     ParameterLabel outputLevelLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> outputLevelAttachment;
     

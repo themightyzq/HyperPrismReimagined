@@ -209,14 +209,19 @@ BassMaximiserEditor::BassMaximiserEditor(BassMaximiserProcessor& p)
         apvts, BYPASS_ID, bypassButton);
     frequencyAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, FREQUENCY_ID, frequencySlider);
+    zqsfx::ui::setDoubleClickDefault(frequencySlider, apvts, FREQUENCY_ID);
     boostAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, BOOST_ID, boostSlider);
+    zqsfx::ui::setDoubleClickDefault(boostSlider, apvts, BOOST_ID);
     harmonicsAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, HARMONICS_ID, harmonicsSlider);
+    zqsfx::ui::setDoubleClickDefault(harmonicsSlider, apvts, HARMONICS_ID);
     tightnessAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, TIGHTNESS_ID, tightnessSlider);
+    zqsfx::ui::setDoubleClickDefault(tightnessSlider, apvts, TIGHTNESS_ID);
     outputGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, OUTPUT_GAIN_ID, outputGainSlider);
+    zqsfx::ui::setDoubleClickDefault(outputGainSlider, apvts, OUTPUT_GAIN_ID);
     phaseInvertAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         apvts, PHASE_INVERT_ID, phaseInvertButton);
     
@@ -418,8 +423,6 @@ void BassMaximiserEditor::setupSlider(juce::Slider& slider, ParameterLabel& labe
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

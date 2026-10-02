@@ -128,23 +128,23 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Parameter controls with ParameterLabel for right-click assignment
-    juce::Slider mixSlider;
+    zqsfx::ui::Dial mixSlider;
     ParameterLabel mixLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mixAttachment;
     
-    juce::Slider rateSlider;
+    zqsfx::ui::Dial rateSlider;
     ParameterLabel rateLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> rateAttachment;
     
-    juce::Slider depthSlider;
+    zqsfx::ui::Dial depthSlider;
     ParameterLabel depthLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> depthAttachment;
     
-    juce::Slider delaySlider;
+    zqsfx::ui::Dial delaySlider;
     ParameterLabel delayLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> delayAttachment;
     
-    juce::Slider feedbackSlider;
+    zqsfx::ui::Dial feedbackSlider;
     ParameterLabel feedbackLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> feedbackAttachment;
     

@@ -317,16 +317,22 @@ QuasiStereoEditor::QuasiStereoEditor(QuasiStereoProcessor& p)
         vts, QuasiStereoProcessor::BYPASS_ID, bypassButton);
     widthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, QuasiStereoProcessor::WIDTH_ID, widthSlider);
+    zqsfx::ui::setDoubleClickDefault(widthSlider, vts, QuasiStereoProcessor::WIDTH_ID);
     delayTimeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, QuasiStereoProcessor::DELAY_TIME_ID, delayTimeSlider);
+    zqsfx::ui::setDoubleClickDefault(delayTimeSlider, vts, QuasiStereoProcessor::DELAY_TIME_ID);
     frequencyShiftAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, QuasiStereoProcessor::FREQUENCY_SHIFT_ID, frequencyShiftSlider);
+    zqsfx::ui::setDoubleClickDefault(frequencyShiftSlider, vts, QuasiStereoProcessor::FREQUENCY_SHIFT_ID);
     phaseShiftAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, QuasiStereoProcessor::PHASE_SHIFT_ID, phaseShiftSlider);
+    zqsfx::ui::setDoubleClickDefault(phaseShiftSlider, vts, QuasiStereoProcessor::PHASE_SHIFT_ID);
     highFreqEnhanceAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, QuasiStereoProcessor::HIGH_FREQ_ENHANCE_ID, highFreqEnhanceSlider);
+    zqsfx::ui::setDoubleClickDefault(highFreqEnhanceSlider, vts, QuasiStereoProcessor::HIGH_FREQ_ENHANCE_ID);
     outputLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, QuasiStereoProcessor::OUTPUT_LEVEL_ID, outputLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(outputLevelSlider, vts, QuasiStereoProcessor::OUTPUT_LEVEL_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -521,8 +527,6 @@ void QuasiStereoEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

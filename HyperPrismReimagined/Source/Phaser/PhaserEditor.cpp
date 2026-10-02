@@ -200,14 +200,19 @@ PhaserEditor::PhaserEditor(PhaserProcessor& p)
         audioProcessor.getValueTreeState(), PhaserProcessor::BYPASS_ID, bypassButton);
     rateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), PhaserProcessor::RATE_ID, rateSlider);
+    zqsfx::ui::setDoubleClickDefault(rateSlider, audioProcessor.getValueTreeState(), PhaserProcessor::RATE_ID);
     depthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), PhaserProcessor::DEPTH_ID, depthSlider);
+    zqsfx::ui::setDoubleClickDefault(depthSlider, audioProcessor.getValueTreeState(), PhaserProcessor::DEPTH_ID);
     feedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), PhaserProcessor::FEEDBACK_ID, feedbackSlider);
+    zqsfx::ui::setDoubleClickDefault(feedbackSlider, audioProcessor.getValueTreeState(), PhaserProcessor::FEEDBACK_ID);
     stagesAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), PhaserProcessor::STAGES_ID, stagesSlider);
+    zqsfx::ui::setDoubleClickDefault(stagesSlider, audioProcessor.getValueTreeState(), PhaserProcessor::STAGES_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), PhaserProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, audioProcessor.getValueTreeState(), PhaserProcessor::MIX_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -405,8 +410,6 @@ void PhaserEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

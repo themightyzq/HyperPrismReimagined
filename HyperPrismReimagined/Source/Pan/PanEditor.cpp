@@ -333,14 +333,18 @@ PanEditor::PanEditor(PanProcessor& p)
         vts, PanProcessor::BYPASS_ID, bypassButton);
     panPositionAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, PanProcessor::PAN_POSITION_ID, panPositionSlider);
+    zqsfx::ui::setDoubleClickDefault(panPositionSlider, vts, PanProcessor::PAN_POSITION_ID);
     panLawAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         vts, PanProcessor::PAN_LAW_ID, panLawComboBox);
     widthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, PanProcessor::WIDTH_ID, widthSlider);
+    zqsfx::ui::setDoubleClickDefault(widthSlider, vts, PanProcessor::WIDTH_ID);
     balanceAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, PanProcessor::BALANCE_ID, balanceSlider);
+    zqsfx::ui::setDoubleClickDefault(balanceSlider, vts, PanProcessor::BALANCE_ID);
     outputLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, PanProcessor::OUTPUT_LEVEL_ID, outputLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(outputLevelSlider, vts, PanProcessor::OUTPUT_LEVEL_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -533,8 +537,6 @@ void PanEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

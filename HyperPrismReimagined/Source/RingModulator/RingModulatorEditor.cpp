@@ -352,10 +352,13 @@ RingModulatorEditor::RingModulatorEditor(RingModulatorProcessor& p)
     auto& apvts = audioProcessor.getAPVTS();
     carrierFreqAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, "carrier_freq", carrierFreqSlider);
+    zqsfx::ui::setDoubleClickDefault(carrierFreqSlider, apvts, "carrier_freq");
     modulatorFreqAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, "modulator_freq", modulatorFreqSlider);
+    zqsfx::ui::setDoubleClickDefault(modulatorFreqSlider, apvts, "modulator_freq");
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, "mix", mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, apvts, "mix");
     carrierWaveformAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         apvts, "carrier_waveform", carrierWaveformBox);
     modulatorWaveformAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
@@ -544,8 +547,6 @@ void RingModulatorEditor::setupSlider(juce::Slider& slider, ParameterLabel& labe
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

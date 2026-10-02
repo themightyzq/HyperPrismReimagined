@@ -316,6 +316,11 @@ StereoDynamicsEditor::StereoDynamicsEditor(StereoDynamicsProcessor& p)
     setupSlider(midRatioSlider, midRatioLabel, "Ratio");
     setupSlider(sideThresholdSlider, sideThresholdLabel, "Threshold");
     setupSlider(sideRatioSlider, sideRatioLabel, "Ratio");
+    // The visible labels sit under MID / SIDE column headers; screen readers need the full name.
+    midThresholdSlider.setTitle("Mid Threshold");
+    midRatioSlider.setTitle("Mid Ratio");
+    sideThresholdSlider.setTitle("Side Threshold");
+    sideRatioSlider.setTitle("Side Ratio");
     setupSlider(attackTimeSlider, attackTimeLabel, "Attack");
     setupSlider(releaseTimeSlider, releaseTimeLabel, "Release");
     setupSlider(outputLevelSlider, outputLevelLabel, "Output");
@@ -381,18 +386,25 @@ StereoDynamicsEditor::StereoDynamicsEditor(StereoDynamicsProcessor& p)
     auto& apvts = audioProcessor.getValueTreeState();
     midThresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, StereoDynamicsProcessor::MID_THRESHOLD_ID, midThresholdSlider);
+    zqsfx::ui::setDoubleClickDefault(midThresholdSlider, apvts, StereoDynamicsProcessor::MID_THRESHOLD_ID);
     midRatioAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, StereoDynamicsProcessor::MID_RATIO_ID, midRatioSlider);
+    zqsfx::ui::setDoubleClickDefault(midRatioSlider, apvts, StereoDynamicsProcessor::MID_RATIO_ID);
     sideThresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, StereoDynamicsProcessor::SIDE_THRESHOLD_ID, sideThresholdSlider);
+    zqsfx::ui::setDoubleClickDefault(sideThresholdSlider, apvts, StereoDynamicsProcessor::SIDE_THRESHOLD_ID);
     sideRatioAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, StereoDynamicsProcessor::SIDE_RATIO_ID, sideRatioSlider);
+    zqsfx::ui::setDoubleClickDefault(sideRatioSlider, apvts, StereoDynamicsProcessor::SIDE_RATIO_ID);
     attackTimeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, StereoDynamicsProcessor::ATTACK_TIME_ID, attackTimeSlider);
+    zqsfx::ui::setDoubleClickDefault(attackTimeSlider, apvts, StereoDynamicsProcessor::ATTACK_TIME_ID);
     releaseTimeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, StereoDynamicsProcessor::RELEASE_TIME_ID, releaseTimeSlider);
+    zqsfx::ui::setDoubleClickDefault(releaseTimeSlider, apvts, StereoDynamicsProcessor::RELEASE_TIME_ID);
     outputLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, StereoDynamicsProcessor::OUTPUT_LEVEL_ID, outputLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(outputLevelSlider, apvts, StereoDynamicsProcessor::OUTPUT_LEVEL_ID);
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         apvts, StereoDynamicsProcessor::BYPASS_ID, bypassButton);
     
@@ -603,8 +615,6 @@ void StereoDynamicsEditor::setupSlider(juce::Slider& slider, ParameterLabel& lab
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

@@ -325,16 +325,22 @@ SingleDelayEditor::SingleDelayEditor(SingleDelayProcessor& p)
     auto& apvts = audioProcessor.getValueTreeState();
     delayTimeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, SingleDelayProcessor::DELAY_TIME_ID, delayTimeSlider);
+    zqsfx::ui::setDoubleClickDefault(delayTimeSlider, apvts, SingleDelayProcessor::DELAY_TIME_ID);
     feedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, SingleDelayProcessor::FEEDBACK_ID, feedbackSlider);
+    zqsfx::ui::setDoubleClickDefault(feedbackSlider, apvts, SingleDelayProcessor::FEEDBACK_ID);
     wetDryMixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, SingleDelayProcessor::WETDRY_MIX_ID, wetDryMixSlider);
+    zqsfx::ui::setDoubleClickDefault(wetDryMixSlider, apvts, SingleDelayProcessor::WETDRY_MIX_ID);
     highCutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, SingleDelayProcessor::HIGH_CUT_ID, highCutSlider);
+    zqsfx::ui::setDoubleClickDefault(highCutSlider, apvts, SingleDelayProcessor::HIGH_CUT_ID);
     lowCutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, SingleDelayProcessor::LOW_CUT_ID, lowCutSlider);
+    zqsfx::ui::setDoubleClickDefault(lowCutSlider, apvts, SingleDelayProcessor::LOW_CUT_ID);
     stereoSpreadAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, SingleDelayProcessor::STEREO_SPREAD_ID, stereoSpreadSlider);
+    zqsfx::ui::setDoubleClickDefault(stereoSpreadSlider, apvts, SingleDelayProcessor::STEREO_SPREAD_ID);
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         apvts, SingleDelayProcessor::BYPASS_ID, bypassButton);
     
@@ -536,8 +542,6 @@ void SingleDelayEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

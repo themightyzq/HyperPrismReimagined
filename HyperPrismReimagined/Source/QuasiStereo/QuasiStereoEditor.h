@@ -124,27 +124,27 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Parameter controls with ParameterLabel for right-click assignment
-    juce::Slider widthSlider;
+    zqsfx::ui::Dial widthSlider;
     ParameterLabel widthLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> widthAttachment;
     
-    juce::Slider delayTimeSlider;
+    zqsfx::ui::Dial delayTimeSlider;
     ParameterLabel delayTimeLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> delayTimeAttachment;
     
-    juce::Slider frequencyShiftSlider;
+    zqsfx::ui::Dial frequencyShiftSlider;
     ParameterLabel frequencyShiftLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> frequencyShiftAttachment;
     
-    juce::Slider phaseShiftSlider;
+    zqsfx::ui::Dial phaseShiftSlider;
     ParameterLabel phaseShiftLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> phaseShiftAttachment;
     
-    juce::Slider highFreqEnhanceSlider;
+    zqsfx::ui::Dial highFreqEnhanceSlider;
     ParameterLabel highFreqEnhanceLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> highFreqEnhanceAttachment;
     
-    juce::Slider outputLevelSlider;
+    zqsfx::ui::Dial outputLevelSlider;
     ParameterLabel outputLevelLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> outputLevelAttachment;
     

@@ -107,31 +107,31 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Parameter controls with ParameterLabel for right-click assignment
-    juce::Slider roomSizeSlider;
+    zqsfx::ui::Dial roomSizeSlider;
     ParameterLabel roomSizeLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> roomSizeAttachment;
     
-    juce::Slider dampingSlider;
+    zqsfx::ui::Dial dampingSlider;
     ParameterLabel dampingLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> dampingAttachment;
     
-    juce::Slider preDelaySlider;
+    zqsfx::ui::Dial preDelaySlider;
     ParameterLabel preDelayLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> preDelayAttachment;
     
-    juce::Slider widthSlider;
+    zqsfx::ui::Dial widthSlider;
     ParameterLabel widthLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> widthAttachment;
     
-    juce::Slider lowCutSlider;
+    zqsfx::ui::Dial lowCutSlider;
     ParameterLabel lowCutLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lowCutAttachment;
     
-    juce::Slider highCutSlider;
+    zqsfx::ui::Dial highCutSlider;
     ParameterLabel highCutLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> highCutAttachment;
     
-    juce::Slider mixSlider;
+    zqsfx::ui::Dial mixSlider;
     ParameterLabel mixLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mixAttachment;
     

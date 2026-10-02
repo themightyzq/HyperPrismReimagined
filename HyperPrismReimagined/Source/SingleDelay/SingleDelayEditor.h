@@ -125,27 +125,27 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Parameter controls with ParameterLabel for right-click assignment
-    juce::Slider delayTimeSlider;
+    zqsfx::ui::Dial delayTimeSlider;
     ParameterLabel delayTimeLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> delayTimeAttachment;
     
-    juce::Slider feedbackSlider;
+    zqsfx::ui::Dial feedbackSlider;
     ParameterLabel feedbackLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> feedbackAttachment;
     
-    juce::Slider wetDryMixSlider;
+    zqsfx::ui::Dial wetDryMixSlider;
     ParameterLabel wetDryMixLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> wetDryMixAttachment;
     
-    juce::Slider highCutSlider;
+    zqsfx::ui::Dial highCutSlider;
     ParameterLabel highCutLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> highCutAttachment;
     
-    juce::Slider lowCutSlider;
+    zqsfx::ui::Dial lowCutSlider;
     ParameterLabel lowCutLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lowCutAttachment;
     
-    juce::Slider stereoSpreadSlider;
+    zqsfx::ui::Dial stereoSpreadSlider;
     ParameterLabel stereoSpreadLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> stereoSpreadAttachment;
     

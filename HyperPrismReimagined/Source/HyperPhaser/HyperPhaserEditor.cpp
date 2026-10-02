@@ -204,16 +204,22 @@ HyperPhaserEditor::HyperPhaserEditor(HyperPhaserProcessor& p)
         audioProcessor.getValueTreeState(), HyperPhaserProcessor::BYPASS_ID, bypassButton);
     baseFreqAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), HyperPhaserProcessor::BASE_FREQ_ID, baseFreqSlider);
+    zqsfx::ui::setDoubleClickDefault(baseFreqSlider, audioProcessor.getValueTreeState(), HyperPhaserProcessor::BASE_FREQ_ID);
     sweepRateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), HyperPhaserProcessor::SWEEP_RATE_ID, sweepRateSlider);
+    zqsfx::ui::setDoubleClickDefault(sweepRateSlider, audioProcessor.getValueTreeState(), HyperPhaserProcessor::SWEEP_RATE_ID);
     depthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), HyperPhaserProcessor::PEAK_NOTCH_DEPTH_ID, depthSlider);
+    zqsfx::ui::setDoubleClickDefault(depthSlider, audioProcessor.getValueTreeState(), HyperPhaserProcessor::PEAK_NOTCH_DEPTH_ID);
     bandwidthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), HyperPhaserProcessor::BANDWIDTH_ID, bandwidthSlider);
+    zqsfx::ui::setDoubleClickDefault(bandwidthSlider, audioProcessor.getValueTreeState(), HyperPhaserProcessor::BANDWIDTH_ID);
     feedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), HyperPhaserProcessor::FEEDBACK_ID, feedbackSlider);
+    zqsfx::ui::setDoubleClickDefault(feedbackSlider, audioProcessor.getValueTreeState(), HyperPhaserProcessor::FEEDBACK_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), HyperPhaserProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, audioProcessor.getValueTreeState(), HyperPhaserProcessor::MIX_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -412,8 +418,6 @@ void HyperPhaserEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

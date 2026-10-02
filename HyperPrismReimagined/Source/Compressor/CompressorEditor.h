@@ -101,13 +101,13 @@ private:
     zqsfx::ui::LogoMark logo { JucePlugin_Name };
 
     // Sliders
-    juce::Slider thresholdSlider;
-    juce::Slider ratioSlider;
-    juce::Slider attackSlider;
-    juce::Slider releaseSlider;
-    juce::Slider kneeSlider;
-    juce::Slider makeupGainSlider;
-    juce::Slider mixSlider;
+    zqsfx::ui::Dial thresholdSlider;
+    zqsfx::ui::Dial ratioSlider;
+    zqsfx::ui::Dial attackSlider;
+    zqsfx::ui::Dial releaseSlider;
+    zqsfx::ui::Dial kneeSlider;
+    zqsfx::ui::Dial makeupGainSlider;
+    zqsfx::ui::Dial mixSlider;
     
     // Labels (using ParameterLabel for right-click functionality)
     ParameterLabel thresholdLabel;

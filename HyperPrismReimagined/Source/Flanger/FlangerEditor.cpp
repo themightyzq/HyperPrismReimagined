@@ -210,20 +210,28 @@ FlangerEditor::FlangerEditor(FlangerProcessor& p)
         audioProcessor.getValueTreeState(), FlangerProcessor::BYPASS_ID, bypassButton);
     rateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), FlangerProcessor::RATE_ID, rateSlider);
+    zqsfx::ui::setDoubleClickDefault(rateSlider, audioProcessor.getValueTreeState(), FlangerProcessor::RATE_ID);
     depthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), FlangerProcessor::DEPTH_ID, depthSlider);
+    zqsfx::ui::setDoubleClickDefault(depthSlider, audioProcessor.getValueTreeState(), FlangerProcessor::DEPTH_ID);
     feedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), FlangerProcessor::FEEDBACK_ID, feedbackSlider);
+    zqsfx::ui::setDoubleClickDefault(feedbackSlider, audioProcessor.getValueTreeState(), FlangerProcessor::FEEDBACK_ID);
     delayAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), FlangerProcessor::DELAY_ID, delaySlider);
+    zqsfx::ui::setDoubleClickDefault(delaySlider, audioProcessor.getValueTreeState(), FlangerProcessor::DELAY_ID);
     phaseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), FlangerProcessor::PHASE_ID, phaseSlider);
+    zqsfx::ui::setDoubleClickDefault(phaseSlider, audioProcessor.getValueTreeState(), FlangerProcessor::PHASE_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), FlangerProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, audioProcessor.getValueTreeState(), FlangerProcessor::MIX_ID);
     lowCutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), FlangerProcessor::LOW_CUT_ID, lowCutSlider);
+    zqsfx::ui::setDoubleClickDefault(lowCutSlider, audioProcessor.getValueTreeState(), FlangerProcessor::LOW_CUT_ID);
     highCutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), FlangerProcessor::HIGH_CUT_ID, highCutSlider);
+    zqsfx::ui::setDoubleClickDefault(highCutSlider, audioProcessor.getValueTreeState(), FlangerProcessor::HIGH_CUT_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -430,8 +438,6 @@ void FlangerEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

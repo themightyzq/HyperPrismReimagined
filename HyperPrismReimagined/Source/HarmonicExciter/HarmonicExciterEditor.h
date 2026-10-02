@@ -111,16 +111,16 @@ private:
     juce::TextButton bypassButton;
     
     // Parameter controls with ParameterLabel for right-click assignment
-    juce::Slider driveSlider;
+    zqsfx::ui::Dial driveSlider;
     ParameterLabel driveLabel;
     
-    juce::Slider frequencySlider;
+    zqsfx::ui::Dial frequencySlider;
     ParameterLabel frequencyLabel;
     
-    juce::Slider harmonicsSlider;
+    zqsfx::ui::Dial harmonicsSlider;
     ParameterLabel harmonicsLabel;
     
-    juce::Slider mixSlider;
+    zqsfx::ui::Dial mixSlider;
     ParameterLabel mixLabel;
     
     // Type selector

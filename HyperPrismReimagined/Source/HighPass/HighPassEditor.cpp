@@ -194,12 +194,16 @@ HighPassEditor::HighPassEditor(HighPassProcessor& p)
         audioProcessor.getValueTreeState(), HighPassProcessor::BYPASS_ID, bypassButton);
     frequencyAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), HighPassProcessor::FREQUENCY_ID, frequencySlider);
+    zqsfx::ui::setDoubleClickDefault(frequencySlider, audioProcessor.getValueTreeState(), HighPassProcessor::FREQUENCY_ID);
     resonanceAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), HighPassProcessor::RESONANCE_ID, resonanceSlider);
+    zqsfx::ui::setDoubleClickDefault(resonanceSlider, audioProcessor.getValueTreeState(), HighPassProcessor::RESONANCE_ID);
     gainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), HighPassProcessor::GAIN_ID, gainSlider);
+    zqsfx::ui::setDoubleClickDefault(gainSlider, audioProcessor.getValueTreeState(), HighPassProcessor::GAIN_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), HighPassProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, audioProcessor.getValueTreeState(), HighPassProcessor::MIX_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -378,8 +382,6 @@ void HighPassEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

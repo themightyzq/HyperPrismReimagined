@@ -22,7 +22,7 @@ add_subdirectory(JUCE)
 include(FetchContent)
 FetchContent_Declare(zqsfx_ui
     GIT_REPOSITORY https://github.com/themightyzq/zqsfx_ui.git
-    GIT_TAG v0.2.1
+    GIT_TAG v0.5.0
     GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(zqsfx_ui)
 
@@ -1790,5 +1790,13 @@ add_hyperprism_light_check(delay_time_check    HyperPrismMoreStereo   MoreStereo
 add_hyperprism_light_check(delay_time_check    HyperPrismQuasiStereo  QuasiStereo  QuasiStereoProcessor.h  QuasiStereoProcessor  HP_CHECK_QUASISTEREO)
 add_hyperprism_light_check(start_check         HyperPrismEcho         Echo         EchoProcessor.h         EchoProcessor         HP_CHECK_ECHO)
 add_hyperprism_light_check(pitch_latency_check HyperPrismPitchChanger PitchChanger PitchChangerProcessor.h PitchChangerProcessor HP_CHECK_PITCHCHANGER)
+
+# hp_dial_<Effect> (tools/dial_check/main.cpp): every knob bound to a parameter is a
+# zqsfx::ui::Dial (Tab focus, focus ring, arrow and Shift+arrow steps) and double-clicks back to
+# that parameter's default; every plugin. Opens the editor, so Linux CI skips it like
+# hp_label_visibility_ (.github/workflows/build.yml).
+foreach(effect IN LISTS HYPERPRISM_EFFECTS)
+    add_hyperprism_light_check(dial_check HyperPrism${effect} ${effect} ${effect}Processor.h ${effect}Processor HP_CHECK_GENERIC)
+endforeach()
 
 endif() # HP_BUILD_CHECKS

@@ -121,22 +121,22 @@ private:
     juce::TextButton bypassButton;
     
     // Parameter controls with ParameterLabel for right-click assignment
-    juce::Slider thresholdSlider;
+    zqsfx::ui::Dial thresholdSlider;
     ParameterLabel thresholdLabel;
     
-    juce::Slider attackSlider;
+    zqsfx::ui::Dial attackSlider;
     ParameterLabel attackLabel;
     
-    juce::Slider holdSlider;
+    zqsfx::ui::Dial holdSlider;
     ParameterLabel holdLabel;
     
-    juce::Slider releaseSlider;
+    zqsfx::ui::Dial releaseSlider;
     ParameterLabel releaseLabel;
     
-    juce::Slider rangeSlider;
+    zqsfx::ui::Dial rangeSlider;
     ParameterLabel rangeLabel;
     
-    juce::Slider lookaheadSlider;
+    zqsfx::ui::Dial lookaheadSlider;
     ParameterLabel lookaheadLabel;
     
     // Declared after bypassButton so it is destroyed first

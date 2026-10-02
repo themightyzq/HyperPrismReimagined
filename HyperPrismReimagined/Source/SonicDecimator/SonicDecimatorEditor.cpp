@@ -347,12 +347,16 @@ SonicDecimatorEditor::SonicDecimatorEditor(SonicDecimatorProcessor& p)
     auto& apvts = audioProcessor.getValueTreeState();
     bitDepthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, SonicDecimatorProcessor::BIT_DEPTH_ID, bitDepthSlider);
+    zqsfx::ui::setDoubleClickDefault(bitDepthSlider, apvts, SonicDecimatorProcessor::BIT_DEPTH_ID);
     sampleRateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, SonicDecimatorProcessor::SAMPLE_RATE_ID, sampleRateSlider);
+    zqsfx::ui::setDoubleClickDefault(sampleRateSlider, apvts, SonicDecimatorProcessor::SAMPLE_RATE_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, SonicDecimatorProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, apvts, SonicDecimatorProcessor::MIX_ID);
     outputLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, SonicDecimatorProcessor::OUTPUT_LEVEL_ID, outputLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(outputLevelSlider, apvts, SonicDecimatorProcessor::OUTPUT_LEVEL_ID);
     antiAliasAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         apvts, SonicDecimatorProcessor::ANTI_ALIAS_ID, antiAliasButton);
     ditherAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
@@ -544,8 +548,6 @@ void SonicDecimatorEditor::setupSlider(juce::Slider& slider, ParameterLabel& lab
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

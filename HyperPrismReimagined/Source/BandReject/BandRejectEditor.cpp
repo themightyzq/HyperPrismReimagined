@@ -194,12 +194,16 @@ BandRejectEditor::BandRejectEditor(BandRejectProcessor& p)
         audioProcessor.getValueTreeState(), BandRejectProcessor::BYPASS_ID, bypassButton);
     centerFreqAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), BandRejectProcessor::CENTER_FREQ_ID, centerFreqSlider);
+    zqsfx::ui::setDoubleClickDefault(centerFreqSlider, audioProcessor.getValueTreeState(), BandRejectProcessor::CENTER_FREQ_ID);
     qAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), BandRejectProcessor::Q_ID, qSlider);
+    zqsfx::ui::setDoubleClickDefault(qSlider, audioProcessor.getValueTreeState(), BandRejectProcessor::Q_ID);
     gainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), BandRejectProcessor::GAIN_ID, gainSlider);
+    zqsfx::ui::setDoubleClickDefault(gainSlider, audioProcessor.getValueTreeState(), BandRejectProcessor::GAIN_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), BandRejectProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, audioProcessor.getValueTreeState(), BandRejectProcessor::MIX_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -378,8 +382,6 @@ void BandRejectEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

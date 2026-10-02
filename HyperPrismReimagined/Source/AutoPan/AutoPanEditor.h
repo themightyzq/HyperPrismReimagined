@@ -125,19 +125,19 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Main controls
-    juce::Slider rateSlider;
+    zqsfx::ui::Dial rateSlider;
     ParameterLabel rateLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> rateAttachment;
     
-    juce::Slider depthSlider;
+    zqsfx::ui::Dial depthSlider;
     ParameterLabel depthLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> depthAttachment;
     
-    juce::Slider phaseSlider;
+    zqsfx::ui::Dial phaseSlider;
     ParameterLabel phaseLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> phaseAttachment;
     
-    juce::Slider outputLevelSlider;
+    zqsfx::ui::Dial outputLevelSlider;
     ParameterLabel outputLevelLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> outputLevelAttachment;
     

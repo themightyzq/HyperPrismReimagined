@@ -282,18 +282,25 @@ CompressorEditor::CompressorEditor(CompressorProcessor& p)
         audioProcessor.apvts, "bypass", bypassButton);
     thresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "threshold", thresholdSlider);
+    zqsfx::ui::setDoubleClickDefault(thresholdSlider, audioProcessor.apvts, "threshold");
     ratioAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "ratio", ratioSlider);
+    zqsfx::ui::setDoubleClickDefault(ratioSlider, audioProcessor.apvts, "ratio");
     attackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "attack", attackSlider);
+    zqsfx::ui::setDoubleClickDefault(attackSlider, audioProcessor.apvts, "attack");
     releaseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "release", releaseSlider);
+    zqsfx::ui::setDoubleClickDefault(releaseSlider, audioProcessor.apvts, "release");
     kneeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "knee", kneeSlider);
+    zqsfx::ui::setDoubleClickDefault(kneeSlider, audioProcessor.apvts, "knee");
     makeupGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "makeupGain", makeupGainSlider);
+    zqsfx::ui::setDoubleClickDefault(makeupGainSlider, audioProcessor.apvts, "makeupGain");
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.apvts, "mix", mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, audioProcessor.apvts, "mix");
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -486,8 +493,6 @@ void CompressorEditor::setupSlider(juce::Slider& slider, juce::Label& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

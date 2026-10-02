@@ -210,9 +210,13 @@ HarmonicExciterEditor::HarmonicExciterEditor(HarmonicExciterProcessor& p)
     using APVTS = juce::AudioProcessorValueTreeState;
     auto& apvts = audioProcessor.getValueTreeState();
     driveAttachment     = std::make_unique<APVTS::SliderAttachment>(apvts, DRIVE_ID, driveSlider);
+    zqsfx::ui::setDoubleClickDefault(driveSlider, apvts, DRIVE_ID);
     frequencyAttachment = std::make_unique<APVTS::SliderAttachment>(apvts, FREQUENCY_ID, frequencySlider);
+    zqsfx::ui::setDoubleClickDefault(frequencySlider, apvts, FREQUENCY_ID);
     harmonicsAttachment = std::make_unique<APVTS::SliderAttachment>(apvts, HARMONICS_ID, harmonicsSlider);
+    zqsfx::ui::setDoubleClickDefault(harmonicsSlider, apvts, HARMONICS_ID);
     mixAttachment       = std::make_unique<APVTS::SliderAttachment>(apvts, MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, apvts, MIX_ID);
     typeAttachment      = std::make_unique<APVTS::ComboBoxAttachment>(apvts, TYPE_ID, typeComboBox);
     bypassAttachment    = std::make_unique<APVTS::ButtonAttachment>(apvts, BYPASS_ID, bypassButton);
     
@@ -401,8 +405,6 @@ void HarmonicExciterEditor::setupSlider(juce::Slider& slider, ParameterLabel& la
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

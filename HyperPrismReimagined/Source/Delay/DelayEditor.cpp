@@ -216,16 +216,22 @@ DelayEditor::DelayEditor(DelayProcessor& p)
         apvts, DelayProcessor::BYPASS_ID, bypassButton);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, DelayProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, apvts, DelayProcessor::MIX_ID);
     delayTimeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, DelayProcessor::DELAY_TIME_ID, delayTimeSlider);
+    zqsfx::ui::setDoubleClickDefault(delayTimeSlider, apvts, DelayProcessor::DELAY_TIME_ID);
     feedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, DelayProcessor::FEEDBACK_ID, feedbackSlider);
+    zqsfx::ui::setDoubleClickDefault(feedbackSlider, apvts, DelayProcessor::FEEDBACK_ID);
     lowCutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, DelayProcessor::LOW_CUT_ID, lowCutSlider);
+    zqsfx::ui::setDoubleClickDefault(lowCutSlider, apvts, DelayProcessor::LOW_CUT_ID);
     highCutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, DelayProcessor::HIGH_CUT_ID, highCutSlider);
+    zqsfx::ui::setDoubleClickDefault(highCutSlider, apvts, DelayProcessor::HIGH_CUT_ID);
     stereoOffsetAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, DelayProcessor::STEREO_OFFSET_ID, stereoOffsetSlider);
+    zqsfx::ui::setDoubleClickDefault(stereoOffsetSlider, apvts, DelayProcessor::STEREO_OFFSET_ID);
     tempoSyncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         apvts, DelayProcessor::TEMPO_SYNC_ID, tempoSyncButton);
     
@@ -428,8 +434,6 @@ void DelayEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

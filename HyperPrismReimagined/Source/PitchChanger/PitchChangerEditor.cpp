@@ -350,14 +350,19 @@ PitchChangerEditor::PitchChangerEditor(PitchChangerProcessor& p)
         vts, PitchChangerProcessor::BYPASS_ID, bypassButton);
     pitchShiftAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, PitchChangerProcessor::PITCH_SHIFT_ID, pitchShiftSlider);
+    zqsfx::ui::setDoubleClickDefault(pitchShiftSlider, vts, PitchChangerProcessor::PITCH_SHIFT_ID);
     fineTuneAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, PitchChangerProcessor::FINE_TUNE_ID, fineTuneSlider);
+    zqsfx::ui::setDoubleClickDefault(fineTuneSlider, vts, PitchChangerProcessor::FINE_TUNE_ID);
     formantShiftAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, PitchChangerProcessor::FORMANT_SHIFT_ID, formantShiftSlider);
+    zqsfx::ui::setDoubleClickDefault(formantShiftSlider, vts, PitchChangerProcessor::FORMANT_SHIFT_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, PitchChangerProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, vts, PitchChangerProcessor::MIX_ID);
     outputLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, PitchChangerProcessor::OUTPUT_LEVEL_ID, outputLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(outputLevelSlider, vts, PitchChangerProcessor::OUTPUT_LEVEL_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -544,8 +549,6 @@ void PitchChangerEditor::setupSlider(juce::Slider& slider, ParameterLabel& label
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

@@ -314,16 +314,20 @@ MSMatrixEditor::MSMatrixEditor(MSMatrixProcessor& p)
         vts, MSMatrixProcessor::MATRIX_MODE_ID, matrixModeComboBox);
     midLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, MSMatrixProcessor::MID_LEVEL_ID, midLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(midLevelSlider, vts, MSMatrixProcessor::MID_LEVEL_ID);
     sideLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, MSMatrixProcessor::SIDE_LEVEL_ID, sideLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(sideLevelSlider, vts, MSMatrixProcessor::SIDE_LEVEL_ID);
     midSoloAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         vts, MSMatrixProcessor::MID_SOLO_ID, midSoloButton);
     sideSoloAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         vts, MSMatrixProcessor::SIDE_SOLO_ID, sideSoloButton);
     stereoBalanceAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, MSMatrixProcessor::STEREO_BALANCE_ID, stereoBalanceSlider);
+    zqsfx::ui::setDoubleClickDefault(stereoBalanceSlider, vts, MSMatrixProcessor::STEREO_BALANCE_ID);
     outputLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, MSMatrixProcessor::OUTPUT_LEVEL_ID, outputLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(outputLevelSlider, vts, MSMatrixProcessor::OUTPUT_LEVEL_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -529,8 +533,6 @@ void MSMatrixEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

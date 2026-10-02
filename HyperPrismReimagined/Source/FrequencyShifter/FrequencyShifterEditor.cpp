@@ -299,12 +299,16 @@ FrequencyShifterEditor::FrequencyShifterEditor(FrequencyShifterProcessor& p)
         apvts, FrequencyShifterProcessor::BYPASS_ID, bypassButton);
     frequencyShiftAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, FrequencyShifterProcessor::FREQUENCY_SHIFT_ID, frequencyShiftSlider);
+    zqsfx::ui::setDoubleClickDefault(frequencyShiftSlider, apvts, FrequencyShifterProcessor::FREQUENCY_SHIFT_ID);
     fineShiftAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, FrequencyShifterProcessor::FINE_SHIFT_ID, fineShiftSlider);
+    zqsfx::ui::setDoubleClickDefault(fineShiftSlider, apvts, FrequencyShifterProcessor::FINE_SHIFT_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, FrequencyShifterProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, apvts, FrequencyShifterProcessor::MIX_ID);
     outputLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, FrequencyShifterProcessor::OUTPUT_LEVEL_ID, outputLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(outputLevelSlider, apvts, FrequencyShifterProcessor::OUTPUT_LEVEL_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -492,8 +496,6 @@ void FrequencyShifterEditor::setupSlider(juce::Slider& slider, ParameterLabel& l
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

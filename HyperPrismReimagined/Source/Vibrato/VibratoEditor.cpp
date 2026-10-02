@@ -368,14 +368,19 @@ VibratoEditor::VibratoEditor(VibratoProcessor& p)
     auto& apvts = audioProcessor.getValueTreeState();
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, VibratoProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, apvts, VibratoProcessor::MIX_ID);
     rateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, VibratoProcessor::RATE_ID, rateSlider);
+    zqsfx::ui::setDoubleClickDefault(rateSlider, apvts, VibratoProcessor::RATE_ID);
     depthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, VibratoProcessor::DEPTH_ID, depthSlider);
+    zqsfx::ui::setDoubleClickDefault(depthSlider, apvts, VibratoProcessor::DEPTH_ID);
     delayAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, VibratoProcessor::DELAY_ID, delaySlider);
+    zqsfx::ui::setDoubleClickDefault(delaySlider, apvts, VibratoProcessor::DELAY_ID);
     feedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, VibratoProcessor::FEEDBACK_ID, feedbackSlider);
+    zqsfx::ui::setDoubleClickDefault(feedbackSlider, apvts, VibratoProcessor::FEEDBACK_ID);
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         apvts, VibratoProcessor::BYPASS_ID, bypassButton);
     
@@ -591,8 +596,6 @@ void VibratoEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

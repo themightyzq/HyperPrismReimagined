@@ -282,12 +282,16 @@ LimiterEditor::LimiterEditor(LimiterProcessor& p)
         apvts, BYPASS_ID, bypassButton);
     ceilingAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, CEILING_ID, ceilingSlider);
+    zqsfx::ui::setDoubleClickDefault(ceilingSlider, apvts, CEILING_ID);
     releaseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, RELEASE_ID, releaseSlider);
+    zqsfx::ui::setDoubleClickDefault(releaseSlider, apvts, RELEASE_ID);
     lookaheadAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, LOOKAHEAD_ID, lookaheadSlider);
+    zqsfx::ui::setDoubleClickDefault(lookaheadSlider, apvts, LOOKAHEAD_ID);
     inputGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, INPUT_GAIN_ID, inputGainSlider);
+    zqsfx::ui::setDoubleClickDefault(inputGainSlider, apvts, INPUT_GAIN_ID);
     softClipAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         apvts, SOFTCLIP_ID, softClipButton);
     
@@ -475,8 +479,6 @@ void LimiterEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

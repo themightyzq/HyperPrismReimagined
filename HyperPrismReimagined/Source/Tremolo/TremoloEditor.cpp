@@ -350,12 +350,16 @@ TremoloEditor::TremoloEditor(TremoloProcessor& p)
     auto& apvts = audioProcessor.getValueTreeState();
     rateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, TremoloProcessor::RATE_ID, rateSlider);
+    zqsfx::ui::setDoubleClickDefault(rateSlider, apvts, TremoloProcessor::RATE_ID);
     depthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, TremoloProcessor::DEPTH_ID, depthSlider);
+    zqsfx::ui::setDoubleClickDefault(depthSlider, apvts, TremoloProcessor::DEPTH_ID);
     stereoPhaseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, TremoloProcessor::STEREO_PHASE_ID, stereoPhaseSlider);
+    zqsfx::ui::setDoubleClickDefault(stereoPhaseSlider, apvts, TremoloProcessor::STEREO_PHASE_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, TremoloProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, apvts, TremoloProcessor::MIX_ID);
     waveformAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         apvts, TremoloProcessor::WAVEFORM_ID, waveformBox);
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
@@ -545,8 +549,6 @@ void TremoloEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

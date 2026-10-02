@@ -102,31 +102,31 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Main controls
-    juce::Slider mixSlider;
+    zqsfx::ui::Dial mixSlider;
     ParameterLabel mixLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mixAttachment;
     
-    juce::Slider rateSlider;
+    zqsfx::ui::Dial rateSlider;
     ParameterLabel rateLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> rateAttachment;
     
-    juce::Slider depthSlider;
+    zqsfx::ui::Dial depthSlider;
     ParameterLabel depthLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> depthAttachment;
     
-    juce::Slider feedbackSlider;
+    zqsfx::ui::Dial feedbackSlider;
     ParameterLabel feedbackLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> feedbackAttachment;
     
-    juce::Slider delaySlider;
+    zqsfx::ui::Dial delaySlider;
     ParameterLabel delayLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> delayAttachment;
     
-    juce::Slider lowCutSlider;
+    zqsfx::ui::Dial lowCutSlider;
     ParameterLabel lowCutLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> lowCutAttachment;
     
-    juce::Slider highCutSlider;
+    zqsfx::ui::Dial highCutSlider;
     ParameterLabel highCutLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> highCutAttachment;
     

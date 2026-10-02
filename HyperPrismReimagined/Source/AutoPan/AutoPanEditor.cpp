@@ -336,16 +336,20 @@ AutoPanEditor::AutoPanEditor(AutoPanProcessor& p)
         audioProcessor.getValueTreeState(), AutoPanProcessor::BYPASS_ID, bypassButton);
     rateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), AutoPanProcessor::RATE_ID, rateSlider);
+    zqsfx::ui::setDoubleClickDefault(rateSlider, audioProcessor.getValueTreeState(), AutoPanProcessor::RATE_ID);
     depthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), AutoPanProcessor::DEPTH_ID, depthSlider);
+    zqsfx::ui::setDoubleClickDefault(depthSlider, audioProcessor.getValueTreeState(), AutoPanProcessor::DEPTH_ID);
     waveformAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         audioProcessor.getValueTreeState(), AutoPanProcessor::WAVEFORM_ID, waveformComboBox);
     phaseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), AutoPanProcessor::PHASE_ID, phaseSlider);
+    zqsfx::ui::setDoubleClickDefault(phaseSlider, audioProcessor.getValueTreeState(), AutoPanProcessor::PHASE_ID);
     syncAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         audioProcessor.getValueTreeState(), AutoPanProcessor::SYNC_ID, syncButton);
     outputLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), AutoPanProcessor::OUTPUT_LEVEL_ID, outputLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(outputLevelSlider, audioProcessor.getValueTreeState(), AutoPanProcessor::OUTPUT_LEVEL_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -543,8 +547,6 @@ void AutoPanEditor::setupSlider(juce::Slider& slider, juce::Label& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

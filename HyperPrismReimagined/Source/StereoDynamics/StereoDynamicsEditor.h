@@ -127,31 +127,31 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Parameter controls with ParameterLabel for right-click assignment
-    juce::Slider midThresholdSlider;
+    zqsfx::ui::Dial midThresholdSlider;
     ParameterLabel midThresholdLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> midThresholdAttachment;
     
-    juce::Slider midRatioSlider;
+    zqsfx::ui::Dial midRatioSlider;
     ParameterLabel midRatioLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> midRatioAttachment;
     
-    juce::Slider sideThresholdSlider;
+    zqsfx::ui::Dial sideThresholdSlider;
     ParameterLabel sideThresholdLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sideThresholdAttachment;
     
-    juce::Slider sideRatioSlider;
+    zqsfx::ui::Dial sideRatioSlider;
     ParameterLabel sideRatioLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sideRatioAttachment;
     
-    juce::Slider attackTimeSlider;
+    zqsfx::ui::Dial attackTimeSlider;
     ParameterLabel attackTimeLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attackTimeAttachment;
     
-    juce::Slider releaseTimeSlider;
+    zqsfx::ui::Dial releaseTimeSlider;
     ParameterLabel releaseTimeLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> releaseTimeAttachment;
     
-    juce::Slider outputLevelSlider;
+    zqsfx::ui::Dial outputLevelSlider;
     ParameterLabel outputLevelLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> outputLevelAttachment;
     

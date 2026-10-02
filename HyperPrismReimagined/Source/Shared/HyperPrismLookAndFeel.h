@@ -1,7 +1,7 @@
 //==============================================================================
 // HyperPrism Reimagined - Look and Feel
 //
-// HyperPrism now shares the ZQ SFX house look (docs/ZQSFX_UI_STYLE_GUIDE.md, zqsfx_ui v0.2.1).
+// HyperPrism now shares the ZQ SFX house look (docs/ZQSFX_UI_STYLE_GUIDE.md, zqsfx_ui v0.5.0).
 // HyperPrismLookAndFeel is a THIN SUBCLASS of zqsfx::ui::LookAndFeel: the house LookAndFeel
 // supplies rotary knobs (CC0 filmstrips, picked by dial size), combo boxes (LCD dropdowns),
 // slider text-box readouts (LCD glass + glow), gradient buttons with accent hover/on, popups,

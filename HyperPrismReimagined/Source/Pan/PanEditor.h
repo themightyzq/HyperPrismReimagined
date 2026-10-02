@@ -124,7 +124,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     
     // Parameter controls with ParameterLabel for right-click assignment
-    juce::Slider panPositionSlider;
+    zqsfx::ui::Dial panPositionSlider;
     ParameterLabel panPositionLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> panPositionAttachment;
     
@@ -132,15 +132,15 @@ private:
     juce::Label panLawLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> panLawAttachment;
     
-    juce::Slider widthSlider;
+    zqsfx::ui::Dial widthSlider;
     ParameterLabel widthLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> widthAttachment;
     
-    juce::Slider balanceSlider;
+    zqsfx::ui::Dial balanceSlider;
     ParameterLabel balanceLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> balanceAttachment;
     
-    juce::Slider outputLevelSlider;
+    zqsfx::ui::Dial outputLevelSlider;
     ParameterLabel outputLevelLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> outputLevelAttachment;
     

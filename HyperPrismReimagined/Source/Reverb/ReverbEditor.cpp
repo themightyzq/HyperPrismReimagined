@@ -205,18 +205,25 @@ ReverbEditor::ReverbEditor(ReverbProcessor& p)
         audioProcessor.getValueTreeState(), ReverbProcessor::BYPASS_ID, bypassButton);
     roomSizeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ReverbProcessor::ROOM_SIZE_ID, roomSizeSlider);
+    zqsfx::ui::setDoubleClickDefault(roomSizeSlider, audioProcessor.getValueTreeState(), ReverbProcessor::ROOM_SIZE_ID);
     dampingAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ReverbProcessor::DAMPING_ID, dampingSlider);
+    zqsfx::ui::setDoubleClickDefault(dampingSlider, audioProcessor.getValueTreeState(), ReverbProcessor::DAMPING_ID);
     preDelayAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ReverbProcessor::PRE_DELAY_ID, preDelaySlider);
+    zqsfx::ui::setDoubleClickDefault(preDelaySlider, audioProcessor.getValueTreeState(), ReverbProcessor::PRE_DELAY_ID);
     widthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ReverbProcessor::WIDTH_ID, widthSlider);
+    zqsfx::ui::setDoubleClickDefault(widthSlider, audioProcessor.getValueTreeState(), ReverbProcessor::WIDTH_ID);
     lowCutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ReverbProcessor::LOW_CUT_ID, lowCutSlider);
+    zqsfx::ui::setDoubleClickDefault(lowCutSlider, audioProcessor.getValueTreeState(), ReverbProcessor::LOW_CUT_ID);
     highCutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ReverbProcessor::HIGH_CUT_ID, highCutSlider);
+    zqsfx::ui::setDoubleClickDefault(highCutSlider, audioProcessor.getValueTreeState(), ReverbProcessor::HIGH_CUT_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ReverbProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, audioProcessor.getValueTreeState(), ReverbProcessor::MIX_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -422,8 +429,6 @@ void ReverbEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

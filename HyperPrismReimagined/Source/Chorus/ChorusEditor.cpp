@@ -203,18 +203,25 @@ ChorusEditor::ChorusEditor(ChorusProcessor& p)
         audioProcessor.getValueTreeState(), ChorusProcessor::BYPASS_ID, bypassButton);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ChorusProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, audioProcessor.getValueTreeState(), ChorusProcessor::MIX_ID);
     rateAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ChorusProcessor::RATE_ID, rateSlider);
+    zqsfx::ui::setDoubleClickDefault(rateSlider, audioProcessor.getValueTreeState(), ChorusProcessor::RATE_ID);
     depthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ChorusProcessor::DEPTH_ID, depthSlider);
+    zqsfx::ui::setDoubleClickDefault(depthSlider, audioProcessor.getValueTreeState(), ChorusProcessor::DEPTH_ID);
     feedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ChorusProcessor::FEEDBACK_ID, feedbackSlider);
+    zqsfx::ui::setDoubleClickDefault(feedbackSlider, audioProcessor.getValueTreeState(), ChorusProcessor::FEEDBACK_ID);
     delayAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ChorusProcessor::DELAY_ID, delaySlider);
+    zqsfx::ui::setDoubleClickDefault(delaySlider, audioProcessor.getValueTreeState(), ChorusProcessor::DELAY_ID);
     lowCutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ChorusProcessor::LOW_CUT_ID, lowCutSlider);
+    zqsfx::ui::setDoubleClickDefault(lowCutSlider, audioProcessor.getValueTreeState(), ChorusProcessor::LOW_CUT_ID);
     highCutAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), ChorusProcessor::HIGH_CUT_ID, highCutSlider);
+    zqsfx::ui::setDoubleClickDefault(highCutSlider, audioProcessor.getValueTreeState(), ChorusProcessor::HIGH_CUT_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -408,8 +415,6 @@ void ChorusEditor::setupSlider(juce::Slider& slider, juce::Label& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

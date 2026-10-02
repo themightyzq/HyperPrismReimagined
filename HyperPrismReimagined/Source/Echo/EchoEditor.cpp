@@ -187,10 +187,13 @@ EchoEditor::EchoEditor(EchoProcessor& p)
         audioProcessor.getValueTreeState(), EchoProcessor::BYPASS_ID, bypassButton);
     delayAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), EchoProcessor::DELAY_ID, delaySlider);
+    zqsfx::ui::setDoubleClickDefault(delaySlider, audioProcessor.getValueTreeState(), EchoProcessor::DELAY_ID);
     feedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), EchoProcessor::FEEDBACK_ID, feedbackSlider);
+    zqsfx::ui::setDoubleClickDefault(feedbackSlider, audioProcessor.getValueTreeState(), EchoProcessor::FEEDBACK_ID);
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         audioProcessor.getValueTreeState(), EchoProcessor::MIX_ID, mixSlider);
+    zqsfx::ui::setDoubleClickDefault(mixSlider, audioProcessor.getValueTreeState(), EchoProcessor::MIX_ID);
     
     // Setup XY Pad
     addAndMakeVisible(xyPad);
@@ -373,8 +376,6 @@ void EchoEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

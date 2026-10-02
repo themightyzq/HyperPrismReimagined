@@ -233,6 +233,15 @@ NoiseGateEditor::NoiseGateEditor(NoiseGateProcessor& p)
     releaseSlider.setRange(1.0, 5000.0, 1.0);
     rangeSlider.setRange(0.0, 60.0, 0.1);
     lookaheadSlider.setRange(0.0, 10.0, 0.1);
+
+    // Double-click returns each knob to its parameter's default (these knobs drive the
+    // parameter pointers directly, so there is no attachment to follow).
+    zqsfx::ui::setDoubleClickDefault(thresholdSlider, *audioProcessor.threshold);
+    zqsfx::ui::setDoubleClickDefault(attackSlider, *audioProcessor.attack);
+    zqsfx::ui::setDoubleClickDefault(holdSlider, *audioProcessor.hold);
+    zqsfx::ui::setDoubleClickDefault(releaseSlider, *audioProcessor.release);
+    zqsfx::ui::setDoubleClickDefault(rangeSlider, *audioProcessor.range);
+    zqsfx::ui::setDoubleClickDefault(lookaheadSlider, *audioProcessor.lookahead);
     
     // Connect sliders to parameters
     thresholdSlider.onValueChange = [this] { 
@@ -500,8 +509,6 @@ void NoiseGateEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

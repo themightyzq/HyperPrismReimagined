@@ -109,8 +109,8 @@ jobs:
       # The check tools (state, presets, oversampling, real-time allocation, smoothing,
       # crossover, lookahead, ...) are console apps built by the step above, on macOS and
       # Linux. Windows skips them (HP_BUILD_CHECKS=OFF) to stay inside the job time limit.
-      # label_visibility opens a native editor window; Xlib aborts it under xvfb (BadAtom on
-      # a window property), so Linux leaves that one UI check to macOS.
+      # label_visibility and dial open a native editor; Xlib aborts that under xvfb (BadAtom on
+      # a window property), so Linux leaves those UI checks to macOS.
       - name: Run checks (macOS)
         if: matrix.os == 'macos-latest'
         shell: bash
@@ -118,7 +118,7 @@ jobs:
 
       - name: Run checks (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: xvfb-run -a ctest --test-dir HyperPrismReimagined/build -C Release --output-on-failure -E "^hp_label_visibility_"
+        run: xvfb-run -a ctest --test-dir HyperPrismReimagined/build -C Release --output-on-failure -E "^(hp_label_visibility_|hp_dial_)"
 
       - name: Verify Universal Binary (macOS)
         if: matrix.os == 'macos-latest'

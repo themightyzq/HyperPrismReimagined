@@ -363,20 +363,26 @@ MultiDelayEditor::MultiDelayEditor(MultiDelayProcessor& p)
         vts, MultiDelayProcessor::BYPASS_ID, bypassButton);
     masterMixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, MultiDelayProcessor::MASTER_MIX_ID, masterMixSlider);
+    zqsfx::ui::setDoubleClickDefault(masterMixSlider, vts, MultiDelayProcessor::MASTER_MIX_ID);
     globalFeedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         vts, MultiDelayProcessor::GLOBAL_FEEDBACK_ID, globalFeedbackSlider);
+    zqsfx::ui::setDoubleClickDefault(globalFeedbackSlider, vts, MultiDelayProcessor::GLOBAL_FEEDBACK_ID);
     
     // Create delay attachments
     for (int i = 0; i < 4; ++i)
     {
         delayTimeAttachments[static_cast<size_t>(i)] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
             vts, delayIds[static_cast<size_t>(i)][0], delayTimeSliders[static_cast<size_t>(i)]);
+        zqsfx::ui::setDoubleClickDefault(delayTimeSliders[static_cast<size_t>(i)], vts, delayIds[static_cast<size_t>(i)][0]);
         delayLevelAttachments[static_cast<size_t>(i)] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
             vts, delayIds[static_cast<size_t>(i)][1], delayLevelSliders[static_cast<size_t>(i)]);
+        zqsfx::ui::setDoubleClickDefault(delayLevelSliders[static_cast<size_t>(i)], vts, delayIds[static_cast<size_t>(i)][1]);
         delayPanAttachments[static_cast<size_t>(i)] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
             vts, delayIds[static_cast<size_t>(i)][2], delayPanSliders[static_cast<size_t>(i)]);
+        zqsfx::ui::setDoubleClickDefault(delayPanSliders[static_cast<size_t>(i)], vts, delayIds[static_cast<size_t>(i)][2]);
         delayFeedbackAttachments[static_cast<size_t>(i)] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
             vts, delayIds[static_cast<size_t>(i)][3], delayFeedbackSliders[static_cast<size_t>(i)]);
+        zqsfx::ui::setDoubleClickDefault(delayFeedbackSliders[static_cast<size_t>(i)], vts, delayIds[static_cast<size_t>(i)][3]);
     }
     
     // Setup XY Pad
@@ -654,8 +660,6 @@ void MultiDelayEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
 
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
 
     label.setText(text, juce::dontSendNotification);

@@ -130,30 +130,30 @@ private:
     void selectTap(int tapIndex);
 
     // Global controls with ParameterLabel for right-click assignment
-    juce::Slider masterMixSlider;
+    zqsfx::ui::Dial masterMixSlider;
     ParameterLabel masterMixLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> masterMixAttachment;
     
-    juce::Slider globalFeedbackSlider;
+    zqsfx::ui::Dial globalFeedbackSlider;
     ParameterLabel globalFeedbackLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> globalFeedbackAttachment;
     
     // Delay controls (4 sets) - compact layout
     std::array<juce::Label, 4> delayGroupLabels;
     
-    std::array<juce::Slider, 4> delayTimeSliders;
+    std::array<zqsfx::ui::Dial, 4> delayTimeSliders;
     std::array<ParameterLabel, 4> delayTimeLabels;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 4> delayTimeAttachments;
     
-    std::array<juce::Slider, 4> delayLevelSliders;
+    std::array<zqsfx::ui::Dial, 4> delayLevelSliders;
     std::array<ParameterLabel, 4> delayLevelLabels;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 4> delayLevelAttachments;
     
-    std::array<juce::Slider, 4> delayPanSliders;
+    std::array<zqsfx::ui::Dial, 4> delayPanSliders;
     std::array<ParameterLabel, 4> delayPanLabels;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 4> delayPanAttachments;
     
-    std::array<juce::Slider, 4> delayFeedbackSliders;
+    std::array<zqsfx::ui::Dial, 4> delayFeedbackSliders;
     std::array<ParameterLabel, 4> delayFeedbackLabels;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 4> delayFeedbackAttachments;
     

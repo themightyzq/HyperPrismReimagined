@@ -132,19 +132,19 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> matrixModeAttachment;
     
     // Parameter controls with ParameterLabel for right-click assignment
-    juce::Slider midLevelSlider;
+    zqsfx::ui::Dial midLevelSlider;
     ParameterLabel midLevelLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> midLevelAttachment;
     
-    juce::Slider sideLevelSlider;
+    zqsfx::ui::Dial sideLevelSlider;
     ParameterLabel sideLevelLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> sideLevelAttachment;
     
-    juce::Slider stereoBalanceSlider;
+    zqsfx::ui::Dial stereoBalanceSlider;
     ParameterLabel stereoBalanceLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> stereoBalanceAttachment;
     
-    juce::Slider outputLevelSlider;
+    zqsfx::ui::Dial outputLevelSlider;
     ParameterLabel outputLevelLabel;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> outputLevelAttachment;
     

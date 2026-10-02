@@ -411,12 +411,16 @@ TubeTapeSaturationEditor::TubeTapeSaturationEditor(TubeTapeSaturationProcessor& 
     auto& apvts = audioProcessor.getValueTreeState();
     driveAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, TubeTapeSaturationProcessor::DRIVE_ID, driveSlider);
+    zqsfx::ui::setDoubleClickDefault(driveSlider, apvts, TubeTapeSaturationProcessor::DRIVE_ID);
     warmthAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, TubeTapeSaturationProcessor::WARMTH_ID, warmthSlider);
+    zqsfx::ui::setDoubleClickDefault(warmthSlider, apvts, TubeTapeSaturationProcessor::WARMTH_ID);
     brightnessAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, TubeTapeSaturationProcessor::BRIGHTNESS_ID, brightnessSlider);
+    zqsfx::ui::setDoubleClickDefault(brightnessSlider, apvts, TubeTapeSaturationProcessor::BRIGHTNESS_ID);
     outputLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, TubeTapeSaturationProcessor::OUTPUT_LEVEL_ID, outputLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(outputLevelSlider, apvts, TubeTapeSaturationProcessor::OUTPUT_LEVEL_ID);
     typeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
         apvts, TubeTapeSaturationProcessor::TYPE_ID, typeComboBox);
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
@@ -615,8 +619,6 @@ void TubeTapeSaturationEditor::setupSlider(juce::Slider& slider, ParameterLabel&
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);

@@ -453,14 +453,19 @@ VocoderEditor::VocoderEditor(VocoderProcessor& p)
     auto& apvts = audioProcessor.getValueTreeState();
     carrierFreqAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, VocoderProcessor::CARRIER_FREQ_ID, carrierFreqSlider);
+    zqsfx::ui::setDoubleClickDefault(carrierFreqSlider, apvts, VocoderProcessor::CARRIER_FREQ_ID);
     modulatorGainAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, VocoderProcessor::MODULATOR_GAIN_ID, modulatorGainSlider);
+    zqsfx::ui::setDoubleClickDefault(modulatorGainSlider, apvts, VocoderProcessor::MODULATOR_GAIN_ID);
     bandCountAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, VocoderProcessor::BAND_COUNT_ID, bandCountSlider);
+    zqsfx::ui::setDoubleClickDefault(bandCountSlider, apvts, VocoderProcessor::BAND_COUNT_ID);
     releaseTimeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, VocoderProcessor::RELEASE_TIME_ID, releaseTimeSlider);
+    zqsfx::ui::setDoubleClickDefault(releaseTimeSlider, apvts, VocoderProcessor::RELEASE_TIME_ID);
     outputLevelAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         apvts, VocoderProcessor::OUTPUT_LEVEL_ID, outputLevelSlider);
+    zqsfx::ui::setDoubleClickDefault(outputLevelSlider, apvts, VocoderProcessor::OUTPUT_LEVEL_ID);
     bypassAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
         apvts, VocoderProcessor::BYPASS_ID, bypassButton);
     
@@ -661,8 +666,6 @@ void VocoderEditor::setupSlider(juce::Slider& slider, ParameterLabel& label,
         
     addAndMakeVisible(slider);
     slider.setTitle(text);
-    slider.setWantsKeyboardFocus(true);
-    slider.setHasFocusOutline(true);
     slider.setMouseClickGrabsKeyboardFocus(false);
     
     label.setText(text, juce::dontSendNotification);
